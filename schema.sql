@@ -103,6 +103,18 @@ create table if not exists member_history (
 );
 
 
+-- Commission rates per stylist per service
+create table if not exists commissions (
+  salon_id text references salons(id) on delete cascade,
+  stylist  text not null,
+  service  text not null,
+  rate     numeric default 0,
+  primary key (salon_id, stylist, service)
+);
+
+-- Add commissions to existing DB (run if table doesn't exist yet)
+alter table commissions add column if not exists rate numeric default 0;
+
 -- ============================================================
 -- SUBSCRIPTION COLUMNS (run if tables already exist)
 -- ============================================================

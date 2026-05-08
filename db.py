@@ -127,6 +127,44 @@ def db_set_stylists(salon_id: str, names: list):
 
 
 # ═════════════════════════════════════════════════════════════════════════════
+# COMMISSIONS
+# ═════════════════════════════════════════════════════════════════════════════
+
+def db_get_commissions(salon_id: str) -> dict:
+    """Return nested dict {stylist: {service: rate}}."""
+    res = _sb().table("commissions").select("*").eq("salon_id", salon_id).execute()
+    result = {}
+    for row in (res.data or []):
+        st_name = row["stylist"]
+        svc     = row["service"]
+        rate    = float(row.get("rate") or 0)
+        result.setdefault(st_name, {})[svc] = rate
+    return result
+
+
+def db_set_commission(salon_id: str, stylist: str, service: str, rate: float):
+    """Upsert a single commission rate."""
+    _sb().table("commissions").upsert({
+        "salon_id": salon_id,
+        "stylist":  stylist,
+        "service":  service,
+        "rate":     rate,
+    }, on_conflict="salon_id,stylist,service").execute()
+
+
+def db_save_commissions(salon_id: str, rates: dict):
+    """Save all commission rates for a salon (rates = {stylist: {service: rate}})."""
+    rows = []
+    for stylist, svcs in rates.items():
+        for svc, rate in svcs.items():
+            rows.append({"salon_id": salon_id, "stylist": stylist,
+                         "service": svc, "rate": float(rate)})
+    _sb().table("commissions").delete().eq("salon_id", salon_id).execute()
+    if rows:
+        _sb().table("commissions").insert(rows).execute()
+
+
+# ═════════════════════════════════════════════════════════════════════════════
 # BOOKINGS
 # ═════════════════════════════════════════════════════════════════════════════
 
@@ -275,11 +313,12 @@ def db_delete_member(member_id: str):
 def db_load_salon(salon_id: str) -> dict:
     """Load all data for a salon into a dict."""
     return {
-        "stylists":  db_get_stylists(salon_id),
-        "bookings":  db_get_bookings(salon_id),
-        "walkins":   db_get_walkins(salon_id),
-        "inventory": db_get_inventory(salon_id),
-        "members":   db_get_members(salon_id),
+        "stylists":    db_get_stylists(salon_id),
+        "bookings":    db_get_bookings(salon_id),
+        "walkins":     db_get_walkins(salon_id),
+        "inventory":   db_get_inventory(salon_id),
+        "members":     db_get_members(salon_id),
+        "commissions": db_get_commissions(salon_id),
     }
 
 

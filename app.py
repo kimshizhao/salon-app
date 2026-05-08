@@ -17,6 +17,7 @@ try:
         db_confirm_booking, db_cancel_booking,
         db_update_salon_subscription, db_activate_trial,
         db_update_salon_contact, db_get_salon_info,
+        db_save_commissions, db_get_commissions,
     )
     _USE_DB = "SUPABASE_URL" in st.secrets and st.secrets["SUPABASE_URL"] != "https://YOUR_PROJECT_ID.supabase.co"
 except Exception:
@@ -277,6 +278,17 @@ SERVICES = {
     "en": {"Haircut": 50, "Hair Coloring": 180, "Scalp Treatment": 120,
            "Perm": 250, "Keratin Treatment": 350, "Scalp SPA": 100},
 }
+# Canonical service names (ZH <-> EN mapping)
+SVC_ZH_EN = {"剪髮":"Haircut","染髮":"Hair Coloring","頭皮護理":"Scalp Treatment",
+              "燙髮":"Perm","角蛋白護理":"Keratin Treatment","頭皮SPA":"Scalp SPA"}
+SVC_EN_ZH = {v: k for k, v in SVC_ZH_EN.items()}
+SVC_ALL_ZH = list(SVC_ZH_EN.keys())  # canonical service name list
+
+def _canonical_svc(svc: str) -> str:
+    """Normalise a service name to ZH canonical form."""
+    if svc in SVC_ZH_EN:
+        return svc
+    return SVC_EN_ZH.get(svc, svc)
 CATS  = {"zh": ["造型品","定型噴霧","染髮劑","護髮品","漂髮","頭皮護理"],
          "en": ["Styling","Setting Spray","Hair Color","Hair Care","Bleach","Scalp Care"]}
 UNITS = {"zh": ["瓶","管","盒","罐","組"], "en": ["bottle","tube","box","can","set"]}
@@ -343,6 +355,7 @@ UI = {
         "sty_remove":    "移除",
         "sty_view_sched":"📅 排班",
         "sty_view_perf": "📊 業績",
+        "sty_view_comm": "💰 抽成設定",
         "perf_title":    "📊 業績排行",
         "perf_today_rev":"今日業績",
         "perf_total_rev":"累計業績",
@@ -351,6 +364,24 @@ UI = {
         "perf_avg":      "平均客單價",
         "perf_rank":     "排行",
         "perf_no_data":  "尚無業績記錄（未有結帳數據）",
+        "comm_title":    "💰 抽成比例設定",
+        "comm_desc":     "為每位髮型師的每種服務設定抽成百分比（%）",
+        "comm_save":     "儲存抽成設定",
+        "comm_saved":    "✦ 抽成設定已儲存",
+        "comm_svc":      "服務",
+        "comm_rate":     "比例 (%)",
+        "comm_no_sty":   "請先在左側新增髮型師",
+        "comm_report_title": "💰 抽成報表",
+        "comm_stylist":  "髮型師",
+        "comm_service":  "服務",
+        "comm_revenue":  "業績收入",
+        "comm_rate_col": "抽成 %",
+        "comm_amount":   "抽成金額",
+        "comm_subtotal": "小計",
+        "comm_grand":    "合計",
+        "comm_period":   "報表期間",
+        "comm_export":   "匯出抽成報表 (Excel)",
+        "comm_no_data":  "所選期間沒有已結帳記錄",
         # Payment
         "pay_title":     "💳 今日收費",
         "stat_paid":     "已收款",
@@ -404,6 +435,7 @@ UI = {
         "settle_title":   "📊 結算報告",
         "settle_mode_day":  "📅 每日結算",
         "settle_mode_mth":  "📆 每月結算",
+        "settle_mode_comm": "💰 抽成報表",
         "settle_date":    "選擇結算日期",
         "settle_month":   "選擇月份",
         "settle_mth_title":"📆 每月結算報告",
@@ -541,6 +573,7 @@ UI = {
         "sty_remove":    "Remove",
         "sty_view_sched":"📅 Schedule",
         "sty_view_perf": "📊 Performance",
+        "sty_view_comm": "💰 Commission Rates",
         "perf_title":    "📊 Performance Ranking",
         "perf_today_rev":"Today's Revenue",
         "perf_total_rev":"Total Revenue",
@@ -549,6 +582,24 @@ UI = {
         "perf_avg":      "Avg. Per Client",
         "perf_rank":     "Rank",
         "perf_no_data":  "No performance data yet (no completed payments)",
+        "comm_title":    "💰 Commission Rate Settings",
+        "comm_desc":     "Set the commission percentage (%) for each stylist per service",
+        "comm_save":     "Save Commission Rates",
+        "comm_saved":    "✦ Commission rates saved",
+        "comm_svc":      "Service",
+        "comm_rate":     "Rate (%)",
+        "comm_no_sty":   "Please add stylists on the left first",
+        "comm_report_title": "💰 Commission Report",
+        "comm_stylist":  "Stylist",
+        "comm_service":  "Service",
+        "comm_revenue":  "Revenue",
+        "comm_rate_col": "Commission %",
+        "comm_amount":   "Commission",
+        "comm_subtotal": "Subtotal",
+        "comm_grand":    "Grand Total",
+        "comm_period":   "Report Period",
+        "comm_export":   "Export Commission Report (Excel)",
+        "comm_no_data":  "No completed payments in selected period",
         "pay_title":     "💳 Payment",
         "stat_paid":     "Collected",
         "stat_pending":  "Pending",
@@ -600,6 +651,7 @@ UI = {
         "settle_title":   "📊 Settlement Report",
         "settle_mode_day":  "📅 Daily",
         "settle_mode_mth":  "📆 Monthly",
+        "settle_mode_comm": "💰 Commission",
         "settle_date":    "Select Date",
         "settle_month":   "Select Month",
         "settle_mth_title":"📆 Monthly Settlement Report",
@@ -784,10 +836,11 @@ def _init_branch(bid: str):
     bd = st.session_state.setdefault("branch_data", {})
     if bid not in bd:
         bd[bid] = {
-            "stylists":  ["Kim", "Lily", "Jason"],
-            "bookings":  [],
-            "walkins":   [],
-            "members":   [],
+            "stylists":    ["Kim", "Lily", "Jason"],
+            "bookings":    [],
+            "walkins":     [],
+            "members":     [],
+            "commissions": {},
             "inventory": [
                 {"name":"OSiS+ Dust It",        "category":"造型品",   "qty":14,"max":30,"unit":"瓶"},
                 {"name":"OSiS+ Freeze",          "category":"定型噴霧","qty":7, "max":24,"unit":"瓶"},
@@ -810,11 +863,12 @@ def _bd():
 def _sync_ss():
     """Sync top-level session state aliases to current branch."""
     bd = _bd()
-    st.session_state.stylists   = bd["stylists"]
-    st.session_state.bookings   = bd["bookings"]
-    st.session_state.walkins    = bd["walkins"]
-    st.session_state.members    = bd["members"]
-    st.session_state.inventory  = bd["inventory"]
+    st.session_state.stylists    = bd["stylists"]
+    st.session_state.bookings    = bd["bookings"]
+    st.session_state.walkins     = bd["walkins"]
+    st.session_state.members     = bd["members"]
+    st.session_state.inventory   = bd["inventory"]
+    st.session_state.commissions = bd.setdefault("commissions", {})
 
 if "sel_member_id" not in st.session_state: st.session_state.sel_member_id = None
 if "sel_receipt"   not in st.session_state: st.session_state.sel_receipt   = None
@@ -1318,7 +1372,7 @@ with tab2:
     with col_right_sty:
         today_str_sty = str(dt_date.today())
         view_mode = st.radio(
-            "view", [u("sty_view_sched"), u("sty_view_perf")],
+            "view", [u("sty_view_sched"), u("sty_view_perf"), u("sty_view_comm")],
             horizontal=True, key="sty_view", label_visibility="collapsed",
         )
 
@@ -1370,6 +1424,64 @@ with tab2:
                                         unsafe_allow_html=True,
                                     )
                             st.markdown("</div>", unsafe_allow_html=True)
+
+        # ════════════════════════════════════════════════════════════════════
+        # COMMISSION RATE EDITOR
+        # ════════════════════════════════════════════════════════════════════
+        elif view_mode == u("sty_view_comm"):
+            st.markdown(f'<p class="card-title">{u("comm_title")}</p>', unsafe_allow_html=True)
+            st.markdown(f'<p style="color:#888;font-size:0.82rem;margin-bottom:1rem;">{u("comm_desc")}</p>',
+                        unsafe_allow_html=True)
+            stylists_list = st.session_state.stylists
+            if not stylists_list:
+                st.info(u("comm_no_sty"))
+            else:
+                comm_data = st.session_state.commissions
+                is_zh = (st.session_state.lang == "zh")
+
+                # Build a DataFrame for the rate editor
+                svc_labels = {z: (z if is_zh else SVC_ZH_EN[z]) for z in SVC_ALL_ZH}
+                rows = []
+                for sty in stylists_list:
+                    row = {"髮型師 / Stylist": sty}
+                    sty_rates = comm_data.get(sty, {})
+                    for zh_svc, label in svc_labels.items():
+                        row[label] = float(sty_rates.get(zh_svc, 0))
+                    rows.append(row)
+
+                import pandas as _pd_comm
+                df_comm = _pd_comm.DataFrame(rows)
+                col_config_comm = {"髮型師 / Stylist": st.column_config.TextColumn(disabled=True, width="medium")}
+                for label in svc_labels.values():
+                    col_config_comm[label] = st.column_config.NumberColumn(
+                        label, min_value=0, max_value=100, step=1, format="%.0f%%", width="small"
+                    )
+
+                edited_comm = st.data_editor(
+                    df_comm,
+                    use_container_width=True,
+                    hide_index=True,
+                    num_rows="fixed",
+                    column_config=col_config_comm,
+                    key="comm_editor",
+                )
+
+                if st.button(u("comm_save"), key="save_comm_btn", type="primary"):
+                    new_rates = {}
+                    for _, row in edited_comm.iterrows():
+                        sty = row["髮型師 / Stylist"]
+                        new_rates[sty] = {}
+                        for zh_svc, label in svc_labels.items():
+                            new_rates[sty][zh_svc] = float(row.get(label, 0) or 0)
+                    st.session_state.commissions = new_rates
+                    _bd()["commissions"] = new_rates
+                    if _USE_DB:
+                        try:
+                            db_save_commissions(st.session_state.cur_branch, new_rates)
+                        except Exception:
+                            pass
+                    st.success(u("comm_saved"))
+                    st.rerun()
 
         # ════════════════════════════════════════════════════════════════════
         # PERFORMANCE VIEW
@@ -2198,10 +2310,11 @@ with tab5:
 
         # Mode toggle
         settle_mode = st.radio(
-            "settle_mode", [u("settle_mode_day"), u("settle_mode_mth")],
+            "settle_mode", [u("settle_mode_day"), u("settle_mode_mth"), u("settle_mode_comm")],
             horizontal=True, key="settle_mode_radio", label_visibility="collapsed",
         )
-        is_monthly = (settle_mode == u("settle_mode_mth"))
+        is_monthly   = (settle_mode == u("settle_mode_mth"))
+        is_comm_mode = (settle_mode == u("settle_mode_comm"))
         st.markdown("<div style='height:6px'></div>", unsafe_allow_html=True)
     
         # ════════════════════════════════════════════════════════════════════════
@@ -2498,7 +2611,159 @@ with tab5:
                     _render_sty_panel(df_sty_m)
                 with mr_col:
                     _render_right_panels(df_svc_m, df_mth_m, mth_collected)
-    
+
+        # ════════════════════════════════════════════════════════════════════════
+        # COMMISSION REPORT MODE
+        # ════════════════════════════════════════════════════════════════════════
+        if is_comm_mode:
+            st.markdown(f'<p class="card-title">{u("comm_report_title")}</p>', unsafe_allow_html=True)
+            is_zh = (st.session_state.lang == "zh")
+
+            # Date range selector
+            cr1, cr2, cr3 = st.columns([1, 1, 1.5])
+            with cr1:
+                comm_start = st.date_input(
+                    "開始日期" if is_zh else "From", value=dt_date.today().replace(day=1),
+                    key="comm_start_date")
+            with cr2:
+                comm_end = st.date_input(
+                    "結束日期" if is_zh else "To", value=dt_date.today(),
+                    key="comm_end_date")
+
+            comm_start_s = str(comm_start)
+            comm_end_s   = str(comm_end)
+
+            # Gather all paid bookings and walk-ins in range
+            def _in_range(d):
+                return comm_start_s <= str(d) <= comm_end_s
+
+            range_paid    = [b for b in st.session_state.bookings
+                             if b.get("paid") and _in_range(b.get("date",""))]
+            range_walkins = [w for w in st.session_state.walkins
+                             if _in_range(w.get("date",""))]
+            comm_rates    = st.session_state.commissions
+
+            # Build per-stylist per-service breakdown
+            def _comm_rows():
+                """Return list of row dicts for commission table."""
+                from collections import defaultdict
+                # Map (stylist, canonical_svc) -> revenue
+                rev_map = defaultdict(float)
+                all_stylists = set()
+                for b in range_paid:
+                    sty  = b.get("stylist","") or ("—" if is_zh else "—")
+                    svc  = _canonical_svc(b.get("service",""))
+                    amt  = float(b.get("final", b.get("price", 0)) or 0)
+                    rev_map[(sty, svc)] += amt
+                    all_stylists.add(sty)
+                for w in range_walkins:
+                    sty  = w.get("stylist","") or ("—" if is_zh else "—")
+                    svc  = _canonical_svc(w.get("service",""))
+                    amt  = float(w.get("final", 0) or 0)
+                    rev_map[(sty, svc)] += amt
+                    all_stylists.add(sty)
+
+                rows_out = []
+                grand_rev = 0.0
+                grand_comm = 0.0
+                for sty in sorted(all_stylists):
+                    sty_rev   = 0.0
+                    sty_comm  = 0.0
+                    sty_rates = comm_rates.get(sty, {})
+                    for zh_svc in SVC_ALL_ZH:
+                        rev = rev_map.get((sty, zh_svc), 0.0)
+                        if rev == 0:
+                            continue
+                        rate   = float(sty_rates.get(zh_svc, 0) or 0)
+                        earned = rev * rate / 100
+                        label  = zh_svc if is_zh else SVC_ZH_EN.get(zh_svc, zh_svc)
+                        rows_out.append({
+                            u("comm_stylist"): sty,
+                            u("comm_service"): label,
+                            u("comm_revenue"): round(rev, 2),
+                            u("comm_rate_col"): f"{rate:.0f}%",
+                            u("comm_amount"):  round(earned, 2),
+                        })
+                        sty_rev  += rev
+                        sty_comm += earned
+                    # Subtotal row per stylist
+                    if sty_rev:
+                        rows_out.append({
+                            u("comm_stylist"): sty,
+                            u("comm_service"): ("── " + ("小計" if is_zh else "Subtotal")),
+                            u("comm_revenue"): round(sty_rev, 2),
+                            u("comm_rate_col"): "—",
+                            u("comm_amount"):  round(sty_comm, 2),
+                        })
+                    grand_rev  += sty_rev
+                    grand_comm += sty_comm
+                # Grand total
+                rows_out.append({
+                    u("comm_stylist"): "TOTAL",
+                    u("comm_service"): "",
+                    u("comm_revenue"): round(grand_rev, 2),
+                    u("comm_rate_col"): "—",
+                    u("comm_amount"):  round(grand_comm, 2),
+                })
+                return rows_out, grand_rev, grand_comm
+
+            comm_rows_data, grand_rev, grand_comm = _comm_rows()
+
+            if len(comm_rows_data) <= 1:
+                st.markdown(f'<div class="alert-warn">{u("comm_no_data")}</div>',
+                            unsafe_allow_html=True)
+            else:
+                # Summary stats
+                cs1, cs2, cs3 = st.columns(3, gap="medium")
+                for col, (lbl, val, cl) in zip([cs1, cs2, cs3], [
+                    (("總業績" if is_zh else "Total Revenue"), f"RM {grand_rev:.2f}", "#c9a84c"),
+                    (("總抽成" if is_zh else "Total Commission"), f"RM {grand_comm:.2f}", "#2ecc71"),
+                    (("報表期間" if is_zh else "Period"),
+                     f"{comm_start_s} → {comm_end_s}", "#3498db"),
+                ]):
+                    with col:
+                        st.markdown(
+                            f'<div class="stat-box"><div class="stat-val" style="color:{cl};font-size:1.1rem;">'
+                            f'{val}</div><div class="stat-lbl">{lbl}</div></div>',
+                            unsafe_allow_html=True)
+
+                st.markdown("<div style='height:10px'></div>", unsafe_allow_html=True)
+
+                df_comm_report = pd.DataFrame(comm_rows_data)
+
+                # Highlight total rows
+                def _style_comm(row):
+                    svc_val = str(row.get(u("comm_service"), ""))
+                    if row.get(u("comm_stylist")) == "TOTAL":
+                        return ["background-color:#2c2000;color:#f5e19a;font-weight:bold"] * len(row)
+                    if "小計" in svc_val or "Subtotal" in svc_val:
+                        return ["background-color:#1a1a0a;color:#c9a84c;font-style:italic"] * len(row)
+                    return [""] * len(row)
+
+                styled_df = df_comm_report.style.apply(_style_comm, axis=1)
+                st.dataframe(styled_df, use_container_width=True, hide_index=True)
+
+                # Excel export
+                def _build_comm_excel():
+                    out = io.BytesIO()
+                    with pd.ExcelWriter(out, engine="openpyxl") as writer:
+                        df_comm_report.to_excel(writer, sheet_name=("抽成報表" if is_zh else "Commission"), index=False)
+                        ws = writer.sheets[("抽成報表" if is_zh else "Commission")]
+                        for col_cells in ws.columns:
+                            ml = max((len(str(c.value)) for c in col_cells if c.value), default=10)
+                            ws.column_dimensions[col_cells[0].column_letter].width = min(ml + 4, 40)
+                    return out.getvalue()
+
+                with cr3:
+                    st.markdown("<div style='height:28px'></div>", unsafe_allow_html=True)
+                    st.download_button(
+                        label=u("comm_export"),
+                        data=_build_comm_excel(),
+                        file_name=f"Commission_{comm_start_s}_{comm_end_s}.xlsx",
+                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                        key="comm_excel_dl",
+                    )
+
     # ═════════════════════════════════════════════════════════════════════════════
     # TAB 6 — MEMBERS
     # ═════════════════════════════════════════════════════════════════════════════
