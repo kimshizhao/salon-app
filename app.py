@@ -1047,13 +1047,22 @@ with hdr_l:
 with hdr_r:
     st.markdown("<div style='height:10px'></div>", unsafe_allow_html=True)
     role_icon = {"admin":"🔴","owner":"👑","manager":"💼","staff":"✂️"}.get(st.session_state.role,"👤")
+    # Override button style for narrow header buttons
+    st.markdown("""<style>
+    div[data-testid="stHorizontalBlock"] .stButton>button {
+        letter-spacing:0.5px !important; font-size:0.78rem !important;
+        padding:0.55rem 0.6rem !important; text-transform:none !important;
+    }
+    </style>""", unsafe_allow_html=True)
+    _lang_label = ("🌐 English" if st.session_state.lang == "zh" else "🌐 中文")
+    _logout_label = f"{role_icon} " + ("登出" if st.session_state.lang == "zh" else "Logout")
     rc1, rc2 = st.columns(2)
     with rc1:
-        if st.button(u("lang_btn"), key="lang_toggle"):
+        if st.button(_lang_label, key="lang_toggle"):
             st.session_state.lang = "en" if st.session_state.lang == "zh" else "zh"
             st.rerun()
     with rc2:
-        if st.button(f"{role_icon} 登出", key="logout_btn"):
+        if st.button(_logout_label, key="logout_btn"):
             _clear_login_cookie()
             for k in ["logged_in","username","role","user_name","cur_branch"]:
                 del st.session_state[k]
