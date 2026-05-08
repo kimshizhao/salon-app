@@ -126,7 +126,8 @@ st.markdown("""
   .stButton>button { background:linear-gradient(135deg,#c9a84c,#a07830); color:#0a0a0a;
     font-family:'Raleway',sans-serif; font-weight:700; font-size:0.82rem; letter-spacing:2px;
     text-transform:uppercase; border:none; border-radius:8px; padding:0.65rem 2rem;
-    transition:all .25s; width:100%; }
+    transition:all .25s; width:100%; white-space:nowrap; overflow:hidden;
+    text-overflow:ellipsis; }
   .stButton>button:hover { background:linear-gradient(135deg,#f5e19a,#c9a84c); transform:translateY(-1px);
     box-shadow:0 4px 20px #c9a84c44; }
 
@@ -217,8 +218,10 @@ st.markdown("""
     .card-title { font-size:1rem !important; }
 
     /* Larger touch targets for buttons */
-    .stButton>button { padding:0.85rem 1rem !important; font-size:0.82rem !important;
-      min-height:48px !important; }
+    .stButton>button { padding:0.85rem 0.5rem !important; font-size:0.75rem !important;
+      min-height:48px !important; white-space:nowrap !important;
+      letter-spacing:1px !important; overflow:hidden !important;
+      text-overflow:ellipsis !important; }
 
     /* Stat boxes */
     .stat-val { font-size:1.3rem !important; }
