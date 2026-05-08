@@ -9,7 +9,7 @@ from datetime import date as dt_date
 try:
     from db import (
         db_login, db_load_branches_and_accounts, db_load_salon,
-        db_add_booking, db_save_all_bookings, db_update_booking,
+        db_add_booking, db_save_all_bookings, db_update_booking, db_get_bookings,
         db_add_walkin, db_save_all_inventory,
         db_add_member, db_update_member, db_add_member_history, db_delete_member,
         db_set_stylists, db_add_account, db_delete_account, db_update_password,
@@ -64,6 +64,13 @@ st.set_page_config(
     layout="centered",
     initial_sidebar_state="collapsed",
 )
+
+# Auto-refresh every 60s to pick up new online bookings
+try:
+    from streamlit_autorefresh import st_autorefresh
+    _auto_refresh_count = st_autorefresh(interval=60_000, limit=None, key="auto_refresh")
+except Exception:
+    _auto_refresh_count = 0
 
 # Inject viewport meta for proper mobile scaling
 st.markdown(
@@ -870,6 +877,17 @@ if not st.session_state.logged_in:
 # ── Logged in — sync data aliases ────────────────────────────────────────────
 _sync_ss()
 
+# ── Auto-refresh: reload bookings from Supabase on each refresh cycle ─────────
+if _USE_DB and _auto_refresh_count > 0:
+    try:
+        branch = st.session_state.cur_branch
+        fresh_bookings = db_get_bookings(branch) if branch else []
+        if fresh_bookings is not None:
+            st.session_state.branch_data[branch]["bookings"] = fresh_bookings
+            _sync_ss()
+    except Exception:
+        pass
+
 # ── Header ────────────────────────────────────────────────────────────────────
 hdr_l, hdr_m, hdr_r = st.columns([2, 3, 2])
 with hdr_l:
@@ -926,6 +944,29 @@ if _can("admin"):
 # TAB 1 — BOOKINGS  (no pricing shown)
 # ═════════════════════════════════════════════════════════════════════════════
 with tab1:
+    # ── Manual refresh + last updated ────────────────────────────────────────
+    import datetime as _dt
+    _ref_col, _time_col = st.columns([1, 3])
+    with _ref_col:
+        if st.button("🔄 " + ("刷新" if st.session_state.lang=="zh" else "Refresh"), key="manual_refresh_bk"):
+            if _USE_DB:
+                try:
+                    branch = st.session_state.cur_branch
+                    fresh = db_get_bookings(branch)
+                    st.session_state.branch_data[branch]["bookings"] = fresh
+                    _sync_ss()
+                except Exception:
+                    pass
+            st.rerun()
+    with _time_col:
+        _now_str = _dt.datetime.now().strftime("%H:%M:%S")
+        st.markdown(
+            f'<p style="color:#555;font-size:0.75rem;margin-top:0.6rem;letter-spacing:1px;">'
+            f'⏱ {"上次更新" if st.session_state.lang=="zh" else "Last updated"}: {_now_str} '
+            f'· {"每60秒自動刷新" if st.session_state.lang=="zh" else "Auto-refresh every 60s"}</p>',
+            unsafe_allow_html=True
+        )
+
     # ── Online Booking Requests panel ─────────────────────────────────────────
     pending_online = [
         b for b in st.session_state.bookings
