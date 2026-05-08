@@ -1072,103 +1072,260 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-# ── Receipt builder ───────────────────────────────────────────────────────────
+# ── Receipt builder (Malaysian format) ───────────────────────────────────────
 def build_receipt_html(r: dict, lang: str) -> str:
-    """Return a full printable HTML receipt string for item dict r."""
-    is_zh   = (lang == "zh")
-    subtotal = r.get("subtotal", r.get("final", 0))
-    disc     = r.get("disc_pct", 0)
-    extra    = r.get("extra", 0)
-    final    = r.get("final", 0)
+    """Return a printable Malaysian-format HTML receipt."""
+    import datetime as _dt
+    is_zh    = (lang == "zh")
+    subtotal = float(r.get("subtotal", r.get("final", 0)) or 0)
+    disc     = float(r.get("disc_pct", 0) or 0)
+    extra    = float(r.get("extra", 0) or 0)
+    final    = float(r.get("final", 0) or 0)
     member   = r.get("member", "")
     pts      = r.get("pts", 0)
     method   = r.get("method", "Cash")
     stylist  = r.get("stylist", "")
-    date_str = r.get("date", str(dt_date.today()))
+    date_iso = r.get("date", str(_dt.date.today()))
     time_str = r.get("time", "")
     name     = r.get("name", "")
     service  = r.get("service", "")
+    salon    = r.get("salon", "IQSALON")
 
-    disc_row = ""
-    if disc:
-        disc_row = f"<tr><td>{'折扣' if is_zh else 'Discount'}</td><td style='color:#e67e22;'>-{disc}%</td></tr>"
-    extra_row = ""
+    # Malaysian date format: DD/MM/YYYY
+    try:
+        d = _dt.date.fromisoformat(date_iso)
+        date_my = d.strftime("%d/%m/%Y")
+    except Exception:
+        date_my = date_iso
+
+    # Receipt number: RCP-YYYYMMDD-XXXX
+    receipt_no = f"RCP-{date_iso.replace('-','')}-{abs(hash(name + time_str)) % 10000:04d}"
+
+    # Salon contact info from session state (if available)
+    salon_info = {}
+    try:
+        sid = st.session_state.get("cur_branch", "")
+        salon_info = st.session_state.get("salon_info", {}).get(sid, {})
+    except Exception:
+        pass
+    salon_phone = salon_info.get("contact_phone", "")
+    salon_email = salon_info.get("contact_email", "")
+
+    # Build item rows
+    disc_amt  = round(subtotal * disc / 100, 2) if disc else 0
+    rows_html = f"""
+      <tr>
+        <td class="desc">{service}</td>
+        <td class="qty">1</td>
+        <td class="price">RM {subtotal:.2f}</td>
+        <td class="amt">RM {subtotal:.2f}</td>
+      </tr>"""
     if extra:
-        extra_row = f"<tr><td>{'加收' if is_zh else 'Extra'}</td><td>RM {extra:.2f}</td></tr>"
-    member_row = ""
-    if member:
-        member_row = (
-            f"<tr><td>{'會員' if is_zh else 'Member'}</td><td>{member}</td></tr>"
-            + (f"<tr><td>{'本次積分' if is_zh else 'Points Earned'}</td>"
-               f"<td style='color:#3498db;'>+{pts} pts</td></tr>" if pts else "")
-        )
-    thanks = "感謝您的光臨，期待再次為您服務！" if is_zh else "Thank you for visiting — see you again soon!"
-    receipt_no = f"SK-{date_str.replace('-','')}-{abs(hash(name+time_str)) % 10000:04d}"
+        extra_lbl = "Caj Tambahan" if not is_zh else "加收費用"
+        rows_html += f"""
+      <tr>
+        <td class="desc">{extra_lbl}</td>
+        <td class="qty">1</td>
+        <td class="price">RM {extra:.2f}</td>
+        <td class="amt">RM {extra:.2f}</td>
+      </tr>"""
 
-    return f"""<!DOCTYPE html><html><head><meta charset="utf-8">
-<title>IQSALON Receipt</title>
+    disc_row_html = ""
+    if disc:
+        disc_lbl = f"Diskaun {disc:.0f}%" if not is_zh else f"折扣 {disc:.0f}%"
+        disc_row_html = f"""
+      <tr class="disc-row">
+        <td colspan="3">{disc_lbl}</td>
+        <td class="amt" style="color:#c0392b;">- RM {disc_amt:.2f}</td>
+      </tr>"""
+
+    member_rows = ""
+    if member:
+        pts_lbl = f"Mata Ganjaran / 積分" if not is_zh else "積分"
+        member_rows = f"""
+      <tr class="info-row">
+        <td colspan="2">{'Ahli / 會員' if not is_zh else '會員'}</td>
+        <td colspan="2" style="text-align:right;">{member}</td>
+      </tr>"""
+        if pts:
+            member_rows += f"""
+      <tr class="info-row">
+        <td colspan="2">{pts_lbl}</td>
+        <td colspan="2" style="text-align:right;color:#2980b9;">+{pts} pts</td>
+      </tr>"""
+
+    stylist_row = ""
+    if stylist:
+        sty_lbl = "Penata Rambut / 髮型師" if not is_zh else "髮型師"
+        stylist_row = f"""
+      <tr class="info-row">
+        <td colspan="2">{sty_lbl}</td>
+        <td colspan="2" style="text-align:right;">{stylist}</td>
+      </tr>"""
+
+    pay_lbl   = "Kaedah Pembayaran" if not is_zh else "付款方式"
+    total_lbl = "JUMLAH / TOTAL" if not is_zh else "總計"
+    sst_note  = "Harga adalah termasuk SST / Harga tidak termasuk SST (Dikecualikan)" \
+                if not is_zh else "價格已含/免收 SST（服務稅）"
+    thanks_my = "Terima Kasih Kerana Sudi Hadir" if not is_zh else "感謝您的光臨"
+    thanks_en = "We look forward to serving you again!" if not is_zh else "期待再次為您服務！"
+
+    contact_line = ""
+    if salon_phone or salon_email:
+        parts = []
+        if salon_phone: parts.append(f"📞 {salon_phone}")
+        if salon_email: parts.append(f"✉ {salon_email}")
+        contact_line = f"<div class='contact'>{' &nbsp;|&nbsp; '.join(parts)}</div>"
+
+    return f"""<!DOCTYPE html>
+<html><head><meta charset="utf-8">
+<title>Resit / Receipt — {salon}</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Raleway:wght@300;400;600&display=swap');
-  * {{ box-sizing:border-box; margin:0; padding:0; }}
-  body {{ font-family:'Raleway',sans-serif; background:#fff; color:#111;
-         display:flex; justify-content:center; padding:30px 10px; }}
-  .receipt {{ width:360px; border:1px solid #ddd; border-radius:12px;
-              padding:28px 24px; background:#fff; }}
-  .logo {{ text-align:center; margin-bottom:18px; border-bottom:2px solid #c9a84c; padding-bottom:14px; }}
-  .logo-title {{ font-family:'Playfair Display',serif; font-size:1.5rem; font-weight:700;
-                 letter-spacing:6px; color:#c9a84c; }}
-  .logo-sub {{ font-size:0.65rem; letter-spacing:3px; color:#888; margin-top:3px; text-transform:uppercase; }}
-  .section {{ margin:14px 0; }}
-  .client-name {{ font-family:'Playfair Display',serif; font-size:1.1rem; color:#111; }}
-  .meta {{ font-size:0.75rem; color:#888; margin-top:2px; }}
-  table {{ width:100%; border-collapse:collapse; margin-top:10px; }}
-  td {{ padding:6px 0; font-size:0.85rem; vertical-align:top; }}
-  td:last-child {{ text-align:right; font-weight:600; }}
-  .divider {{ border:none; border-top:1px solid #eee; margin:10px 0; }}
-  .total-row td {{ font-size:1rem; font-weight:700; color:#c9a84c; padding:8px 0; }}
-  .badge {{ display:inline-block; background:#c9a84c22; color:#c9a84c; border-radius:20px;
-            padding:2px 10px; font-size:0.7rem; letter-spacing:1px; }}
-  .thanks {{ text-align:center; margin-top:18px; padding-top:14px; border-top:1px solid #eee;
-             font-size:0.75rem; color:#888; letter-spacing:1px; }}
-  .rcpt-no {{ text-align:center; font-size:0.65rem; color:#bbb; margin-top:6px; }}
-  .print-btn {{ display:block; width:100%; margin-top:20px; padding:10px; background:#c9a84c;
-                color:#fff; border:none; border-radius:8px; font-size:0.85rem; font-weight:700;
-                letter-spacing:2px; cursor:pointer; font-family:'Raleway',sans-serif; }}
-  .print-btn:hover {{ background:#a07830; }}
-  @media print {{
-    .print-btn {{ display:none; }}
-    body {{ padding:0; background:#fff; }}
-    .receipt {{ border:none; width:100%; }}
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Raleway:wght@300;400;600;700&display=swap');
+  *{{ box-sizing:border-box; margin:0; padding:0; }}
+  body{{ font-family:'Raleway',sans-serif; background:#f5f5f5; color:#111;
+        display:flex; justify-content:center; padding:24px 10px; }}
+  .receipt{{ width:400px; background:#fff; box-shadow:0 2px 16px rgba(0,0,0,.12);
+             border-radius:4px; overflow:hidden; }}
+  /* Header */
+  .header{{ background:#111; color:#fff; text-align:center; padding:22px 20px 16px; }}
+  .salon-name{{ font-family:'Playfair Display',serif; font-size:1.6rem; font-weight:700;
+                letter-spacing:4px; color:#c9a84c; }}
+  .salon-sub{{ font-size:0.6rem; letter-spacing:3px; color:#aaa; margin-top:4px;
+               text-transform:uppercase; }}
+  .contact{{ font-size:0.72rem; color:#999; margin-top:6px; }}
+  /* Metadata strip */
+  .meta-strip{{ background:#1a1a1a; padding:10px 20px;
+                display:flex; justify-content:space-between; align-items:center; }}
+  .rcpt-no{{ color:#c9a84c; font-size:0.72rem; font-weight:700; letter-spacing:1px; }}
+  .rcpt-date{{ color:#999; font-size:0.72rem; }}
+  /* Body */
+  .body{{ padding:18px 20px; }}
+  /* Customer */
+  .customer-box{{ background:#f9f9f9; border-left:3px solid #c9a84c;
+                  padding:10px 12px; margin-bottom:14px; border-radius:0 4px 4px 0; }}
+  .customer-label{{ font-size:0.65rem; color:#888; letter-spacing:2px; text-transform:uppercase;
+                    margin-bottom:3px; }}
+  .customer-name{{ font-size:1rem; font-weight:700; color:#111; }}
+  .customer-time{{ font-size:0.72rem; color:#888; margin-top:2px; }}
+  /* Items table */
+  table{{ width:100%; border-collapse:collapse; margin-bottom:10px; }}
+  thead tr{{ background:#f0f0f0; }}
+  thead td{{ font-size:0.65rem; font-weight:700; letter-spacing:1px; text-transform:uppercase;
+             color:#666; padding:7px 6px; }}
+  tbody td{{ padding:8px 6px; font-size:0.82rem; border-bottom:1px solid #f0f0f0;
+             vertical-align:top; }}
+  td.desc{{ color:#111; }}
+  td.qty{{ text-align:center; color:#888; width:30px; }}
+  td.price{{ text-align:right; color:#888; width:80px; }}
+  td.amt{{ text-align:right; font-weight:600; color:#111; width:80px; }}
+  tr.disc-row td{{ font-size:0.78rem; color:#c0392b; border-bottom:1px solid #f0f0f0; padding:6px 6px; }}
+  tr.info-row td{{ font-size:0.78rem; color:#666; border-bottom:1px dashed #f0f0f0; padding:5px 6px; }}
+  /* Totals */
+  .totals{{ background:#111; color:#fff; padding:12px 16px; border-radius:4px; margin:10px 0; }}
+  .totals-row{{ display:flex; justify-content:space-between; align-items:center; }}
+  .totals-label{{ font-size:0.72rem; letter-spacing:2px; color:#aaa; }}
+  .totals-amount{{ font-family:'Playfair Display',serif; font-size:1.5rem; font-weight:700;
+                   color:#c9a84c; }}
+  /* Payment */
+  .payment-row{{ display:flex; justify-content:space-between; padding:8px 0;
+                 border-bottom:1px solid #eee; font-size:0.82rem; }}
+  .payment-label{{ color:#888; }}
+  .payment-val{{ font-weight:700; color:#111; }}
+  /* SST */
+  .sst-note{{ font-size:0.65rem; color:#bbb; text-align:center; margin:10px 0 6px;
+              line-height:1.5; }}
+  /* Footer */
+  .footer{{ background:#111; text-align:center; padding:16px 20px; }}
+  .thanks-main{{ font-family:'Playfair Display',serif; font-size:1rem; color:#c9a84c;
+                 letter-spacing:2px; }}
+  .thanks-sub{{ font-size:0.7rem; color:#888; margin-top:4px; }}
+  .rcpt-stamp{{ font-size:0.6rem; color:#555; margin-top:8px; letter-spacing:1px; }}
+  /* Print button */
+  .print-btn{{ display:block; width:calc(100% - 40px); margin:16px 20px; padding:11px;
+               background:#c9a84c; color:#fff; border:none; border-radius:4px;
+               font-size:0.82rem; font-weight:700; letter-spacing:2px; cursor:pointer;
+               font-family:'Raleway',sans-serif; text-transform:uppercase; }}
+  .print-btn:hover{{ background:#a07830; }}
+  @media print{{
+    body{{ background:#fff; padding:0; }}
+    .receipt{{ box-shadow:none; width:100%; border-radius:0; }}
+    .print-btn{{ display:none; }}
   }}
-</style></head><body>
+</style>
+</head><body>
 <div class="receipt">
-  <div class="logo">
-    <div class="logo-title">✦ {r.get('salon','IQSALON').upper()} ✦</div>
-    <div class="logo-sub">Professional Hair Salon · Malaysia</div>
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="salon-name">{salon.upper()}</div>
+    <div class="salon-sub">Professional Hair Salon · Malaysia</div>
+    {contact_line}
   </div>
-  <div class="section">
-    <div class="client-name">{name}</div>
-    <div class="meta">{date_str} {time_str}</div>
+
+  <!-- META STRIP -->
+  <div class="meta-strip">
+    <div class="rcpt-no">No. {receipt_no}</div>
+    <div class="rcpt-date">{date_my} {time_str}</div>
   </div>
-  <table>
-    <tr><td>{'服務' if is_zh else 'Service'}</td><td>{service}</td></tr>
-    {'<tr><td>' + ('髮型師' if is_zh else 'Stylist') + '</td><td>' + stylist + '</td></tr>' if stylist else ''}
-    <tr><td>{'小計' if is_zh else 'Subtotal'}</td><td>RM {subtotal:.2f}</td></tr>
-    {disc_row}{extra_row}
-    {member_row}
-  </table>
-  <hr class="divider">
-  <table>
-    <tr class="total-row"><td>{'總計' if is_zh else 'Total'}</td><td>RM {final:.2f}</td></tr>
-  </table>
-  <div style="margin-top:8px; font-size:0.78rem; color:#888;">
-    {'付款方式' if is_zh else 'Payment'}: {method}
+
+  <div class="body">
+
+    <!-- CUSTOMER -->
+    <div class="customer-box">
+      <div class="customer-label">{'Pelanggan / 客戶' if not is_zh else '客戶'}</div>
+      <div class="customer-name">{name}</div>
+      {'<div class="customer-time">' + ('Temujanji / 預約時間: ' if not is_zh else '預約時間: ') + time_str + '</div>' if time_str else ''}
+    </div>
+
+    <!-- ITEMS TABLE -->
+    <table>
+      <thead>
+        <tr>
+          <td class="desc">{'Perkhidmatan / 服務' if not is_zh else '服務項目'}</td>
+          <td class="qty">Qty</td>
+          <td class="price">{'Harga' if not is_zh else '單價'}</td>
+          <td class="amt">{'Jumlah' if not is_zh else '金額'}</td>
+        </tr>
+      </thead>
+      <tbody>
+        {rows_html}
+        {disc_row_html}
+        {stylist_row}
+        {member_rows}
+      </tbody>
+    </table>
+
+    <!-- TOTAL BOX -->
+    <div class="totals">
+      <div class="totals-row">
+        <div class="totals-label">{total_lbl}</div>
+        <div class="totals-amount">RM {final:.2f}</div>
+      </div>
+    </div>
+
+    <!-- PAYMENT METHOD -->
+    <div class="payment-row">
+      <span class="payment-label">{pay_lbl}</span>
+      <span class="payment-val">{method}</span>
+    </div>
+
+    <!-- SST NOTE -->
+    <div class="sst-note">* SST Exempted · Perkhidmatan Salun Rambut<br>{sst_note}</div>
+
   </div>
-  <div class="thanks">{thanks}</div>
-  <div class="rcpt-no"># {receipt_no}</div>
+
+  <!-- FOOTER -->
+  <div class="footer">
+    <div class="thanks-main">{thanks_my}</div>
+    <div class="thanks-sub">{thanks_en}</div>
+    <div class="rcpt-stamp">Resit ini adalah sah tanpa tandatangan · This receipt is valid without signature</div>
+  </div>
+
   <button class="print-btn" onclick="window.print()">
-    {'🖨️  列印收據' if is_zh else '🖨️  Print Receipt'}
+    {'🖨️  Cetak Resit / 列印收據' if not is_zh else '🖨️  列印收據'}
   </button>
+
 </div>
 </body></html>"""
 
