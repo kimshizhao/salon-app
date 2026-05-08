@@ -100,9 +100,11 @@ def db_set_stylists(salon_id: str, names: list):
 # ═════════════════════════════════════════════════════════════════════════════
 
 def db_get_bookings(salon_id: str):
-    res = _sb().table("bookings").select("*")\
-               .eq("salon_id", salon_id)\
-               .order("date").order("time").execute()
+    res = _sb().table("bookings").select(
+        "id,name,phone,email,date,time,stylist,service,note,"
+        "price,paid,method,final,source,status,created_at"
+    ).eq("salon_id", salon_id)\
+     .order("date").order("time").execute()
     return res.data or []
 
 

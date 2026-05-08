@@ -900,23 +900,29 @@ with tab1:
                         except Exception: pass
                     _bd()["bookings"] = st.session_state.bookings
                     # Send confirmation email to customer
-                    if _NOTIFY and bk.get("email"):
-                        salon_name_str = st.session_state.branches.get(
-                            st.session_state.cur_branch, "Signature Kim")
-                        try:
-                            send_booking_confirmed(
-                                to_email=bk["email"],
-                                customer_name=bk.get("name",""),
-                                service=bk.get("service",""),
-                                stylist=bk.get("stylist",""),
-                                date=bk.get("date",""),
-                                time=bk.get("time",""),
-                                price=bk.get("price",0),
-                                salon_name=salon_name_str,
-                                salon_phone=st.secrets.get("SALON_PHONE","") if hasattr(st,"secrets") else "",
-                            )
-                        except Exception:
-                            pass
+                    if _NOTIFY:
+                        cust_email = bk.get("email", "")
+                        if cust_email:
+                            salon_name_str = st.session_state.branches.get(
+                                st.session_state.cur_branch, "Signature Kim")
+                            try:
+                                ok = send_booking_confirmed(
+                                    to_email=cust_email,
+                                    customer_name=bk.get("name",""),
+                                    service=bk.get("service",""),
+                                    stylist=bk.get("stylist",""),
+                                    date=bk.get("date",""),
+                                    time=bk.get("time",""),
+                                    price=bk.get("price",0),
+                                    salon_name=salon_name_str,
+                                    salon_phone=st.secrets.get("SALON_PHONE","") if hasattr(st,"secrets") else "",
+                                )
+                                if ok:
+                                    st.toast(f"✉️ 確認郵件已發送至 {cust_email}", icon="✅")
+                                else:
+                                    st.toast("⚠️ 郵件發送失敗，請檢查 Gmail 設定", icon="⚠️")
+                            except Exception as e:
+                                st.toast(f"郵件錯誤: {e}", icon="❌")
                     st.rerun()
             with c3:
                 if st.button("❌ " + u("cancel"), key=f"cx_{bk_id}"):
