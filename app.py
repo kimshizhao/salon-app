@@ -14,6 +14,7 @@ try:
         db_add_member, db_update_member, db_add_member_history, db_delete_member,
         db_set_stylists, db_add_account, db_delete_account, db_update_password,
         db_add_salon, db_delete_salon,
+        db_confirm_booking, db_cancel_booking,
     )
     _USE_DB = "SUPABASE_URL" in st.secrets and st.secrets["SUPABASE_URL"] != "https://YOUR_PROJECT_ID.supabase.co"
 except Exception:
@@ -286,6 +287,9 @@ UI = {
         "note_ph":       "例如：過敏史、頭髮狀況…",
         "confirm_btn":   "確認預約 →",
         "name_warn":     "請輸入客戶姓名",
+        "online_pending": "待確認網上預約",
+        "any_stylist":    "不指定髮型師",
+        "cancel":         "拒絕",
         "book_list":     "📅 預約名單",
         "save_bookings": "儲存更改",
         "bookings_saved":"✦ 預約已更新",
@@ -482,6 +486,9 @@ UI = {
         "note_ph":       "e.g. allergies, hair condition…",
         "confirm_btn":   "Confirm Booking →",
         "name_warn":     "Please enter client name",
+        "online_pending": "Online Booking Requests",
+        "any_stylist":    "No preference",
+        "cancel":         "Decline",
         "book_list":     "📅 Booking List",
         "save_bookings": "Save Changes",
         "bookings_saved":"✦ Bookings updated",
@@ -850,6 +857,50 @@ if _can("admin"):
 # TAB 1 — BOOKINGS  (no pricing shown)
 # ═════════════════════════════════════════════════════════════════════════════
 with tab1:
+    # ── Online Booking Requests panel ─────────────────────────────────────────
+    pending_online = [
+        b for b in st.session_state.bookings
+        if b.get("source") == "online" and b.get("status") == "pending"
+    ]
+    if pending_online:
+        n = len(pending_online)
+        st.markdown(f"""
+        <div style="background:#1a0d00;border:1px solid #e67e22;border-radius:12px;
+          padding:1rem 1.3rem;margin-bottom:1.2rem;">
+          <div style="font-family:'Playfair Display',serif;color:#e67e22;font-size:1rem;
+            letter-spacing:2px;margin-bottom:0.7rem;">
+            🌐 {u('online_pending')} ({n})
+          </div>
+        """, unsafe_allow_html=True)
+        for bk in pending_online:
+            bk_id = bk.get("id", "")
+            c1, c2, c3 = st.columns([3, 1, 1])
+            with c1:
+                phone_str = f" · 📞 {bk.get('phone','')}" if bk.get('phone') else ""
+                st.markdown(
+                    f"**{bk.get('name','')}**{phone_str}  \n"
+                    f"🗓 {bk.get('date','')} {bk.get('time','')} · "
+                    f"✂️ {bk.get('service','')} · 👤 {bk.get('stylist','') or u('any_stylist')}",
+                    help=bk.get("note", "")
+                )
+            with c2:
+                if st.button("✅ " + u("confirm_btn"), key=f"ok_{bk_id}"):
+                    bk["status"] = "confirmed"
+                    if _USE_DB and bk_id:
+                        try: db_confirm_booking(bk_id)
+                        except Exception: pass
+                    _bd()["bookings"] = st.session_state.bookings
+                    st.rerun()
+            with c3:
+                if st.button("❌ " + u("cancel"), key=f"cx_{bk_id}"):
+                    bk["status"] = "cancelled"
+                    if _USE_DB and bk_id:
+                        try: db_cancel_booking(bk_id)
+                        except Exception: pass
+                    _bd()["bookings"] = st.session_state.bookings
+                    st.rerun()
+        st.markdown("</div>", unsafe_allow_html=True)
+
     col_form, col_list = st.columns([1, 1.7], gap="large")
 
     with col_form:
@@ -2405,6 +2456,29 @@ if _can("admin"):
     with tab_admin:
         is_zh = st.session_state.lang == "zh"
         st.markdown(f'<p class="card-title" style="font-size:1.3rem;">⚙️ {"系統管理" if is_zh else "Admin Panel"}</p>', unsafe_allow_html=True)
+
+        # ── Online Booking Links ───────────────────────────────────────────
+        st.markdown('<div class="card" style="margin-bottom:1rem">', unsafe_allow_html=True)
+        st.markdown(f'<p class="card-title">🔗 {"客戶預約連結" if is_zh else "Customer Booking Links"}</p>',
+                    unsafe_allow_html=True)
+        app_base = st.text_input(
+            "App URL (from Streamlit Cloud)",
+            placeholder="https://your-app-name.streamlit.app",
+            key="app_base_url",
+            help="Fill in your Streamlit Cloud app URL to generate booking links"
+        )
+        if app_base.strip():
+            for bid, bname in st.session_state.branches.items():
+                link = f"{app_base.rstrip('/')}/booking?salon={bid}"
+                st.markdown(
+                    f"**{bname}** (`{bid}`)  \n"
+                    f"[{link}]({link})",
+                    unsafe_allow_html=False
+                )
+                st.code(link, language=None)
+        else:
+            st.info("填入上方的 App URL 就能生成每間分店的客戶預約連結 / Enter your App URL above to generate booking links")
+        st.markdown('</div>', unsafe_allow_html=True)
 
         adm_l, adm_r = st.columns([1, 1.4], gap="large")
 

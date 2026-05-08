@@ -32,6 +32,7 @@ create table if not exists bookings (
   id         uuid default gen_random_uuid() primary key,
   salon_id   text references salons(id) on delete cascade,
   name       text,
+  phone      text default '',
   date       text,
   time       text,
   stylist    text default '',
@@ -41,8 +42,15 @@ create table if not exists bookings (
   paid       boolean default false,
   method     text default '',
   final      numeric default 0,
+  source     text default 'staff',   -- 'staff' | 'online'
+  status     text default 'confirmed', -- 'confirmed' | 'pending' | 'cancelled'
   created_at timestamptz default now()
 );
+
+-- Add new columns to existing table (run if table already exists)
+alter table bookings add column if not exists phone text default '';
+alter table bookings add column if not exists source text default 'staff';
+alter table bookings add column if not exists status text default 'confirmed';
 
 -- Walk-ins
 create table if not exists walkins (

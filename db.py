@@ -121,6 +121,24 @@ def db_delete_booking(booking_id: str):
     _sb().table("bookings").delete().eq("id", booking_id).execute()
 
 
+def db_confirm_booking(booking_id: str):
+    _sb().table("bookings").update({"status": "confirmed"})\
+         .eq("id", booking_id).execute()
+
+
+def db_cancel_booking(booking_id: str):
+    _sb().table("bookings").update({"status": "cancelled"})\
+         .eq("id", booking_id).execute()
+
+
+def db_get_pending_count(salon_id: str) -> int:
+    res = _sb().table("bookings").select("id", count="exact")\
+               .eq("salon_id", salon_id)\
+               .eq("source", "online")\
+               .eq("status", "pending").execute()
+    return res.count or 0
+
+
 def db_save_all_bookings(salon_id: str, bookings: list):
     """Overwrite all bookings for salon (used after data_editor save)."""
     _sb().table("bookings").delete().eq("salon_id", salon_id).execute()
