@@ -118,13 +118,20 @@ alter table commissions add column if not exists rate numeric default 0;
 -- ============================================================
 -- SUBSCRIPTION COLUMNS (run if tables already exist)
 -- ============================================================
-alter table salons add column if not exists plan         text    default 'trial';
-alter table salons add column if not exists trial_ends   date    default (current_date + interval '30 days');
-alter table salons add column if not exists plan_ends    date;
-alter table salons add column if not exists stripe_link  text    default '';
-alter table salons add column if not exists contact_name text    default '';
-alter table salons add column if not exists contact_phone text   default '';
-alter table salons add column if not exists contact_email text   default '';
+alter table salons add column if not exists plan             text    default 'trial';
+alter table salons add column if not exists trial_ends       date    default (current_date + interval '30 days');
+alter table salons add column if not exists plan_ends        date;
+alter table salons add column if not exists stripe_link      text    default '';
+alter table salons add column if not exists contact_name     text    default '';
+alter table salons add column if not exists contact_phone    text    default '';
+alter table salons add column if not exists contact_email    text    default '';
+-- Salon profile columns
+alter table salons add column if not exists address          text    default '';
+alter table salons add column if not exists ssm_no           text    default '';
+alter table salons add column if not exists operating_hours  text    default '';
+alter table salons add column if not exists website          text    default '';
+alter table salons add column if not exists city             text    default '';
+alter table salons add column if not exists postcode         text    default '';
 
 -- ============================================================
 -- SEED DATA — First salon + admin account

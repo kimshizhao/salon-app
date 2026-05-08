@@ -18,6 +18,7 @@ try:
         db_update_salon_subscription, db_activate_trial,
         db_update_salon_contact, db_get_salon_info,
         db_save_commissions, db_get_commissions,
+        db_update_salon_profile,
     )
     _USE_DB = "SUPABASE_URL" in st.secrets and st.secrets["SUPABASE_URL"] != "https://YOUR_PROJECT_ID.supabase.co"
 except Exception:
@@ -1101,15 +1102,23 @@ def build_receipt_html(r: dict, lang: str) -> str:
     # Receipt number: RCP-YYYYMMDD-XXXX
     receipt_no = f"RCP-{date_iso.replace('-','')}-{abs(hash(name + time_str)) % 10000:04d}"
 
-    # Salon contact info from session state (if available)
+    # Salon info from session state (if available)
     salon_info = {}
     try:
         sid = st.session_state.get("cur_branch", "")
         salon_info = st.session_state.get("salon_info", {}).get(sid, {})
     except Exception:
         pass
-    salon_phone = salon_info.get("contact_phone", "")
-    salon_email = salon_info.get("contact_email", "")
+    salon_phone   = salon_info.get("contact_phone", "")
+    salon_email   = salon_info.get("contact_email", "")
+    salon_address = ", ".join(filter(None, [
+        salon_info.get("address",""),
+        salon_info.get("city",""),
+        salon_info.get("postcode",""),
+    ]))
+    salon_ssm     = salon_info.get("ssm_no", "")
+    salon_hours   = salon_info.get("operating_hours", "")
+    salon_web     = salon_info.get("website", "")
 
     # Build item rows
     disc_amt  = round(subtotal * disc / 100, 2) if disc else 0
@@ -1170,12 +1179,19 @@ def build_receipt_html(r: dict, lang: str) -> str:
     thanks_my = "Terima Kasih Kerana Sudi Hadir" if not is_zh else "感謝您的光臨"
     thanks_en = "We look forward to serving you again!" if not is_zh else "期待再次為您服務！"
 
-    contact_line = ""
-    if salon_phone or salon_email:
-        parts = []
-        if salon_phone: parts.append(f"📞 {salon_phone}")
-        if salon_email: parts.append(f"✉ {salon_email}")
-        contact_line = f"<div class='contact'>{' &nbsp;|&nbsp; '.join(parts)}</div>"
+    contact_parts = []
+    if salon_address: contact_parts.append(f"📍 {salon_address}")
+    if salon_phone:   contact_parts.append(f"📞 {salon_phone}")
+    if salon_email:   contact_parts.append(f"✉ {salon_email}")
+    if salon_web:     contact_parts.append(f"🌐 {salon_web}")
+    contact_line = ("".join(f"<div class='contact'>{p}</div>" for p in contact_parts)
+                    if contact_parts else "")
+
+    footer_meta_parts = []
+    if salon_ssm:   footer_meta_parts.append(f"SSM No: {salon_ssm}")
+    if salon_hours: footer_meta_parts.append(f"{'Waktu Operasi' if not is_zh else '營業時間'}: {salon_hours}")
+    footer_meta = ("<div class='footer-meta'>" + " &nbsp;·&nbsp; ".join(footer_meta_parts) + "</div>"
+                   if footer_meta_parts else "")
 
     return f"""<!DOCTYPE html>
 <html><head><meta charset="utf-8">
@@ -1241,6 +1257,7 @@ def build_receipt_html(r: dict, lang: str) -> str:
                  letter-spacing:2px; }}
   .thanks-sub{{ font-size:0.7rem; color:#888; margin-top:4px; }}
   .rcpt-stamp{{ font-size:0.6rem; color:#555; margin-top:8px; letter-spacing:1px; }}
+  .footer-meta{{ font-size:0.65rem; color:#777; margin-top:6px; line-height:1.7; }}
   /* Print button */
   .print-btn{{ display:block; width:calc(100% - 40px); margin:16px 20px; padding:11px;
                background:#c9a84c; color:#fff; border:none; border-radius:4px;
@@ -1320,6 +1337,7 @@ def build_receipt_html(r: dict, lang: str) -> str:
     <div class="thanks-main">{thanks_my}</div>
     <div class="thanks-sub">{thanks_en}</div>
     <div class="rcpt-stamp">Resit ini adalah sah tanpa tandatangan · This receipt is valid without signature</div>
+    {footer_meta}
   </div>
 
   <button class="print-btn" onclick="window.print()">
@@ -3401,6 +3419,104 @@ if _can("admin"):
                     f'<div class="stat-lbl">{lbl}</div></div>',
                     unsafe_allow_html=True
                 )
+            st.markdown('</div>', unsafe_allow_html=True)
+
+        # ── Salon Profile ──────────────────────────────────────────────────
+        if not is_platform_admin:
+            # Show profile editor for the current owner's own salon
+            cur_bid  = st.session_state.cur_branch
+            cur_info = st.session_state.get("salon_info", {}).get(cur_bid, {})
+            st.markdown('<div class="card" style="margin-bottom:1rem;border-color:#c9a84c55">', unsafe_allow_html=True)
+            st.markdown(f'<p class="card-title">🏪 {"髮廊基本資料" if is_zh else "Salon Profile"}</p>',
+                        unsafe_allow_html=True)
+            st.markdown(f'<p style="color:#888;font-size:0.8rem;margin-bottom:1rem;">'
+                        f'{"以下資料將顯示在收據上，請確保填寫正確。" if is_zh else "This information appears on receipts — please keep it accurate."}'
+                        f'</p>', unsafe_allow_html=True)
+
+            prof_c1, prof_c2 = st.columns(2)
+            with prof_c1:
+                pf_cname  = st.text_input("聯絡人 / Contact Person",
+                                          value=cur_info.get("contact_name",""), key="pf_cname")
+                pf_phone  = st.text_input("電話 / Phone No.",
+                                          value=cur_info.get("contact_phone",""), key="pf_phone",
+                                          placeholder="011-1234 5678")
+                pf_email  = st.text_input("Email",
+                                          value=cur_info.get("contact_email",""), key="pf_email",
+                                          placeholder="salon@email.com")
+                pf_web    = st.text_input("Website / Instagram",
+                                          value=cur_info.get("website",""), key="pf_web",
+                                          placeholder="https://instagram.com/yoursalon")
+            with prof_c2:
+                pf_addr   = st.text_area("Alamat / 地址",
+                                         value=cur_info.get("address",""), key="pf_addr",
+                                         placeholder="No. 12, Jalan ABC, Taman XYZ", height=80)
+                ca1, ca2  = st.columns(2)
+                with ca1:
+                    pf_city = st.text_input("Bandar / 城市",
+                                            value=cur_info.get("city",""), key="pf_city",
+                                            placeholder="Kuala Lumpur")
+                with ca2:
+                    pf_post = st.text_input("Poskod / 郵編",
+                                            value=cur_info.get("postcode",""), key="pf_post",
+                                            placeholder="50000")
+                pf_ssm    = st.text_input("No. SSM / ROC (Pendaftaran Perniagaan)",
+                                          value=cur_info.get("ssm_no",""), key="pf_ssm",
+                                          placeholder="SA0123456-X")
+                pf_hours  = st.text_input("Waktu Operasi / 營業時間",
+                                          value=cur_info.get("operating_hours",""), key="pf_hours",
+                                          placeholder="Mon–Sat: 10am – 8pm, Sun: Closed")
+
+            if st.button("💾 " + ("儲存基本資料" if is_zh else "Save Profile"),
+                         key="save_profile_btn", type="primary"):
+                profile_data = {
+                    "contact_name":    pf_cname.strip(),
+                    "contact_phone":   pf_phone.strip(),
+                    "contact_email":   pf_email.strip(),
+                    "address":         pf_addr.strip(),
+                    "city":            pf_city.strip(),
+                    "postcode":        pf_post.strip(),
+                    "ssm_no":          pf_ssm.strip(),
+                    "operating_hours": pf_hours.strip(),
+                    "website":         pf_web.strip(),
+                }
+                if _USE_DB:
+                    try:
+                        db_update_salon_profile(cur_bid, profile_data)
+                        fresh = db_get_salon_info(cur_bid)
+                        st.session_state.setdefault("salon_info", {})[cur_bid] = fresh
+                        st.success("✅ " + ("基本資料已儲存！" if is_zh else "Profile saved!"))
+                        st.rerun()
+                    except Exception as e:
+                        st.error(str(e))
+                else:
+                    st.session_state.setdefault("salon_info", {})[cur_bid].update(profile_data)
+                    st.success("✅ " + ("已儲存（本機）" if is_zh else "Saved (local)"))
+
+            # Preview card
+            if any([cur_info.get("address"), cur_info.get("contact_phone"),
+                    cur_info.get("ssm_no"), cur_info.get("operating_hours")]):
+                st.markdown("<hr style='margin:12px 0;border-color:#1a1a1a'>", unsafe_allow_html=True)
+                st.markdown(f'<p style="color:#888;font-size:0.72rem;letter-spacing:1px;margin-bottom:6px;">'
+                            f'{"預覽（收據上顯示）" if is_zh else "PREVIEW (as shown on receipt)"}</p>',
+                            unsafe_allow_html=True)
+                addr_full = ", ".join(filter(None, [
+                    cur_info.get("address",""),
+                    cur_info.get("city",""),
+                    cur_info.get("postcode","")
+                ]))
+                preview_parts = []
+                if addr_full:       preview_parts.append(f"📍 {addr_full}")
+                if cur_info.get("contact_phone"): preview_parts.append(f"📞 {cur_info['contact_phone']}")
+                if cur_info.get("contact_email"): preview_parts.append(f"✉️ {cur_info['contact_email']}")
+                if cur_info.get("website"):       preview_parts.append(f"🌐 {cur_info['website']}")
+                if cur_info.get("ssm_no"):        preview_parts.append(f"📋 SSM: {cur_info['ssm_no']}")
+                if cur_info.get("operating_hours"):preview_parts.append(f"🕐 {cur_info['operating_hours']}")
+                st.markdown(
+                    "<div style='background:#111;border-radius:8px;padding:12px 16px;"
+                    "font-size:0.78rem;color:#aaa;line-height:2;'>"
+                    + "<br>".join(preview_parts)
+                    + "</div>", unsafe_allow_html=True)
+
             st.markdown('</div>', unsafe_allow_html=True)
 
         # ── Subscription Management ────────────────────────────────────────
