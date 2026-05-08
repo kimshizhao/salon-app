@@ -51,8 +51,14 @@ def _can(action: str) -> bool:
 st.set_page_config(
     page_title="Signature Kim",
     page_icon="✂️",
-    layout="wide",
+    layout="centered",
     initial_sidebar_state="collapsed",
+)
+
+# Inject viewport meta for proper mobile scaling
+st.markdown(
+    '<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">',
+    unsafe_allow_html=True,
 )
 
 # ── CSS ───────────────────────────────────────────────────────────────────────
@@ -62,7 +68,7 @@ st.markdown("""
   html, body, [class*="css"] { font-family:'Raleway',sans-serif; background:#0a0a0a; color:#f0ece0; }
   .stApp { background-color:#0a0a0a; }
   #MainMenu, footer, header { visibility:hidden; }
-  .block-container { padding:1.5rem 2.5rem 2rem; max-width:1200px; }
+  .block-container { padding:1.5rem 2rem 2rem; max-width:960px !important; width:100% !important; }
 
   .hero { text-align:center; padding:2.2rem 1rem 1.2rem; border-bottom:1px solid #c9a84c44; margin-bottom:1.6rem; }
   .hero-title { font-family:'Playfair Display',serif; font-size:2.8rem; font-weight:700; letter-spacing:8px;
@@ -149,6 +155,90 @@ st.markdown("""
   [data-testid="stDataEditor"] { border:1px solid #c9a84c33 !important; border-radius:10px !important; }
   .stSelectbox [data-baseweb="select"]>div { background:#1a1a1a !important; border-color:#c9a84c55 !important; }
   .stSelectbox svg { fill:#c9a84c !important; }
+
+  /* ── Mobile & iPad Responsive ─────────────────────────────────────────── */
+  /* iPad (portrait & landscape) */
+  @media (max-width: 1024px) {
+    .block-container { padding:1rem 1.2rem 1.5rem !important; max-width:100% !important; }
+    .hero-title { font-size:2.2rem !important; letter-spacing:5px !important; }
+    .stTabs [data-baseweb="tab"] { padding:8px 14px !important; font-size:0.72rem !important; }
+    .checkout-price { font-size:2.2rem !important; }
+  }
+
+  /* Mobile phones */
+  @media (max-width: 768px) {
+    .block-container { padding:0.6rem 0.6rem 1rem !important; }
+    .hero { padding:1.4rem 0.5rem 0.9rem !important; margin-bottom:1rem !important; }
+    .hero-title { font-size:1.7rem !important; letter-spacing:4px !important; }
+    .hero-sub { font-size:0.68rem !important; letter-spacing:2px !important; }
+
+    /* Tabs: horizontal scroll on mobile */
+    .stTabs [data-baseweb="tab-list"] {
+      overflow-x:auto !important; flex-wrap:nowrap !important;
+      -webkit-overflow-scrolling:touch !important; scrollbar-width:none !important;
+      padding:4px !important; gap:2px !important;
+    }
+    .stTabs [data-baseweb="tab-list"]::-webkit-scrollbar { display:none !important; }
+    .stTabs [data-baseweb="tab"] {
+      padding:7px 10px !important; font-size:0.65rem !important;
+      white-space:nowrap !important; letter-spacing:1px !important;
+    }
+
+    /* Cards */
+    .card { padding:1rem 1rem !important; }
+    .card-title { font-size:1rem !important; }
+
+    /* Larger touch targets for buttons */
+    .stButton>button { padding:0.85rem 1rem !important; font-size:0.82rem !important;
+      min-height:48px !important; }
+
+    /* Stat boxes */
+    .stat-val { font-size:1.3rem !important; }
+    .stat-lbl { font-size:0.62rem !important; }
+    .stat-box { padding:0.8rem 0.6rem !important; }
+
+    /* Checkout */
+    .checkout-box { padding:1rem 1rem !important; }
+    .checkout-price { font-size:2rem !important; }
+    .checkout-customer { font-size:0.9rem !important; }
+
+    /* Inventory cards */
+    .inv-qty { font-size:1.5rem !important; }
+
+    /* Stylist cards */
+    .sched-card { padding:0.9rem 1rem !important; }
+
+    /* Inputs: bigger for touch */
+    .stTextInput>div>div>input,
+    .stTextArea>div>div>textarea,
+    .stSelectbox>div>div,
+    .stDateInput>div>div>input,
+    .stNumberInput>div>div>input {
+      font-size:16px !important; /* prevents iOS auto-zoom */
+      min-height:44px !important;
+    }
+
+    /* Fix number input spinner buttons on mobile */
+    .stNumberInput [data-testid="stNumberInputContainer"] button {
+      min-width:44px !important; min-height:44px !important;
+    }
+
+    /* Radio buttons: bigger tap area */
+    .stRadio>div { gap:12px !important; }
+    .stRadio label { font-size:0.9rem !important; padding:6px 0 !important; }
+
+    /* Data editor: allow horizontal scroll */
+    [data-testid="stDataEditor"] { overflow-x:auto !important; }
+
+    hr { margin:1rem 0 !important; }
+  }
+
+  /* Small phones */
+  @media (max-width: 400px) {
+    .hero-title { font-size:1.35rem !important; letter-spacing:3px !important; }
+    .stTabs [data-baseweb="tab"] { padding:6px 8px !important; font-size:0.6rem !important; }
+    .checkout-price { font-size:1.7rem !important; }
+  }
 </style>
 """, unsafe_allow_html=True)
 
