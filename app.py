@@ -16,6 +16,10 @@ try:
         db_add_salon, db_delete_salon,
         db_confirm_booking, db_cancel_booking,
     )
+    _USE_DB = "SUPABASE_URL" in st.secrets and st.secrets["SUPABASE_URL"] != "https://YOUR_PROJECT_ID.supabase.co"
+except Exception:
+    _USE_DB = False
+
 try:
     from notify import (
         send_booking_confirmed, whatsapp_link,
@@ -24,9 +28,6 @@ try:
     _NOTIFY = True
 except Exception:
     _NOTIFY = False
-    _USE_DB = "SUPABASE_URL" in st.secrets and st.secrets["SUPABASE_URL"] != "https://YOUR_PROJECT_ID.supabase.co"
-except Exception:
-    _USE_DB = False
 
 # ── Auth helpers ──────────────────────────────────────────────────────────────
 def _hash(pw: str) -> str:
