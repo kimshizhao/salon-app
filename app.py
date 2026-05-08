@@ -698,8 +698,8 @@ def tier_label(tier_dict):
 
 # ── Cookie manager for persistent login ──────────────────────────────────────
 try:
-    import extra_streamlit_components as stx
-    _cookie_mgr = stx.CookieManager(key="sk_cookie_mgr")
+    from streamlit_cookies_controller import CookieController as _CookieController
+    _cookie_mgr = _CookieController()
     _COOKIES_OK = True
 except Exception:
     _cookie_mgr = None
@@ -708,14 +708,16 @@ except Exception:
 def _save_login_cookie(username: str):
     if _COOKIES_OK and _cookie_mgr:
         try:
-            _cookie_mgr.set("sk_user", username, max_age=7*24*3600)
+            from datetime import datetime, timedelta
+            _cookie_mgr.set("sk_user", username,
+                            expires=datetime.now() + timedelta(days=7))
         except Exception:
             pass
 
 def _clear_login_cookie():
     if _COOKIES_OK and _cookie_mgr:
         try:
-            _cookie_mgr.delete("sk_user")
+            _cookie_mgr.remove("sk_user")
         except Exception:
             pass
 
