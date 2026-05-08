@@ -1072,6 +1072,219 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
+# ── Receipt builder ───────────────────────────────────────────────────────────
+def build_receipt_html(r: dict, lang: str) -> str:
+    """Return a full printable HTML receipt string for item dict r."""
+    is_zh   = (lang == "zh")
+    subtotal = r.get("subtotal", r.get("final", 0))
+    disc     = r.get("disc_pct", 0)
+    extra    = r.get("extra", 0)
+    final    = r.get("final", 0)
+    member   = r.get("member", "")
+    pts      = r.get("pts", 0)
+    method   = r.get("method", "Cash")
+    stylist  = r.get("stylist", "")
+    date_str = r.get("date", str(dt_date.today()))
+    time_str = r.get("time", "")
+    name     = r.get("name", "")
+    service  = r.get("service", "")
+
+    disc_row = ""
+    if disc:
+        disc_row = f"<tr><td>{'折扣' if is_zh else 'Discount'}</td><td style='color:#e67e22;'>-{disc}%</td></tr>"
+    extra_row = ""
+    if extra:
+        extra_row = f"<tr><td>{'加收' if is_zh else 'Extra'}</td><td>RM {extra:.2f}</td></tr>"
+    member_row = ""
+    if member:
+        member_row = (
+            f"<tr><td>{'會員' if is_zh else 'Member'}</td><td>{member}</td></tr>"
+            + (f"<tr><td>{'本次積分' if is_zh else 'Points Earned'}</td>"
+               f"<td style='color:#3498db;'>+{pts} pts</td></tr>" if pts else "")
+        )
+    thanks = "感謝您的光臨，期待再次為您服務！" if is_zh else "Thank you for visiting — see you again soon!"
+    receipt_no = f"SK-{date_str.replace('-','')}-{abs(hash(name+time_str)) % 10000:04d}"
+
+    return f"""<!DOCTYPE html><html><head><meta charset="utf-8">
+<title>IQSALON Receipt</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Raleway:wght@300;400;600&display=swap');
+  * {{ box-sizing:border-box; margin:0; padding:0; }}
+  body {{ font-family:'Raleway',sans-serif; background:#fff; color:#111;
+         display:flex; justify-content:center; padding:30px 10px; }}
+  .receipt {{ width:360px; border:1px solid #ddd; border-radius:12px;
+              padding:28px 24px; background:#fff; }}
+  .logo {{ text-align:center; margin-bottom:18px; border-bottom:2px solid #c9a84c; padding-bottom:14px; }}
+  .logo-title {{ font-family:'Playfair Display',serif; font-size:1.5rem; font-weight:700;
+                 letter-spacing:6px; color:#c9a84c; }}
+  .logo-sub {{ font-size:0.65rem; letter-spacing:3px; color:#888; margin-top:3px; text-transform:uppercase; }}
+  .section {{ margin:14px 0; }}
+  .client-name {{ font-family:'Playfair Display',serif; font-size:1.1rem; color:#111; }}
+  .meta {{ font-size:0.75rem; color:#888; margin-top:2px; }}
+  table {{ width:100%; border-collapse:collapse; margin-top:10px; }}
+  td {{ padding:6px 0; font-size:0.85rem; vertical-align:top; }}
+  td:last-child {{ text-align:right; font-weight:600; }}
+  .divider {{ border:none; border-top:1px solid #eee; margin:10px 0; }}
+  .total-row td {{ font-size:1rem; font-weight:700; color:#c9a84c; padding:8px 0; }}
+  .badge {{ display:inline-block; background:#c9a84c22; color:#c9a84c; border-radius:20px;
+            padding:2px 10px; font-size:0.7rem; letter-spacing:1px; }}
+  .thanks {{ text-align:center; margin-top:18px; padding-top:14px; border-top:1px solid #eee;
+             font-size:0.75rem; color:#888; letter-spacing:1px; }}
+  .rcpt-no {{ text-align:center; font-size:0.65rem; color:#bbb; margin-top:6px; }}
+  .print-btn {{ display:block; width:100%; margin-top:20px; padding:10px; background:#c9a84c;
+                color:#fff; border:none; border-radius:8px; font-size:0.85rem; font-weight:700;
+                letter-spacing:2px; cursor:pointer; font-family:'Raleway',sans-serif; }}
+  .print-btn:hover {{ background:#a07830; }}
+  @media print {{
+    .print-btn {{ display:none; }}
+    body {{ padding:0; background:#fff; }}
+    .receipt {{ border:none; width:100%; }}
+  }}
+</style></head><body>
+<div class="receipt">
+  <div class="logo">
+    <div class="logo-title">✦ {r.get('salon','IQSALON').upper()} ✦</div>
+    <div class="logo-sub">Professional Hair Salon · Malaysia</div>
+  </div>
+  <div class="section">
+    <div class="client-name">{name}</div>
+    <div class="meta">{date_str} {time_str}</div>
+  </div>
+  <table>
+    <tr><td>{'服務' if is_zh else 'Service'}</td><td>{service}</td></tr>
+    {'<tr><td>' + ('髮型師' if is_zh else 'Stylist') + '</td><td>' + stylist + '</td></tr>' if stylist else ''}
+    <tr><td>{'小計' if is_zh else 'Subtotal'}</td><td>RM {subtotal:.2f}</td></tr>
+    {disc_row}{extra_row}
+    {member_row}
+  </table>
+  <hr class="divider">
+  <table>
+    <tr class="total-row"><td>{'總計' if is_zh else 'Total'}</td><td>RM {final:.2f}</td></tr>
+  </table>
+  <div style="margin-top:8px; font-size:0.78rem; color:#888;">
+    {'付款方式' if is_zh else 'Payment'}: {method}
+  </div>
+  <div class="thanks">{thanks}</div>
+  <div class="rcpt-no"># {receipt_no}</div>
+  <button class="print-btn" onclick="window.print()">
+    {'🖨️  列印收據' if is_zh else '🖨️  Print Receipt'}
+  </button>
+</div>
+</body></html>"""
+
+
+# ── Shared settlement helpers ─────────────────────────────────────────────────
+def _settle_build_panels(paid_list, walkin_list, total_coll, label_suffix=""):
+    """Return (df_detail, df_sty, df_svc, df_mth) for given paid + walkin lists."""
+    detail_rows = [
+        {u("col_s_name"):    b.get("name",""),  u("col_s_stylist"): b.get("stylist",""),
+         u("col_s_svc"):     b.get("service",""), u("col_s_method"):  b.get("method",""),
+         u("col_s_amt"):     b.get("final", b.get("price",0)),
+         u("col_s_type"):    ("預約" if st.session_state.lang=="zh" else "Booking")}
+        for b in paid_list
+    ] + [
+        {u("col_s_name"):    w.get("name",""),  u("col_s_stylist"): "—",
+         u("col_s_svc"):     w.get("service",""), u("col_s_method"):  w.get("method",""),
+         u("col_s_amt"):     w.get("final",0),
+         u("col_s_type"):    ("即場客" if st.session_state.lang=="zh" else "Walk-in")}
+        for w in walkin_list
+    ]
+    df_detail = pd.DataFrame(detail_rows) if detail_rows else pd.DataFrame()
+
+    sty_rows = []
+    for sty in sorted({b.get("stylist","") for b in paid_list} - {"","—"}):
+        items = [b for b in paid_list if b.get("stylist")==sty]
+        rev = sum(b.get("final",b.get("price",0)) for b in items)
+        cnt = len(items)
+        sty_rows.append({u("col_s_stylist"):sty, u("col_s_count"):cnt,
+                         u("col_s_rev"):round(rev,2), u("col_s_avg"):round(rev/cnt,2) if cnt else 0})
+    df_sty = pd.DataFrame(sty_rows) if sty_rows else pd.DataFrame()
+
+    svc_agg = {}
+    for row in detail_rows:
+        s = row[u("col_s_svc")]
+        if s not in svc_agg: svc_agg[s] = {"cnt":0,"rev":0}
+        svc_agg[s]["cnt"] += 1; svc_agg[s]["rev"] += row[u("col_s_amt")]
+    df_svc = pd.DataFrame([
+        {u("col_s_svc"):s, u("col_s_count"):v["cnt"],
+         u("col_s_rev"):round(v["rev"],2), u("col_s_avg"):round(v["rev"]/v["cnt"],2) if v["cnt"] else 0}
+        for s,v in svc_agg.items()
+    ]).sort_values(u("col_s_rev"),ascending=False).reset_index(drop=True) if svc_agg else pd.DataFrame()
+
+    mth_agg = {}
+    for row in detail_rows:
+        m = row[u("col_s_method")] or "Cash"
+        if m not in mth_agg: mth_agg[m] = {"cnt":0,"rev":0}
+        mth_agg[m]["cnt"] += 1; mth_agg[m]["rev"] += row[u("col_s_amt")]
+    df_mth = pd.DataFrame([
+        {u("col_s_method"):m, u("col_s_count"):v["cnt"], u("col_s_rev"):round(v["rev"],2)}
+        for m,v in mth_agg.items()
+    ]).sort_values(u("col_s_rev"),ascending=False).reset_index(drop=True) if mth_agg else pd.DataFrame()
+
+    return df_detail, df_sty, df_svc, df_mth
+
+
+def _render_right_panels(df_svc, df_mth, total_coll):
+    """Render service + method breakdown cards (right column)."""
+    if not df_svc.empty:
+        st.markdown('<div class="card">', unsafe_allow_html=True)
+        st.markdown(f'<p class="card-title">{u("settle_svc")}</p>', unsafe_allow_html=True)
+        for _, row in df_svc.iterrows():
+            pct = int(row[u("col_s_rev")] / total_coll * 100) if total_coll else 0
+            st.markdown(
+                f"<div style='margin-bottom:10px;'>"
+                f"<div style='display:flex;justify-content:space-between;margin-bottom:3px;'>"
+                f"<span style='color:#ccc;font-size:0.83rem;'>{row[u('col_s_svc')]}</span>"
+                f"<span style='color:#c9a84c;font-weight:700;'>RM {row[u('col_s_rev')]:.2f}"
+                f" <span style='color:#666;font-size:0.72rem;'>×{int(row[u('col_s_count')])}</span></span></div>"
+                f"<div style='height:4px;background:#222;border-radius:2px;overflow:hidden;'>"
+                f"<div style='width:{pct}%;height:100%;background:#c9a84c;border-radius:2px;'></div>"
+                f"</div></div>", unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True)
+
+    if not df_mth.empty:
+        st.markdown('<div class="card">', unsafe_allow_html=True)
+        st.markdown(f'<p class="card-title">{u("settle_method")}</p>', unsafe_allow_html=True)
+        for _, row in df_mth.iterrows():
+            m = row[u("col_s_method")]
+            ic = PAY_METHODS.get(m,("","💰","#888"))[1]
+            cl = PAY_METHODS.get(m,("","💰","#888"))[2]
+            pct = int(row[u("col_s_rev")] / total_coll * 100) if total_coll else 0
+            st.markdown(
+                f"<div style='margin-bottom:10px;'>"
+                f"<div style='display:flex;justify-content:space-between;margin-bottom:3px;'>"
+                f"<span style='color:#ccc;font-size:0.83rem;'>{ic} {m}</span>"
+                f"<span style='color:{cl};font-weight:700;'>RM {row[u('col_s_rev')]:.2f}"
+                f" <span style='color:#666;font-size:0.72rem;'>×{int(row[u('col_s_count')])}</span></span></div>"
+                f"<div style='height:4px;background:#222;border-radius:2px;overflow:hidden;'>"
+                f"<div style='width:{pct}%;height:100%;background:{cl};border-radius:2px;'></div>"
+                f"</div></div>", unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True)
+
+
+def _render_sty_panel(df_sty):
+    if df_sty.empty: return
+    st.markdown('<div class="card">', unsafe_allow_html=True)
+    st.markdown(f'<p class="card-title">{u("settle_sty")}</p>', unsafe_allow_html=True)
+    for _, row in df_sty.iterrows():
+        sn = row[u("col_s_stylist")]
+        idx = st.session_state.stylists.index(sn) if sn in st.session_state.stylists else 0
+        cl = STYLIST_COLORS[idx % len(STYLIST_COLORS)]
+        st.markdown(
+            f"<div style='display:flex;justify-content:space-between;align-items:center;"
+            f"padding:9px 0;border-bottom:1px solid #1a1a1a;'>"
+            f"<div style='display:flex;align-items:center;gap:10px;'>"
+            f"<div class='sched-avatar' style='background:{cl}22;color:{cl};"
+            f"width:34px;height:34px;font-size:0.85rem;'>{sn[:2].upper()}</div>"
+            f"<span style='color:#f0ece0;'>{sn}</span>"
+            f"<span style='color:#666;font-size:0.78rem;'>· {int(row[u('col_s_count')])} {u('sty_clients')}</span></div>"
+            f"<div style='text-align:right;'>"
+            f"<span style='color:{cl};font-weight:700;font-size:1rem;'>RM {row[u('col_s_rev')]:.2f}</span>"
+            f"<span style='display:block;color:#666;font-size:0.72rem;'>avg RM {row[u('col_s_avg')]:.2f}</span>"
+            f"</div></div>", unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
+
+
 # Build tab list
 _tabs_labels = [u("tab1"), u("tab2"), u("tab3"), u("tab4"), u("tab5"), u("tab6")]
 if _can("analytics"):
@@ -2082,222 +2295,6 @@ with tab4:
             st.success(u("inv_saved"))
             st.rerun()
 
-# ── Receipt builder ───────────────────────────────────────────────────────────
-def build_receipt_html(r: dict, lang: str) -> str:
-    """Return a full printable HTML receipt string for item dict r."""
-    is_zh   = (lang == "zh")
-    subtotal = r.get("subtotal", r.get("final", 0))
-    disc     = r.get("disc_pct", 0)
-    extra    = r.get("extra", 0)
-    final    = r.get("final", 0)
-    member   = r.get("member", "")
-    pts      = r.get("pts", 0)
-    method   = r.get("method", "Cash")
-    stylist  = r.get("stylist", "")
-    date_str = r.get("date", str(dt_date.today()))
-    time_str = r.get("time", "")
-    name     = r.get("name", "")
-    service  = r.get("service", "")
-
-    disc_row = ""
-    if disc:
-        disc_row = f"<tr><td>{'折扣' if is_zh else 'Discount'}</td><td style='color:#e67e22;'>-{disc}%</td></tr>"
-    extra_row = ""
-    if extra:
-        extra_row = f"<tr><td>{'加收' if is_zh else 'Extra'}</td><td>RM {extra:.2f}</td></tr>"
-    member_row = ""
-    if member:
-        member_row = (
-            f"<tr><td>{'會員' if is_zh else 'Member'}</td><td>{member}</td></tr>"
-            + (f"<tr><td>{'本次積分' if is_zh else 'Points Earned'}</td>"
-               f"<td style='color:#3498db;'>+{pts} pts</td></tr>" if pts else "")
-        )
-    thanks = "感謝您的光臨，期待再次為您服務！" if is_zh else "Thank you for visiting — see you again soon!"
-    receipt_no = f"SK-{date_str.replace('-','')}-{abs(hash(name+time_str)) % 10000:04d}"
-
-    return f"""<!DOCTYPE html><html><head><meta charset="utf-8">
-<title>IQSALON Receipt</title>
-<style>
-  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Raleway:wght@300;400;600&display=swap');
-  * {{ box-sizing:border-box; margin:0; padding:0; }}
-  body {{ font-family:'Raleway',sans-serif; background:#fff; color:#111;
-         display:flex; justify-content:center; padding:30px 10px; }}
-  .receipt {{ width:360px; border:1px solid #ddd; border-radius:12px;
-              padding:28px 24px; background:#fff; }}
-  .logo {{ text-align:center; margin-bottom:18px; border-bottom:2px solid #c9a84c; padding-bottom:14px; }}
-  .logo-title {{ font-family:'Playfair Display',serif; font-size:1.5rem; font-weight:700;
-                 letter-spacing:6px; color:#c9a84c; }}
-  .logo-sub {{ font-size:0.65rem; letter-spacing:3px; color:#888; margin-top:3px; text-transform:uppercase; }}
-  .section {{ margin:14px 0; }}
-  .client-name {{ font-family:'Playfair Display',serif; font-size:1.1rem; color:#111; }}
-  .meta {{ font-size:0.75rem; color:#888; margin-top:2px; }}
-  table {{ width:100%; border-collapse:collapse; margin-top:10px; }}
-  td {{ padding:6px 0; font-size:0.85rem; vertical-align:top; }}
-  td:last-child {{ text-align:right; font-weight:600; }}
-  .divider {{ border:none; border-top:1px solid #eee; margin:10px 0; }}
-  .total-row td {{ font-size:1rem; font-weight:700; color:#c9a84c; padding:8px 0; }}
-  .badge {{ display:inline-block; background:#c9a84c22; color:#c9a84c; border-radius:20px;
-            padding:2px 10px; font-size:0.7rem; letter-spacing:1px; }}
-  .thanks {{ text-align:center; margin-top:18px; padding-top:14px; border-top:1px solid #eee;
-             font-size:0.75rem; color:#888; letter-spacing:1px; }}
-  .rcpt-no {{ text-align:center; font-size:0.65rem; color:#bbb; margin-top:6px; }}
-  .print-btn {{ display:block; width:100%; margin-top:20px; padding:10px; background:#c9a84c;
-                color:#fff; border:none; border-radius:8px; font-size:0.85rem; font-weight:700;
-                letter-spacing:2px; cursor:pointer; font-family:'Raleway',sans-serif; }}
-  .print-btn:hover {{ background:#a07830; }}
-  @media print {{
-    .print-btn {{ display:none; }}
-    body {{ padding:0; background:#fff; }}
-    .receipt {{ border:none; width:100%; }}
-  }}
-</style></head><body>
-<div class="receipt">
-  <div class="logo">
-    <div class="logo-title">✦ {rcpt.get('salon','IQSALON').upper()} ✦</div>
-    <div class="logo-sub">Professional Hair Salon · Malaysia</div>
-  </div>
-  <div class="section">
-    <div class="client-name">{name}</div>
-    <div class="meta">{date_str} {time_str}</div>
-  </div>
-  <table>
-    <tr><td>{'服務' if is_zh else 'Service'}</td><td>{service}</td></tr>
-    {'<tr><td>' + ('髮型師' if is_zh else 'Stylist') + '</td><td>' + stylist + '</td></tr>' if stylist else ''}
-    <tr><td>{'小計' if is_zh else 'Subtotal'}</td><td>RM {subtotal:.2f}</td></tr>
-    {disc_row}{extra_row}
-    {member_row}
-  </table>
-  <hr class="divider">
-  <table>
-    <tr class="total-row"><td>{'總計' if is_zh else 'Total'}</td><td>RM {final:.2f}</td></tr>
-  </table>
-  <div style="margin-top:8px; font-size:0.78rem; color:#888;">
-    {'付款方式' if is_zh else 'Payment'}: {method}
-  </div>
-  <div class="thanks">{thanks}</div>
-  <div class="rcpt-no"># {receipt_no}</div>
-  <button class="print-btn" onclick="window.print()">
-    {'🖨️  列印收據' if is_zh else '🖨️  Print Receipt'}
-  </button>
-</div>
-</body></html>"""
-
-
-# ── Shared settlement helpers ─────────────────────────────────────────────────
-def _settle_build_panels(paid_list, walkin_list, total_coll, label_suffix=""):
-    """Return (df_detail, df_sty, df_svc, df_mth) for given paid + walkin lists."""
-    detail_rows = [
-        {u("col_s_name"):    b.get("name",""),  u("col_s_stylist"): b.get("stylist",""),
-         u("col_s_svc"):     b.get("service",""), u("col_s_method"):  b.get("method",""),
-         u("col_s_amt"):     b.get("final", b.get("price",0)),
-         u("col_s_type"):    ("預約" if st.session_state.lang=="zh" else "Booking")}
-        for b in paid_list
-    ] + [
-        {u("col_s_name"):    w.get("name",""),  u("col_s_stylist"): "—",
-         u("col_s_svc"):     w.get("service",""), u("col_s_method"):  w.get("method",""),
-         u("col_s_amt"):     w.get("final",0),
-         u("col_s_type"):    ("即場客" if st.session_state.lang=="zh" else "Walk-in")}
-        for w in walkin_list
-    ]
-    df_detail = pd.DataFrame(detail_rows) if detail_rows else pd.DataFrame()
-
-    # Stylist
-    sty_rows = []
-    for sty in sorted({b.get("stylist","") for b in paid_list} - {"","—"}):
-        items = [b for b in paid_list if b.get("stylist")==sty]
-        rev = sum(b.get("final",b.get("price",0)) for b in items)
-        cnt = len(items)
-        sty_rows.append({u("col_s_stylist"):sty, u("col_s_count"):cnt,
-                         u("col_s_rev"):round(rev,2), u("col_s_avg"):round(rev/cnt,2) if cnt else 0})
-    df_sty = pd.DataFrame(sty_rows) if sty_rows else pd.DataFrame()
-
-    # Service
-    svc_agg = {}
-    for row in detail_rows:
-        s = row[u("col_s_svc")]
-        if s not in svc_agg: svc_agg[s] = {"cnt":0,"rev":0}
-        svc_agg[s]["cnt"] += 1; svc_agg[s]["rev"] += row[u("col_s_amt")]
-    df_svc = pd.DataFrame([
-        {u("col_s_svc"):s, u("col_s_count"):v["cnt"],
-         u("col_s_rev"):round(v["rev"],2), u("col_s_avg"):round(v["rev"]/v["cnt"],2) if v["cnt"] else 0}
-        for s,v in svc_agg.items()
-    ]).sort_values(u("col_s_rev"),ascending=False).reset_index(drop=True) if svc_agg else pd.DataFrame()
-
-    # Method
-    mth_agg = {}
-    for row in detail_rows:
-        m = row[u("col_s_method")] or "Cash"
-        if m not in mth_agg: mth_agg[m] = {"cnt":0,"rev":0}
-        mth_agg[m]["cnt"] += 1; mth_agg[m]["rev"] += row[u("col_s_amt")]
-    df_mth = pd.DataFrame([
-        {u("col_s_method"):m, u("col_s_count"):v["cnt"], u("col_s_rev"):round(v["rev"],2)}
-        for m,v in mth_agg.items()
-    ]).sort_values(u("col_s_rev"),ascending=False).reset_index(drop=True) if mth_agg else pd.DataFrame()
-
-    return df_detail, df_sty, df_svc, df_mth
-
-
-def _render_right_panels(df_svc, df_mth, total_coll):
-    """Render service + method breakdown cards (right column)."""
-    if not df_svc.empty:
-        st.markdown('<div class="card">', unsafe_allow_html=True)
-        st.markdown(f'<p class="card-title">{u("settle_svc")}</p>', unsafe_allow_html=True)
-        for _, row in df_svc.iterrows():
-            pct = int(row[u("col_s_rev")] / total_coll * 100) if total_coll else 0
-            st.markdown(
-                f"<div style='margin-bottom:10px;'>"
-                f"<div style='display:flex;justify-content:space-between;margin-bottom:3px;'>"
-                f"<span style='color:#ccc;font-size:0.83rem;'>{row[u('col_s_svc')]}</span>"
-                f"<span style='color:#c9a84c;font-weight:700;'>RM {row[u('col_s_rev')]:.2f}"
-                f" <span style='color:#666;font-size:0.72rem;'>×{int(row[u('col_s_count')])}</span></span></div>"
-                f"<div style='height:4px;background:#222;border-radius:2px;overflow:hidden;'>"
-                f"<div style='width:{pct}%;height:100%;background:#c9a84c;border-radius:2px;'></div>"
-                f"</div></div>", unsafe_allow_html=True)
-        st.markdown('</div>', unsafe_allow_html=True)
-
-    if not df_mth.empty:
-        st.markdown('<div class="card">', unsafe_allow_html=True)
-        st.markdown(f'<p class="card-title">{u("settle_method")}</p>', unsafe_allow_html=True)
-        for _, row in df_mth.iterrows():
-            m = row[u("col_s_method")]
-            ic = PAY_METHODS.get(m,("","💰","#888"))[1]
-            cl = PAY_METHODS.get(m,("","💰","#888"))[2]
-            pct = int(row[u("col_s_rev")] / total_coll * 100) if total_coll else 0
-            st.markdown(
-                f"<div style='margin-bottom:10px;'>"
-                f"<div style='display:flex;justify-content:space-between;margin-bottom:3px;'>"
-                f"<span style='color:#ccc;font-size:0.83rem;'>{ic} {m}</span>"
-                f"<span style='color:{cl};font-weight:700;'>RM {row[u('col_s_rev')]:.2f}"
-                f" <span style='color:#666;font-size:0.72rem;'>×{int(row[u('col_s_count')])}</span></span></div>"
-                f"<div style='height:4px;background:#222;border-radius:2px;overflow:hidden;'>"
-                f"<div style='width:{pct}%;height:100%;background:{cl};border-radius:2px;'></div>"
-                f"</div></div>", unsafe_allow_html=True)
-        st.markdown('</div>', unsafe_allow_html=True)
-
-
-def _render_sty_panel(df_sty):
-    if df_sty.empty: return
-    st.markdown('<div class="card">', unsafe_allow_html=True)
-    st.markdown(f'<p class="card-title">{u("settle_sty")}</p>', unsafe_allow_html=True)
-    for _, row in df_sty.iterrows():
-        sn = row[u("col_s_stylist")]
-        idx = st.session_state.stylists.index(sn) if sn in st.session_state.stylists else 0
-        cl = STYLIST_COLORS[idx % len(STYLIST_COLORS)]
-        st.markdown(
-            f"<div style='display:flex;justify-content:space-between;align-items:center;"
-            f"padding:9px 0;border-bottom:1px solid #1a1a1a;'>"
-            f"<div style='display:flex;align-items:center;gap:10px;'>"
-            f"<div class='sched-avatar' style='background:{cl}22;color:{cl};"
-            f"width:34px;height:34px;font-size:0.85rem;'>{sn[:2].upper()}</div>"
-            f"<span style='color:#f0ece0;'>{sn}</span>"
-            f"<span style='color:#666;font-size:0.78rem;'>· {int(row[u('col_s_count')])} {u('sty_clients')}</span></div>"
-            f"<div style='text-align:right;'>"
-            f"<span style='color:{cl};font-weight:700;font-size:1rem;'>RM {row[u('col_s_rev')]:.2f}</span>"
-            f"<span style='display:block;color:#666;font-size:0.72rem;'>avg RM {row[u('col_s_avg')]:.2f}</span>"
-            f"</div></div>", unsafe_allow_html=True)
-    st.markdown('</div>', unsafe_allow_html=True)
-
-
 # ═════════════════════════════════════════════════════════════════════════════
 # TAB 5 — SETTLEMENT & EXCEL EXPORT
 # ═════════════════════════════════════════════════════════════════════════════
@@ -2320,7 +2317,7 @@ with tab5:
         # ════════════════════════════════════════════════════════════════════════
         # DAILY MODE
         # ════════════════════════════════════════════════════════════════════════
-        if not is_monthly:
+        if not is_monthly and not is_comm_mode:
             # Date picker + export button on same row
             settle_col1, settle_col2, settle_col3 = st.columns([1.2, 2, 1])
             with settle_col1:
