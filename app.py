@@ -52,8 +52,8 @@ def _can(action: str) -> bool:
     """Check if current user has permission for an action."""
     role = st.session_state.get("role", "staff")
     perms = {
-        "owner":   {"settlement","member_delete","inventory_edit","admin","view_all","payment","booking"},
-        "manager": {"settlement","member_delete","inventory_edit","payment","booking"},
+        "owner":   {"settlement","member_delete","inventory_edit","admin","view_all","payment","booking","analytics"},
+        "manager": {"settlement","member_delete","inventory_edit","payment","booking","analytics"},
         "staff":   {"payment","booking"},
     }
     return action in perms.get(role, set())
@@ -932,13 +932,18 @@ st.markdown(f"""
 
 # Build tab list
 _tabs_labels = [u("tab1"), u("tab2"), u("tab3"), u("tab4"), u("tab5"), u("tab6")]
+if _can("analytics"):
+    _tabs_labels.append("  📊  " + ("業績" if st.session_state.lang=="zh" else "Analytics") + "  ")
 if _can("admin"):
     _tabs_labels.append("  ⚙️  " + ("管理" if st.session_state.lang=="zh" else "Admin") + "  ")
 
 _tabs = st.tabs(_tabs_labels)
 tab1, tab2, tab3, tab4, tab5, tab6 = _tabs[:6]
+_tab_offset = 6
+if _can("analytics"):
+    tab_analytics = _tabs[_tab_offset]; _tab_offset += 1
 if _can("admin"):
-    tab_admin = _tabs[6]
+    tab_admin = _tabs[_tab_offset]
 
 # ═════════════════════════════════════════════════════════════════════════════
 # TAB 1 — BOOKINGS  (no pricing shown)
@@ -2621,6 +2626,227 @@ with tab6:
                     st.session_state.sel_member_id = None
                     st.markdown(f'<div class="alert-warn">{u("mem_deleted").format(mem_name_del)}</div>', unsafe_allow_html=True)
                     st.rerun()
+
+# ═════════════════════════════════════════════════════════════════════════════
+# ANALYTICS TAB — Owner + Manager
+# ═════════════════════════════════════════════════════════════════════════════
+if _can("analytics"):
+    with tab_analytics:
+        import plotly.express as px
+        import plotly.graph_objects as go
+        from datetime import datetime as _dt_now, timedelta as _td
+        import datetime as _dtt
+
+        is_zh = st.session_state.lang == "zh"
+
+        st.markdown(f'<p class="card-title" style="font-size:1.3rem;">📊 {"業績分析" if is_zh else "Analytics Dashboard"}</p>',
+                    unsafe_allow_html=True)
+
+        # ── Combine walkins + paid bookings into one revenue list ──────────
+        revenue_rows = []
+        for w in st.session_state.walkins:
+            revenue_rows.append({
+                "date":    w.get("date", ""),
+                "service": w.get("service", ""),
+                "stylist": w.get("name", ""),   # walkin has no stylist field; use name as fallback
+                "amount":  float(w.get("final", 0) or 0),
+                "method":  w.get("method", "Cash"),
+                "type":    "walkin",
+            })
+        for b in st.session_state.bookings:
+            if b.get("paid"):
+                revenue_rows.append({
+                    "date":    b.get("date", ""),
+                    "service": b.get("service", ""),
+                    "stylist": b.get("stylist", "—"),
+                    "amount":  float(b.get("final", 0) or 0),
+                    "method":  b.get("method", "Cash"),
+                    "type":    "booking",
+                })
+
+        df_rev = pd.DataFrame(revenue_rows) if revenue_rows else pd.DataFrame(
+            columns=["date","service","stylist","amount","method","type"])
+
+        # Parse dates safely
+        if not df_rev.empty:
+            df_rev["date"] = pd.to_datetime(df_rev["date"], errors="coerce")
+            df_rev = df_rev.dropna(subset=["date"])
+
+        today    = _dtt.date.today()
+        wk_start = today - _td(days=6)
+        mo_start = today.replace(day=1)
+
+        def _filt(df, period):
+            if df.empty: return df
+            if period == "week":  return df[df["date"].dt.date >= wk_start]
+            if period == "month": return df[df["date"].dt.date >= mo_start]
+            return df
+
+        # ── Period selector ────────────────────────────────────────────────
+        period = st.radio(
+            "", ["week","month","all"],
+            format_func=lambda x: {"week": "本週 / This Week",
+                                   "month": "本月 / This Month",
+                                   "all": "全部 / All Time"}[x],
+            horizontal=True, key="analytics_period"
+        )
+        df_p = _filt(df_rev, period)
+
+        # ── KPI Cards ──────────────────────────────────────────────────────
+        total_rev  = df_p["amount"].sum() if not df_p.empty else 0
+        total_txn  = len(df_p)
+        avg_txn    = (total_rev / total_txn) if total_txn > 0 else 0
+        total_bk   = len([b for b in st.session_state.bookings
+                          if b.get("date","") >= str(mo_start if period=="month"
+                          else wk_start if period=="week" else "2000-01-01")])
+
+        k1, k2, k3, k4 = st.columns(4)
+        for col, val, lbl in [
+            (k1, f"RM {total_rev:,.0f}", "💰 " + ("總收入" if is_zh else "Revenue")),
+            (k2, str(total_txn),          "🧾 " + ("交易數" if is_zh else "Transactions")),
+            (k3, f"RM {avg_txn:,.0f}",    "📈 " + ("平均客單" if is_zh else "Avg Ticket")),
+            (k4, str(total_bk),           "📅 " + ("預約數" if is_zh else "Bookings")),
+        ]:
+            col.markdown(
+                f'<div class="stat-box"><div class="stat-val">{val}</div>'
+                f'<div class="stat-lbl">{lbl}</div></div>',
+                unsafe_allow_html=True
+            )
+
+        st.markdown("<div style='height:1rem'></div>", unsafe_allow_html=True)
+
+        # ── Revenue Trend Chart ────────────────────────────────────────────
+        if not df_p.empty:
+            df_daily = df_p.groupby(df_p["date"].dt.date)["amount"].sum().reset_index()
+            df_daily.columns = ["date", "revenue"]
+            fig_trend = px.area(
+                df_daily, x="date", y="revenue",
+                title="📈 " + ("收入走勢" if is_zh else "Revenue Trend"),
+                labels={"date": "", "revenue": "RM"},
+                color_discrete_sequence=["#c9a84c"],
+            )
+            fig_trend.update_layout(
+                plot_bgcolor="#111", paper_bgcolor="#111",
+                font_color="#f0ece0", title_font_color="#c9a84c",
+                xaxis=dict(gridcolor="#1a1a1a", linecolor="#333"),
+                yaxis=dict(gridcolor="#1a1a1a", linecolor="#333"),
+                margin=dict(l=10, r=10, t=50, b=10),
+            )
+            fig_trend.update_traces(fillcolor="rgba(201,168,76,0.15)", line_color="#c9a84c")
+            st.plotly_chart(fig_trend, use_container_width=True)
+        else:
+            st.info("📊 " + ("暫無收入資料" if is_zh else "No revenue data yet"))
+
+        # ── Service + Stylist Charts side by side ─────────────────────────
+        ch1, ch2 = st.columns(2)
+
+        with ch1:
+            if not df_p.empty and df_p["service"].any():
+                df_svc = df_p.groupby("service")["amount"].sum().reset_index()
+                df_svc = df_svc.sort_values("amount", ascending=False)
+                fig_svc = px.pie(
+                    df_svc, values="amount", names="service",
+                    title="✂️ " + ("服務收入佔比" if is_zh else "Revenue by Service"),
+                    color_discrete_sequence=px.colors.sequential.Oranges_r,
+                    hole=0.4,
+                )
+                fig_svc.update_layout(
+                    plot_bgcolor="#111", paper_bgcolor="#111",
+                    font_color="#f0ece0", title_font_color="#c9a84c",
+                    legend=dict(font=dict(color="#aaa"), bgcolor="#111"),
+                    margin=dict(l=10, r=10, t=50, b=10),
+                )
+                st.plotly_chart(fig_svc, use_container_width=True)
+            else:
+                st.info("No service data")
+
+        with ch2:
+            bk_stylists = [b.get("stylist","—") for b in st.session_state.bookings
+                           if b.get("stylist") and b.get("date","") >= str(
+                               mo_start if period=="month" else wk_start if period=="week" else "2000-01-01")]
+            if bk_stylists:
+                df_sty = pd.Series(bk_stylists).value_counts().reset_index()
+                df_sty.columns = ["stylist", "bookings"]
+                fig_sty = px.bar(
+                    df_sty, x="stylist", y="bookings",
+                    title="💇 " + ("髮型師預約數" if is_zh else "Bookings by Stylist"),
+                    labels={"stylist": "", "bookings": ("預約" if is_zh else "Bookings")},
+                    color_discrete_sequence=["#c9a84c"],
+                )
+                fig_sty.update_layout(
+                    plot_bgcolor="#111", paper_bgcolor="#111",
+                    font_color="#f0ece0", title_font_color="#c9a84c",
+                    xaxis=dict(gridcolor="#1a1a1a"),
+                    yaxis=dict(gridcolor="#1a1a1a"),
+                    margin=dict(l=10, r=10, t=50, b=10),
+                )
+                st.plotly_chart(fig_sty, use_container_width=True)
+            else:
+                st.info("No stylist data")
+
+        # ── Payment Methods + Peak Hours ───────────────────────────────────
+        ch3, ch4 = st.columns(2)
+
+        with ch3:
+            if not df_p.empty and df_p["method"].any():
+                df_pay = df_p.groupby("method")["amount"].sum().reset_index()
+                COLORS = {"Cash":"#2ecc71","Visa/Card":"#3498db",
+                          "Touch 'n Go":"#e74c3c","DuitNow QR":"#9b59b6"}
+                fig_pay = px.pie(
+                    df_pay, values="amount", names="method",
+                    title="💳 " + ("付款方式" if is_zh else "Payment Methods"),
+                    color="method",
+                    color_discrete_map=COLORS,
+                    hole=0.4,
+                )
+                fig_pay.update_layout(
+                    plot_bgcolor="#111", paper_bgcolor="#111",
+                    font_color="#f0ece0", title_font_color="#c9a84c",
+                    legend=dict(font=dict(color="#aaa"), bgcolor="#111"),
+                    margin=dict(l=10, r=10, t=50, b=10),
+                )
+                st.plotly_chart(fig_pay, use_container_width=True)
+            else:
+                st.info("No payment data")
+
+        with ch4:
+            # Peak hours from bookings
+            all_hours = [b.get("time","")[:2] for b in st.session_state.bookings
+                         if b.get("time") and len(b.get("time","")) >= 2]
+            if all_hours:
+                df_hr = pd.Series(all_hours).value_counts().sort_index().reset_index()
+                df_hr.columns = ["hour", "count"]
+                df_hr["label"] = df_hr["hour"] + ":00"
+                fig_hr = px.bar(
+                    df_hr, x="label", y="count",
+                    title="⏰ " + ("預約高峰時段" if is_zh else "Peak Hours"),
+                    labels={"label": "", "count": ("預約數" if is_zh else "Bookings")},
+                    color_discrete_sequence=["#a07830"],
+                )
+                fig_hr.update_layout(
+                    plot_bgcolor="#111", paper_bgcolor="#111",
+                    font_color="#f0ece0", title_font_color="#c9a84c",
+                    xaxis=dict(gridcolor="#1a1a1a"),
+                    yaxis=dict(gridcolor="#1a1a1a"),
+                    margin=dict(l=10, r=10, t=50, b=10),
+                )
+                st.plotly_chart(fig_hr, use_container_width=True)
+            else:
+                st.info("No booking time data")
+
+        # ── Top Services table ─────────────────────────────────────────────
+        if not df_p.empty:
+            st.markdown("---")
+            st.markdown(f'<p class="card-title">🏆 {"熱門服務排行" if is_zh else "Top Services"}</p>',
+                        unsafe_allow_html=True)
+            df_top = df_p.groupby("service").agg(
+                {"amount": ["sum","count","mean"]}
+            ).round(1)
+            df_top.columns = [("總收入 RM" if is_zh else "Revenue RM"),
+                               ("次數" if is_zh else "Count"),
+                               ("平均 RM" if is_zh else "Avg RM")]
+            df_top = df_top.sort_values(("總收入 RM" if is_zh else "Revenue RM"), ascending=False)
+            st.dataframe(df_top, use_container_width=True)
 
 # ═════════════════════════════════════════════════════════════════════════════
 # ADMIN TAB — Owner only
