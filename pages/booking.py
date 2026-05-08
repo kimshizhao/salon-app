@@ -180,6 +180,10 @@ def t(key): return T[L].get(key, key)
 
 SERVICES = SERVICES_ZH if L == "zh" else SERVICES_EN
 
+def get_price(svc_name: str) -> int:
+    """Look up price from either language dictionary."""
+    return SERVICES_ZH.get(svc_name, 0) or SERVICES_EN.get(svc_name, 0)
+
 # ── Load salon data ───────────────────────────────────────────────────────────
 salon_name = "Signature Kim"
 stylists   = ["Kim", "Lily", "Jason"]
@@ -252,7 +256,7 @@ if st.session_state.bk_done:
       <div class="confirm-row"><span class="confirm-label">{t('time')}</span>
         <span class="confirm-val">{st.session_state.bk_time}</span></div>
       <div class="confirm-row" style="border:none"><span class="confirm-label">{t('price_est')}</span>
-        <span class="confirm-val" style="color:#c9a84c">RM {SERVICES.get(st.session_state.bk_service,0)}</span></div>
+        <span class="confirm-val" style="color:#c9a84c">RM {get_price(st.session_state.bk_service)}</span></div>
     </div>
     <p style="text-align:center;color:#888;font-size:0.78rem;margin-top:0.5rem">
       ⚡ {t('pending_note')}</p>
@@ -355,7 +359,7 @@ st.markdown("---")
 # ── Step 6: Confirm ───────────────────────────────────────────────────────────
 if st.session_state.bk_service:
     st.markdown(f'<div class="step-label">{t("step_confirm")}</div>', unsafe_allow_html=True)
-    price_est = SERVICES.get(st.session_state.bk_service, 0)
+    price_est = get_price(st.session_state.bk_service)
     st.markdown(f"""
     <div class="confirm-box">
       <div class="confirm-row"><span class="confirm-label">{t('service')}</span>
