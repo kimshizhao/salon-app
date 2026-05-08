@@ -15,6 +15,8 @@ try:
         db_set_stylists, db_add_account, db_delete_account, db_update_password,
         db_add_salon, db_delete_salon,
         db_confirm_booking, db_cancel_booking,
+        db_update_salon_subscription, db_activate_trial,
+        db_update_salon_contact, db_get_salon_info,
     )
     _USE_DB = "SUPABASE_URL" in st.secrets and st.secrets["SUPABASE_URL"] != "https://YOUR_PROJECT_ID.supabase.co"
 except Exception:
@@ -877,6 +879,75 @@ if not st.session_state.logged_in:
 # ── Logged in — sync data aliases ────────────────────────────────────────────
 _sync_ss()
 
+# ── Subscription status check (skip for owner — they manage the system) ───────
+import datetime as _sub_dt
+
+def _get_sub_status(salon_id: str) -> dict:
+    """Return subscription status for current branch."""
+    info = st.session_state.get("salon_info", {}).get(salon_id, {})
+    plan       = info.get("plan", "trial")
+    trial_ends = info.get("trial_ends")
+    plan_ends  = info.get("plan_ends")
+    today      = _sub_dt.date.today()
+
+    if plan == "active":
+        if plan_ends:
+            end = _sub_dt.date.fromisoformat(str(plan_ends))
+            days_left = (end - today).days
+            return {"ok": True, "plan": "active", "days_left": days_left, "ends": end}
+        return {"ok": True, "plan": "active", "days_left": 999, "ends": None}
+
+    if plan == "trial" or not plan:
+        if trial_ends:
+            end = _sub_dt.date.fromisoformat(str(trial_ends))
+            days_left = (end - today).days
+            if days_left >= 0:
+                return {"ok": True, "plan": "trial", "days_left": days_left, "ends": end}
+        return {"ok": False, "plan": "expired", "days_left": 0, "ends": None}
+
+    return {"ok": False, "plan": "expired", "days_left": 0, "ends": None}
+
+_sub = _get_sub_status(st.session_state.cur_branch) if st.session_state.role != "owner" else {"ok": True, "plan": "owner", "days_left": 999, "ends": None}
+
+# ── Subscription expired page ─────────────────────────────────────────────────
+if not _sub["ok"] and st.session_state.role != "owner":
+    stripe_link = st.session_state.get("salon_info", {}).get(
+        st.session_state.cur_branch, {}).get("stripe_link", "")
+    is_zh = st.session_state.lang == "zh"
+    st.markdown(f"""
+    <div style="max-width:480px;margin:8vh auto;background:#111;border:1px solid #e74c3c55;
+      border-radius:16px;padding:2.5rem 2.8rem;text-align:center;">
+      <div style="font-size:3rem;margin-bottom:1rem">🔒</div>
+      <div style="font-family:'Playfair Display',serif;font-size:1.5rem;color:#e74c3c;
+        letter-spacing:3px;margin-bottom:0.8rem">
+        {"訂閱已到期" if is_zh else "Subscription Expired"}
+      </div>
+      <div style="color:#888;font-size:0.88rem;line-height:1.8;margin-bottom:1.5rem">
+        {"您的試用期已結束，請訂閱以繼續使用所有功能。" if is_zh else
+         "Your trial has ended. Please subscribe to continue using all features."}
+      </div>
+      {'<a href="' + stripe_link + '" target="_blank" style="display:inline-block;' +
+       'background:linear-gradient(135deg,#c9a84c,#a07830);color:#0a0a0a;font-weight:700;' +
+       'font-size:0.9rem;letter-spacing:2px;text-transform:uppercase;padding:1rem 2.5rem;' +
+       'border-radius:8px;text-decoration:none;margin-bottom:1rem">💳 ' +
+       ("立即訂閱" if is_zh else "Subscribe Now") + '</a>'
+       if stripe_link else
+       '<div style="background:#1a1a1a;border:1px solid #c9a84c33;border-radius:8px;' +
+       'padding:1rem;color:#888;font-size:0.82rem">' +
+       ("請聯絡管理員啟用訂閱。" if is_zh else "Please contact admin to activate your subscription.") +
+       '</div>'}
+      <div style="margin-top:1.5rem;color:#555;font-size:0.75rem">
+        {"或聯絡 Signature Kim 支援" if is_zh else "Or contact Signature Kim support"}
+      </div>
+    </div>
+    """, unsafe_allow_html=True)
+    if st.button("🚪 " + ("登出" if is_zh else "Logout"), key="exp_logout"):
+        _clear_login_cookie()
+        for k in ["logged_in","username","role","user_name","cur_branch"]:
+            if k in st.session_state: del st.session_state[k]
+        st.rerun()
+    st.stop()
+
 # ── Auto-refresh: reload bookings from Supabase on each refresh cycle ─────────
 if _USE_DB and _auto_refresh_count > 0:
     try:
@@ -923,10 +994,19 @@ with hdr_r:
                 del st.session_state[k]
             st.rerun()
 
+# Build subscription badge for header
+_sub_badge = ""
+if _sub["plan"] == "trial" and _sub["days_left"] <= 7:
+    _sub_badge = f'<span style="background:#e67e22;color:#fff;font-size:0.65rem;padding:3px 10px;border-radius:20px;letter-spacing:1px;margin-left:8px">⏳ {"試用期剩" if st.session_state.lang=="zh" else "Trial"} {_sub["days_left"]} {"天" if st.session_state.lang=="zh" else "days"}</span>'
+elif _sub["plan"] == "trial":
+    _sub_badge = f'<span style="background:#2ecc71;color:#0a0a0a;font-size:0.65rem;padding:3px 10px;border-radius:20px;letter-spacing:1px;margin-left:8px">✓ {"試用中" if st.session_state.lang=="zh" else "Trial"} {_sub["days_left"]}{"天" if st.session_state.lang=="zh" else "d"}</span>'
+elif _sub["plan"] == "active":
+    _sub_badge = f'<span style="background:#c9a84c;color:#0a0a0a;font-size:0.65rem;padding:3px 10px;border-radius:20px;letter-spacing:1px;margin-left:8px">✦ {"已訂閱" if st.session_state.lang=="zh" else "Subscribed"}</span>'
+
 st.markdown(f"""
 <div class="hero">
   <p class="hero-title">✦ SIGNATURE KIM ✦</p>
-  <p class="hero-sub">{u('subtitle')} &nbsp;·&nbsp; {st.session_state.user_name} {role_icon}</p>
+  <p class="hero-sub">{u('subtitle')} &nbsp;·&nbsp; {st.session_state.user_name} {role_icon}{_sub_badge}</p>
 </div>
 """, unsafe_allow_html=True)
 
@@ -2855,6 +2935,63 @@ if _can("admin"):
     with tab_admin:
         is_zh = st.session_state.lang == "zh"
         st.markdown(f'<p class="card-title" style="font-size:1.3rem;">⚙️ {"系統管理" if is_zh else "Admin Panel"}</p>', unsafe_allow_html=True)
+
+        # ── Subscription Management ────────────────────────────────────────
+        st.markdown('<div class="card" style="margin-bottom:1rem">', unsafe_allow_html=True)
+        st.markdown(f'<p class="card-title">💳 {"訂閱管理" if is_zh else "Subscription Management"}</p>',
+                    unsafe_allow_html=True)
+
+        PLAN_COLORS = {"trial":"#e67e22","active":"#2ecc71","expired":"#e74c3c","owner":"#c9a84c"}
+        PLAN_LABELS = {"trial":"試用中","active":"已訂閱","expired":"已到期","owner":"系統擁有者"}
+
+        for bid, bname in st.session_state.branches.items():
+            info  = st.session_state.get("salon_info", {}).get(bid, {})
+            plan  = info.get("plan", "trial")
+            tend  = info.get("trial_ends","—")
+            pend  = info.get("plan_ends","—")
+            color = PLAN_COLORS.get(plan, "#888")
+            label = PLAN_LABELS.get(plan, plan)
+
+            with st.expander(f"🏠 {bname} ({bid})  ·  "
+                             f"[{label}]  {'到期：'+str(pend) if plan=='active' else '試用至：'+str(tend)}", expanded=False):
+                sub_c1, sub_c2 = st.columns(2)
+
+                with sub_c1:
+                    st.markdown(f'<span style="color:{color};font-weight:700">{label}</span>', unsafe_allow_html=True)
+                    new_stripe = st.text_input("Stripe Payment Link", value=info.get("stripe_link",""),
+                                               key=f"stripe_{bid}", placeholder="https://buy.stripe.com/...")
+                    new_contact_name  = st.text_input("聯絡人 / Contact", value=info.get("contact_name",""), key=f"cn_{bid}")
+                    new_contact_phone = st.text_input("電話 / Phone",    value=info.get("contact_phone",""), key=f"cp_{bid}")
+                    new_contact_email = st.text_input("Email",            value=info.get("contact_email",""), key=f"ce_{bid}")
+
+                with sub_c2:
+                    st.markdown(f"**{'啟用試用' if is_zh else 'Trial'}**")
+                    trial_days = st.number_input("試用天數", value=30, min_value=1, max_value=365, key=f"td_{bid}")
+                    if st.button("🔄 " + ("重設試用期" if is_zh else "Reset Trial"), key=f"trial_btn_{bid}"):
+                        if _USE_DB:
+                            try:
+                                db_activate_trial(bid, int(trial_days))
+                                st.success("✅ 試用期已重設")
+                            except Exception as e:
+                                st.error(str(e))
+
+                    st.markdown(f"**{'啟用訂閱' if is_zh else 'Activate Plan'}**")
+                    plan_end_date = st.date_input("訂閱到期日", key=f"ped_{bid}",
+                                                   value=_sub_dt.date.today() + _sub_dt.timedelta(days=30))
+                    if st.button("✅ " + ("啟用訂閱" if is_zh else "Activate"), key=f"act_btn_{bid}"):
+                        if _USE_DB:
+                            try:
+                                db_update_salon_subscription(bid, "active", str(plan_end_date), new_stripe)
+                                db_update_salon_contact(bid, new_contact_name, new_contact_phone, new_contact_email)
+                                # Reload salon info
+                                fresh = db_get_salon_info(bid)
+                                st.session_state.setdefault("salon_info", {})[bid] = fresh
+                                st.success(f"✅ 已啟用至 {plan_end_date}")
+                                st.rerun()
+                            except Exception as e:
+                                st.error(str(e))
+
+        st.markdown('</div>', unsafe_allow_html=True)
 
         # ── Online Booking Links ───────────────────────────────────────────
         st.markdown('<div class="card" style="margin-bottom:1rem">', unsafe_allow_html=True)

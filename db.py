@@ -77,6 +77,37 @@ def db_delete_salon(salon_id: str):
     _sb().table("salons").delete().eq("id", salon_id).execute()
 
 
+def db_get_salon_info(salon_id: str) -> dict:
+    """Return full salon row including subscription info."""
+    res = _sb().table("salons").select("*").eq("id", salon_id).execute()
+    return res.data[0] if res.data else {}
+
+
+def db_update_salon_subscription(salon_id: str, plan: str, plan_ends: str,
+                                  stripe_link: str = ""):
+    """Set subscription plan and expiry for a salon."""
+    _sb().table("salons").update({
+        "plan":        plan,
+        "plan_ends":   plan_ends,
+        "stripe_link": stripe_link,
+    }).eq("id", salon_id).execute()
+
+
+def db_activate_trial(salon_id: str, days: int = 30):
+    """Start/reset trial period for a salon."""
+    import datetime
+    ends = (datetime.date.today() + datetime.timedelta(days=days)).isoformat()
+    _sb().table("salons").update({
+        "plan": "trial", "trial_ends": ends, "plan_ends": None
+    }).eq("id", salon_id).execute()
+
+
+def db_update_salon_contact(salon_id: str, name: str, phone: str, email: str):
+    _sb().table("salons").update({
+        "contact_name": name, "contact_phone": phone, "contact_email": email
+    }).eq("id", salon_id).execute()
+
+
 # ═════════════════════════════════════════════════════════════════════════════
 # STYLISTS
 # ═════════════════════════════════════════════════════════════════════════════
@@ -255,7 +286,8 @@ def db_load_salon(salon_id: str) -> dict:
 def db_load_branches_and_accounts():
     """Load salons + accounts into session state (called on login)."""
     salons  = db_get_salons()
-    st.session_state.branches = {s["id"]: s["name"] for s in salons}
+    st.session_state.branches     = {s["id"]: s["name"] for s in salons}
+    st.session_state.salon_info   = {s["id"]: s for s in salons}
     accts   = db_get_accounts()
     st.session_state.accounts = {
         a["username"]: {

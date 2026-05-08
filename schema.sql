@@ -104,6 +104,17 @@ create table if not exists member_history (
 
 
 -- ============================================================
+-- SUBSCRIPTION COLUMNS (run if tables already exist)
+-- ============================================================
+alter table salons add column if not exists plan         text    default 'trial';
+alter table salons add column if not exists trial_ends   date    default (current_date + interval '30 days');
+alter table salons add column if not exists plan_ends    date;
+alter table salons add column if not exists stripe_link  text    default '';
+alter table salons add column if not exists contact_name text    default '';
+alter table salons add column if not exists contact_phone text   default '';
+alter table salons add column if not exists contact_email text   default '';
+
+-- ============================================================
 -- SEED DATA — First salon + admin account
 -- Replace password_hash with: sha256('your_password')
 -- You can generate it at: https://emn178.github.io/online-tools/sha256.html
