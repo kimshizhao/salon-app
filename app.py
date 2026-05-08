@@ -5,6 +5,20 @@ import calendar as _cal
 import hashlib
 from datetime import date as dt_date
 
+# Try to import DB layer (only available when Supabase secrets are configured)
+try:
+    from db import (
+        db_login, db_load_branches_and_accounts, db_load_salon,
+        db_add_booking, db_save_all_bookings, db_update_booking,
+        db_add_walkin, db_save_all_inventory,
+        db_add_member, db_update_member, db_add_member_history, db_delete_member,
+        db_set_stylists, db_add_account, db_delete_account, db_update_password,
+        db_add_salon, db_delete_salon,
+    )
+    _USE_DB = "SUPABASE_URL" in st.secrets and st.secrets["SUPABASE_URL"] != "https://YOUR_PROJECT_ID.supabase.co"
+except Exception:
+    _USE_DB = False
+
 # ── Auth helpers ──────────────────────────────────────────────────────────────
 def _hash(pw: str) -> str:
     return hashlib.sha256(pw.encode()).hexdigest()
@@ -650,19 +664,38 @@ if not st.session_state.logged_in:
             lg_user = st.text_input("👤 Username / 用戶名", key="lg_user", placeholder="username")
             lg_pass = st.text_input("🔑 Password / 密碼",   key="lg_pass", placeholder="password", type="password")
             if st.button("Login / 登入", key="login_btn", use_container_width=True):
-                acct = st.session_state.accounts.get(lg_user.strip())
-                if acct and acct["hash"] == _hash(lg_pass):
+                uname = lg_user.strip()
+                ph    = _hash(lg_pass)
+                acct  = None
+
+                if _USE_DB:
+                    # Load branches + accounts from DB first
+                    try:
+                        db_load_branches_and_accounts()
+                    except Exception as e:
+                        st.error(f"Database error: {e}")
+                        st.stop()
+
+                acct = st.session_state.accounts.get(uname)
+                if acct and acct["hash"] == ph:
                     st.session_state.logged_in  = True
-                    st.session_state.username   = lg_user.strip()
+                    st.session_state.username   = uname
                     st.session_state.role       = acct["role"]
                     st.session_state.user_name  = acct["name"]
-                    # Set branch
                     branch = acct["branch"]
                     if branch == "all":
-                        # Owner defaults to first branch
                         branch = next(iter(st.session_state.branches), "B001")
                     st.session_state.cur_branch = branch
                     _init_branch(branch)
+
+                    if _USE_DB:
+                        # Load real data from Supabase
+                        try:
+                            data = db_load_salon(branch)
+                            st.session_state.branch_data[branch] = data
+                        except Exception as e:
+                            st.warning(f"Could not load data: {e}")
+
                     _sync_ss()
                     st.rerun()
                 else:
@@ -755,11 +788,16 @@ with tab1:
             if not b_name.strip():
                 st.warning(u("name_warn"))
             else:
-                st.session_state.bookings.append({
+                new_bk = {
                     "name": b_name.strip(), "date": str(b_date), "time": b_time,
                     "stylist": b_stylist,   "service": b_svc,    "note": b_note,
                     "price": b_price, "paid": False, "method": "", "final": 0,
-                })
+                }
+                if _USE_DB:
+                    try: db_add_booking(st.session_state.cur_branch, new_bk)
+                    except Exception: pass
+                st.session_state.bookings.append(new_bk)
+                _bd()["bookings"] = st.session_state.bookings
                 st.success(f"✦ {b_name}  ·  {b_stylist}  ·  {b_svc}  ·  {b_date} {b_time}")
                 st.rerun()
         st.markdown('</div>', unsafe_allow_html=True)
@@ -808,6 +846,10 @@ with tab1:
                     if c not in merged.columns:
                         merged[c] = False if c == "paid" else 0
                 st.session_state.bookings = merged.to_dict("records")
+                _bd()["bookings"] = st.session_state.bookings
+                if _USE_DB:
+                    try: db_save_all_bookings(st.session_state.cur_branch, st.session_state.bookings)
+                    except Exception: pass
                 st.success(u("bookings_saved"))
                 st.rerun()
         else:
@@ -1183,7 +1225,11 @@ with tab3:
                         if (b["name"] == sel_bk["name"] and b["date"] == sel_bk["date"]
                                 and b["time"] == sel_bk["time"]):
                             b.update({"paid": True, "method": chosen_key, "final": final})
+                            if _USE_DB and b.get("id"):
+                                try: db_update_booking(b["id"], {"paid": True, "method": chosen_key, "final": final})
+                                except Exception: pass
                             break
+                    _bd()["bookings"] = st.session_state.bookings
                     # Pre-load receipt data
                     st.session_state.sel_receipt = {
                         "name":     sel_bk["name"],
@@ -1207,12 +1253,13 @@ with tab3:
                                 m["points"]      = old_pts + pts_earn
                                 m["total_spent"] = round(m.get("total_spent", 0) + final, 2)
                                 m["visit_count"] = m.get("visit_count", 0) + 1
-                                m.setdefault("history", []).append({
-                                    "date":    today_str,
-                                    "service": sel_bk["service"],
-                                    "amt":     final,
-                                    "pts":     pts_earn,
-                                })
+                                hist_entry = {"date": today_str, "service": sel_bk["service"], "amt": final, "pts": pts_earn}
+                                m.setdefault("history", []).append(hist_entry)
+                                if _USE_DB:
+                                    try:
+                                        db_update_member(m["id"], {"points": m["points"], "total_spent": m["total_spent"], "visit_count": m["visit_count"]})
+                                        db_add_member_history(m["id"], hist_entry)
+                                    except Exception: pass
                                 new_tier = tier_for_points(m["points"])
                                 old_tier = tier_for_points(old_pts)
                                 if new_tier["key"] != old_tier["key"]:
@@ -1221,6 +1268,7 @@ with tab3:
                                 else:
                                     st.info(u("mem_pts_added").format(pts_earn, m["name"]))
                                 break
+                        _bd()["members"] = st.session_state.members
                     st.success(u("pay_success").format(final, chosen_display))
                     st.rerun()
             st.markdown('</div>', unsafe_allow_html=True)
@@ -1263,10 +1311,13 @@ with tab3:
                 if not wi_name.strip():
                     st.warning(u("name_warn"))
                 else:
-                    st.session_state.walkins.append({
-                        "name": wi_name.strip(), "service": wi_svc or "—",
-                        "date": today_str, "final": wi_amt, "method": wi_key,
-                    })
+                    new_wi = {"name": wi_name.strip(), "service": wi_svc or "—",
+                              "date": today_str, "final": wi_amt, "method": wi_key}
+                    st.session_state.walkins.append(new_wi)
+                    _bd()["walkins"] = st.session_state.walkins
+                    if _USE_DB:
+                        try: db_add_walkin(st.session_state.cur_branch, new_wi)
+                        except Exception: pass
                     st.session_state.sel_receipt = {
                         "name":     wi_name.strip(),
                         "service":  wi_svc or "—",
@@ -1503,6 +1554,10 @@ with tab4:
         )
         if st.button(u("save_inv"), key="save_inv_btn"):
             st.session_state.inventory = edited_inv.dropna(subset=["name"]).to_dict("records")
+            _bd()["inventory"] = st.session_state.inventory
+            if _USE_DB:
+                try: db_save_all_inventory(st.session_state.cur_branch, st.session_state.inventory)
+                except Exception: pass
             st.success(u("inv_saved"))
             st.rerun()
 
@@ -2089,6 +2144,10 @@ with tab6:
                         "history":    [],
                     }
                     st.session_state.members.append(new_mem)
+                    _bd()["members"] = st.session_state.members
+                    if _USE_DB:
+                        try: db_add_member(st.session_state.cur_branch, new_mem)
+                        except Exception: pass
                     st.markdown(f'<div class="alert-safe">{u("mem_added").format(new_name.strip())}</div>', unsafe_allow_html=True)
                     st.rerun()
 
