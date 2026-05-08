@@ -20,7 +20,7 @@ def _get_secret(key, default=""):
         return default
 
 st.set_page_config(
-    page_title="Book Now — Signature Kim",
+    page_title="Book Now — IQSALON",
     page_icon="✂️",
     layout="centered",
     initial_sidebar_state="collapsed",

@@ -98,7 +98,7 @@ def _base_template(content: str, salon_name: str = "Signature Kim") -> str:
   </div>
   <div class="body">{content}</div>
   <div class="footer">
-    © {salon_name} · Powered by Signature Kim SaaS<br>
+    © {salon_name} · Powered by IQSALON<br>
     <span style="color:#333">Please do not reply to this email</span>
   </div>
 </div>

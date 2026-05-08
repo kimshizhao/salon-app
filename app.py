@@ -61,7 +61,7 @@ def _can(action: str) -> bool:
     return action in perms.get(role, set())
 
 st.set_page_config(
-    page_title="Signature Kim",
+    page_title="IQSALON",
     page_icon="✂️",
     layout="centered",
     initial_sidebar_state="collapsed",
@@ -825,9 +825,9 @@ if not st.session_state.logged_in:
       <div style="font-family:'Playfair Display',serif;font-size:2rem;font-weight:700;
       letter-spacing:6px;background:linear-gradient(135deg,#c9a84c,#f5e19a,#c9a84c);
       -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">
-        ✦ SIGNATURE KIM ✦</div>
+        IQ SALON</div>
       <div style="font-size:0.7rem;letter-spacing:3px;color:#555;margin:4px 0 24px;
-      text-transform:uppercase;">Management System</div>
+      text-transform:uppercase;">Salon Management System</div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -1003,9 +1003,10 @@ elif _sub["plan"] == "trial":
 elif _sub["plan"] == "active":
     _sub_badge = f'<span style="background:#c9a84c;color:#0a0a0a;font-size:0.65rem;padding:3px 10px;border-radius:20px;letter-spacing:1px;margin-left:8px">✦ {"已訂閱" if st.session_state.lang=="zh" else "Subscribed"}</span>'
 
+_salon_display = st.session_state.branches.get(st.session_state.cur_branch, "IQSALON")
 st.markdown(f"""
 <div class="hero">
-  <p class="hero-title">✦ SIGNATURE KIM ✦</p>
+  <p class="hero-title">✦ {_salon_display.upper()} ✦</p>
   <p class="hero-sub">{u('subtitle')} &nbsp;·&nbsp; {st.session_state.user_name} {role_icon}{_sub_badge}</p>
 </div>
 """, unsafe_allow_html=True)
@@ -1814,6 +1815,8 @@ with tab3:
             st.markdown(f'<p class="card-title">🧾 {u("rcpt_title")}</p>', unsafe_allow_html=True)
 
             # Build HTML and offer as download (opens in browser → Ctrl+P / Print button)
+            if "salon" not in rcpt:
+                rcpt["salon"] = st.session_state.branches.get(st.session_state.cur_branch, "IQSALON")
             rcpt_html  = build_receipt_html(rcpt, st.session_state.lang)
             rcpt_bytes = rcpt_html.encode("utf-8")
 
@@ -1994,7 +1997,7 @@ def build_receipt_html(r: dict, lang: str) -> str:
     receipt_no = f"SK-{date_str.replace('-','')}-{abs(hash(name+time_str)) % 10000:04d}"
 
     return f"""<!DOCTYPE html><html><head><meta charset="utf-8">
-<title>Signature Kim Receipt</title>
+<title>IQSALON Receipt</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Raleway:wght@300;400;600&display=swap');
   * {{ box-sizing:border-box; margin:0; padding:0; }}
@@ -2031,7 +2034,7 @@ def build_receipt_html(r: dict, lang: str) -> str:
 </style></head><body>
 <div class="receipt">
   <div class="logo">
-    <div class="logo-title">✦ SIGNATURE KIM ✦</div>
+    <div class="logo-title">✦ {rcpt.get('salon','IQSALON').upper()} ✦</div>
     <div class="logo-sub">Professional Hair Salon · Malaysia</div>
   </div>
   <div class="section">
