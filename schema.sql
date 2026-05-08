@@ -125,10 +125,14 @@ insert into salons (id, name) values
   ('B001', 'Signature Kim — KL')
 on conflict do nothing;
 
+-- Role values: 'admin' | 'owner' | 'manager' | 'staff'
+-- admin = IQSALON platform admin (highest level)
+-- owner = salon owner (manages own branches)
 insert into accounts (username, password_hash, role, salon_id, display_name) values
-  ('admin', '240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9', 'owner',   null,   'Admin'),
-  ('kim',   'a5c5c5ffc8e3aff01e83f4de81b7c3c2e35f4b26c1e5b22e527ea26f2d2d5e7f', 'manager', 'B001', 'Kim'),
-  ('lily',  'f4dc9a0a8a39a1acfea8f5fcf7bcbe3dc7f46ffc0d2a2ae66a0b4cc1feceecd1', 'staff',   'B001', 'Lily')
+  ('iqsalon', 'a8f74cdcb9c76c79ad89fa90ad27c3f6f04c9e614c02a72e43a1a4e0a1b2c3d4', 'admin',   null,   'IQSALON Admin'),
+  ('admin',   '240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9', 'owner',   null,   'Admin'),
+  ('kim',     'a5c5c5ffc8e3aff01e83f4de81b7c3c2e35f4b26c1e5b22e527ea26f2d2d5e7f', 'manager', 'B001', 'Kim'),
+  ('lily',    'f4dc9a0a8a39a1acfea8f5fcf7bcbe3dc7f46ffc0d2a2ae66a0b4cc1feceecd1', 'staff',   'B001', 'Lily')
 on conflict do nothing;
 
 insert into stylists (salon_id, name) values

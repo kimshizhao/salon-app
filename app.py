@@ -40,21 +40,28 @@ def _hash(pw: str) -> str:
 # Roles: "owner" | "manager" | "staff"
 # Branch: branch_id string or "all" for owner
 _DEFAULT_ACCOUNTS = {
-    "admin":  {"hash": _hash("admin123"),  "role": "owner",   "branch": "all", "name": "Admin"},
-    "kim":    {"hash": _hash("kim123"),    "role": "manager", "branch": "B001","name": "Kim"},
-    "lily":   {"hash": _hash("lily123"),   "role": "staff",   "branch": "B001","name": "Lily"},
-    "jason":  {"hash": _hash("jason123"),  "role": "staff",   "branch": "B001","name": "Jason"},
+    "iqsalon": {"hash": _hash("iqadmin888"), "role": "admin",   "branch": "all", "name": "IQSALON Admin"},
+    "admin":   {"hash": _hash("admin123"),   "role": "owner",   "branch": "all", "name": "Admin"},
+    "kim":     {"hash": _hash("kim123"),     "role": "manager", "branch": "B001","name": "Kim"},
+    "lily":    {"hash": _hash("lily123"),    "role": "staff",   "branch": "B001","name": "Lily"},
+    "jason":   {"hash": _hash("jason123"),   "role": "staff",   "branch": "B001","name": "Jason"},
 }
 
 _DEFAULT_BRANCHES = {
     "B001": "Signature Kim — KL",
 }
 
+# Role hierarchy: admin > owner > manager > staff
+ROLE_HIERARCHY = {"admin": 4, "owner": 3, "manager": 2, "staff": 1}
+
 def _can(action: str) -> bool:
     """Check if current user has permission for an action."""
     role = st.session_state.get("role", "staff")
     perms = {
-        "owner":   {"settlement","member_delete","inventory_edit","admin","view_all","payment","booking","analytics"},
+        "admin":   {"settlement","member_delete","inventory_edit","super_admin","admin",
+                    "view_all","payment","booking","analytics","manage_owners"},
+        "owner":   {"settlement","member_delete","inventory_edit","admin",
+                    "view_all","payment","booking","analytics"},
         "manager": {"settlement","member_delete","inventory_edit","payment","booking","analytics"},
         "staff":   {"payment","booking"},
     }
@@ -981,7 +988,7 @@ with hdr_l:
 
 with hdr_r:
     st.markdown("<div style='height:10px'></div>", unsafe_allow_html=True)
-    role_icon = {"owner":"👑","manager":"💼","staff":"✂️"}.get(st.session_state.role,"👤")
+    role_icon = {"admin":"🔴","owner":"👑","manager":"💼","staff":"✂️"}.get(st.session_state.role,"👤")
     rc1, rc2 = st.columns(2)
     with rc1:
         if st.button(u("lang_btn"), key="lang_toggle"):
@@ -2937,7 +2944,45 @@ if _can("analytics"):
 if _can("admin"):
     with tab_admin:
         is_zh = st.session_state.lang == "zh"
-        st.markdown(f'<p class="card-title" style="font-size:1.3rem;">⚙️ {"系統管理" if is_zh else "Admin Panel"}</p>', unsafe_allow_html=True)
+        is_platform_admin = _can("super_admin")
+
+        # Title with role badge
+        role_badge_clr = "#e74c3c" if is_platform_admin else "#c9a84c"
+        role_badge_txt = ("🔴 平台管理員" if is_zh else "🔴 Platform Admin") if is_platform_admin \
+                         else ("👑 老闆" if is_zh else "👑 Owner")
+        st.markdown(
+            f'<p class="card-title" style="font-size:1.3rem;">⚙️ {"系統管理" if is_zh else "Admin Panel"}'
+            f' <span style="background:{role_badge_clr}22;border:1px solid {role_badge_clr}55;'
+            f'color:{role_badge_clr};font-size:0.7rem;padding:3px 10px;border-radius:20px;'
+            f'vertical-align:middle;letter-spacing:1px">{role_badge_txt}</span></p>',
+            unsafe_allow_html=True
+        )
+
+        # ── Platform Overview (admin only) ────────────────────────────────
+        if is_platform_admin:
+            st.markdown('<div class="card" style="margin-bottom:1rem;border-color:#e74c3c44">', unsafe_allow_html=True)
+            st.markdown(f'<p class="card-title" style="color:#e74c3c">🔴 {"平台總覽" if is_zh else "Platform Overview"}</p>',
+                        unsafe_allow_html=True)
+            total_salons  = len(st.session_state.branches)
+            total_accts   = len(st.session_state.accounts)
+            owner_accts   = len([a for a in st.session_state.accounts.values() if a["role"] == "owner"])
+            active_subs   = len([i for i in st.session_state.get("salon_info",{}).values()
+                                 if i.get("plan") == "active"])
+            trial_subs    = len([i for i in st.session_state.get("salon_info",{}).values()
+                                 if i.get("plan","trial") == "trial"])
+            po1,po2,po3,po4 = st.columns(4)
+            for col, val, lbl in [
+                (po1, total_salons,  "🏠 " + ("分店總數" if is_zh else "Total Branches")),
+                (po2, owner_accts,   "👑 " + ("髮廊老闆" if is_zh else "Owners")),
+                (po3, active_subs,   "✅ " + ("已訂閱" if is_zh else "Active Subs")),
+                (po4, trial_subs,    "⏳ " + ("試用中" if is_zh else "On Trial")),
+            ]:
+                col.markdown(
+                    f'<div class="stat-box"><div class="stat-val">{val}</div>'
+                    f'<div class="stat-lbl">{lbl}</div></div>',
+                    unsafe_allow_html=True
+                )
+            st.markdown('</div>', unsafe_allow_html=True)
 
         # ── Subscription Management ────────────────────────────────────────
         st.markdown('<div class="card" style="margin-bottom:1rem">', unsafe_allow_html=True)
@@ -3019,11 +3064,12 @@ if _can("admin"):
             st.info("填入上方的 App URL 就能生成每間分店的客戶預約連結 / Enter your App URL above to generate booking links")
         st.markdown('</div>', unsafe_allow_html=True)
 
-        ROLE_COLOR = {"owner":"#c9a84c","manager":"#3498db","staff":"#2ecc71"}
-        ROLE_ICON  = {"owner":"👑","manager":"💼","staff":"✂️"}
-        ROLE_LABEL = {"owner": ("老闆" if is_zh else "Owner"),
+        ROLE_COLOR = {"admin":"#e74c3c","owner":"#c9a84c","manager":"#3498db","staff":"#2ecc71"}
+        ROLE_ICON  = {"admin":"🔴","owner":"👑","manager":"💼","staff":"✂️"}
+        ROLE_LABEL = {"admin":   ("平台管理員" if is_zh else "Platform Admin"),
+                      "owner":   ("老闆" if is_zh else "Owner"),
                       "manager": ("經理" if is_zh else "Manager"),
-                      "staff": ("員工" if is_zh else "Staff")}
+                      "staff":   ("員工" if is_zh else "Staff")}
 
         # ════════════════════════════════════════════════════════════════════
         # BRANCH MANAGEMENT
@@ -3259,7 +3305,10 @@ if _can("admin"):
             na_name = st.text_input("顯示名稱 / Display Name", placeholder="Kim", key="na_name")
             na_pass = st.text_input("密碼 / Password", type="password", key="na_pass", placeholder="Min 6 chars")
         with na2:
-            na_role = st.selectbox("角色 / Role", ["staff","manager","owner"], key="na_role",
+            # Admin can create any role; owner cannot create admin
+            role_choices = (["admin","owner","manager","staff"]
+                            if _can("super_admin") else ["owner","manager","staff"])
+            na_role = st.selectbox("角色 / Role", role_choices, key="na_role",
                                    format_func=lambda r: f"{ROLE_ICON[r]} {ROLE_LABEL[r]}")
             branch_list = list(st.session_state.branches.keys())
             branch_disp = [st.session_state.branches[b] for b in branch_list]
@@ -3267,12 +3316,16 @@ if _can("admin"):
             na_branch_disp = branch_disp + [("全部 / All" if is_zh else "All Branches")]
             na_branch_sel  = st.selectbox("分店 / Branch", na_branch_opts, key="na_branch_sel",
                                           format_func=lambda b: na_branch_disp[na_branch_opts.index(b)])
+            role_desc = {
+                "admin":   "🔴 平台管理員：最高權限，管理所有髮廊、訂閱、帳號" if is_zh else "🔴 Platform Admin: Full control over all salons, subscriptions & accounts",
+                "owner":   "👑 老闆：管理自己的分店、帳號、訂閱" if is_zh else "👑 Owner: Manage own branches, accounts & subscription",
+                "manager": "💼 經理：管理自己分店的全部功能" if is_zh else "💼 Manager: Full access to own branch functions",
+                "staff":   "✂️ 員工：只能使用預約和收費功能" if is_zh else "✂️ Staff: Bookings and payment only",
+            }
             st.markdown(f"""
-            <div style="background:#1a1a1a;border-radius:8px;padding:8px 12px;margin-top:6px;font-size:0.78rem;color:#888">
-              {ROLE_ICON.get(na_role,'👤')} <b style="color:{ROLE_COLOR.get(na_role,'#888')}">{ROLE_LABEL.get(na_role,'')}</b><br>
-              {"👑 老闆：可管理所有分店、帳號、訂閱" if na_role=="owner" else
-               "💼 經理：可管理自己分店的全部功能" if na_role=="manager" else
-               "✂️ 員工：只能使用預約和收費功能"}
+            <div style="background:#1a1a1a;border-radius:8px;padding:8px 12px;margin-top:6px;font-size:0.78rem;color:#888;border-left:3px solid {ROLE_COLOR.get(na_role,'#888')}">
+              <b style="color:{ROLE_COLOR.get(na_role,'#888')}">{ROLE_LABEL.get(na_role,'')}</b><br>
+              {role_desc.get(na_role,'')}
             </div>
             """, unsafe_allow_html=True)
 
