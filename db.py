@@ -247,6 +247,10 @@ def db_add_walkin(salon_id: str, w: dict):
     _sb().table("walkins").insert(payload).execute()
 
 
+def db_delete_walkin(walkin_id: str):
+    _sb().table("walkins").delete().eq("id", walkin_id).execute()
+
+
 # ═════════════════════════════════════════════════════════════════════════════
 # INVENTORY
 # ═════════════════════════════════════════════════════════════════════════════

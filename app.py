@@ -10,7 +10,7 @@ try:
     from db import (
         db_login, db_load_branches_and_accounts, db_load_salon,
         db_add_booking, db_save_all_bookings, db_update_booking, db_get_bookings,
-        db_add_walkin, db_save_all_inventory,
+        db_add_walkin, db_delete_walkin, db_save_all_inventory,
         db_add_member, db_update_member, db_add_member_history, db_delete_member,
         db_set_stylists, db_add_account, db_delete_account, db_update_password,
         db_add_salon, db_delete_salon,
@@ -2186,6 +2186,13 @@ with tab3:
             st.markdown(f'<p class="card-title">{u("walkin_title")}</p>', unsafe_allow_html=True)
 
             wi_name = st.text_input(u("client_name"), placeholder=u("name_ph"), key="wi_name")
+            _no_sty = "— " + ("不指定" if st.session_state.lang == "zh" else "No stylist") + " —"
+            wi_stylist = st.selectbox(
+                u("stylist"),
+                [_no_sty] + (st.session_state.stylists or []),
+                key="wi_stylist",
+            )
+            wi_stylist_val = "" if wi_stylist.startswith("—") else wi_stylist
             wi_svc  = st.text_input(u("service"), placeholder=u("wi_svc_ph"), key="wi_svc")
             wi_amt  = st.number_input(u("wi_amt_label"), 0.0, 99999.0, 50.0, 10.0, key="wi_amt")
 
@@ -2204,7 +2211,7 @@ with tab3:
             st.markdown(f"""
             <div class="checkout-box" style="margin:0.8rem 0;">
               <div class="checkout-customer">{wi_name or "—"}</div>
-              <div class="checkout-svc">{wi_svc or "—"}</div>
+              <div class="checkout-svc">{(" · ".join(filter(None,[wi_stylist_val, wi_svc]))) or "—"}</div>
               <div class="checkout-price">RM {wi_amt:.2f}</div>
               {wi_pts_note}
             </div>
@@ -2219,6 +2226,7 @@ with tab3:
                     st.warning(u("name_warn"))
                 else:
                     new_wi = {"name": wi_name.strip(), "service": wi_svc or "—",
+                              "stylist": wi_stylist_val,
                               "date": today_str, "final": wi_amt, "method": wi_key}
                     st.session_state.walkins.append(new_wi)
                     _bd()["walkins"] = st.session_state.walkins
@@ -2228,7 +2236,7 @@ with tab3:
                     st.session_state.sel_receipt = {
                         "name":     wi_name.strip(),
                         "service":  wi_svc or "—",
-                        "stylist":  "",
+                        "stylist":  wi_stylist_val,
                         "time":     "",
                         "date":     today_str,
                         "subtotal": wi_amt,
@@ -2264,16 +2272,20 @@ with tab3:
 
         # ── History ───────────────────────────────────────────────────────
         history = [
-            {"tag":"📅","name":b["name"],"svc":b.get("service",""),
+            {"tag":"📅","type":"booking","ref":b,
+             "name":b["name"],"svc":b.get("service",""),
              "time":b.get("time",""),"stylist":b.get("stylist",""),
              "final":b.get("final",b.get("price",0)),"method":b.get("method","Cash")}
             for b in paid_bk
         ] + [
-            {"tag":"🚶","name":w["name"],"svc":w.get("service",""),
-             "time":"","stylist":"",
+            {"tag":"🚶","type":"walkin","ref":w,
+             "name":w["name"],"svc":w.get("service",""),
+             "time":"","stylist":w.get("stylist",""),
              "final":w.get("final",0),"method":w.get("method","Cash")}
             for w in walkins_today
         ]
+        _can_void = _can("settlement")
+        is_zh_pay = (st.session_state.lang == "zh")
         if history:
             st.markdown('<div class="card">', unsafe_allow_html=True)
             st.markdown(f'<p class="card-title" style="font-size:0.95rem;">'
@@ -2283,8 +2295,9 @@ with tab3:
                 ic = PAY_METHODS.get(m,("","💰","#888"))[1]
                 cl = PAY_METHODS.get(m,("","💰","#888"))[2]
                 sub = " · ".join(filter(None, [h["stylist"], h["svc"], h["time"]]))
-                hcol1, hcol2 = st.columns([4, 1])
-                with hcol1:
+                n_cols = [4, 1, 1] if _can_void else [4, 1]
+                cols = st.columns(n_cols)
+                with cols[0]:
                     st.markdown(
                         f"<div style='display:flex;justify-content:space-between;padding:8px 0;"
                         f"border-bottom:1px solid #1a1a1a;'>"
@@ -2296,7 +2309,7 @@ with tab3:
                         f"</div></div>",
                         unsafe_allow_html=True,
                     )
-                with hcol2:
+                with cols[1]:
                     if st.button(u("rcpt_btn"), key=f"rcpt_{idx}"):
                         st.session_state.sel_receipt = {
                             "name":     h["name"],
@@ -2313,6 +2326,56 @@ with tab3:
                             "pts":      0,
                         }
                         st.rerun()
+                if _can_void:
+                    with cols[2]:
+                        void_lbl = "❌ " + ("取消" if is_zh_pay else "Void")
+                        if st.button(void_lbl, key=f"void_{idx}",
+                                     help=("取消收費（限經理以上）" if is_zh_pay
+                                           else "Cancel payment (manager+ only)")):
+                            st.session_state[f"confirm_void_{idx}"] = True
+                    # Confirm dialog
+                    if st.session_state.get(f"confirm_void_{idx}"):
+                        st.warning(
+                            ("⚠️ 確定要取消此收費嗎？此操作不可撤回。" if is_zh_pay
+                             else "⚠️ Confirm void this payment? This cannot be undone.")
+                        )
+                        cv1, cv2 = st.columns(2)
+                        with cv1:
+                            if st.button("✅ " + ("確認取消" if is_zh_pay else "Confirm Void"),
+                                         key=f"void_yes_{idx}", type="primary"):
+                                ref = h["ref"]
+                                if h["type"] == "booking":
+                                    for b in st.session_state.bookings:
+                                        if (b.get("name") == ref.get("name") and
+                                                b.get("date") == ref.get("date") and
+                                                b.get("time") == ref.get("time")):
+                                            b.update({"paid": False, "method": "", "final": 0})
+                                            if _USE_DB and b.get("id"):
+                                                try:
+                                                    db_update_booking(b["id"],
+                                                        {"paid": False, "method": "", "final": 0})
+                                                except Exception: pass
+                                            break
+                                    _bd()["bookings"] = st.session_state.bookings
+                                else:
+                                    st.session_state.walkins = [
+                                        w for w in st.session_state.walkins
+                                        if not (w.get("name") == ref.get("name") and
+                                                w.get("date") == ref.get("date") and
+                                                w.get("final") == ref.get("final"))
+                                    ]
+                                    _bd()["walkins"] = st.session_state.walkins
+                                    if _USE_DB and ref.get("id"):
+                                        try: db_delete_walkin(ref["id"])
+                                        except Exception: pass
+                                st.session_state.pop(f"confirm_void_{idx}", None)
+                                st.success("✅ " + ("已取消收費" if is_zh_pay else "Payment voided"))
+                                st.rerun()
+                        with cv2:
+                            if st.button("↩ " + ("返回" if is_zh_pay else "Cancel"),
+                                         key=f"void_no_{idx}"):
+                                st.session_state.pop(f"confirm_void_{idx}", None)
+                                st.rerun()
             st.markdown('</div>', unsafe_allow_html=True)
 
         # ── Receipt panel ──────────────────────────────────────────────────

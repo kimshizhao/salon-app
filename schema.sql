@@ -59,11 +59,13 @@ create table if not exists walkins (
   salon_id   text references salons(id) on delete cascade,
   name       text,
   service    text default '',
+  stylist    text default '',
   date       text,
   final      numeric default 0,
   method     text default 'Cash',
   created_at timestamptz default now()
 );
+alter table walkins add column if not exists stylist text default '';
 
 -- Inventory
 create table if not exists inventory (
