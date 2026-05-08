@@ -16,6 +16,14 @@ try:
         db_add_salon, db_delete_salon,
         db_confirm_booking, db_cancel_booking,
     )
+try:
+    from notify import (
+        send_booking_confirmed, whatsapp_link,
+        wa_booking_confirmed_msg, wa_booking_reminder_msg, email_configured,
+    )
+    _NOTIFY = True
+except Exception:
+    _NOTIFY = False
     _USE_DB = "SUPABASE_URL" in st.secrets and st.secrets["SUPABASE_URL"] != "https://YOUR_PROJECT_ID.supabase.co"
 except Exception:
     _USE_DB = False
@@ -890,6 +898,24 @@ with tab1:
                         try: db_confirm_booking(bk_id)
                         except Exception: pass
                     _bd()["bookings"] = st.session_state.bookings
+                    # Send confirmation email to customer
+                    if _NOTIFY and bk.get("email"):
+                        salon_name_str = st.session_state.branches.get(
+                            st.session_state.cur_branch, "Signature Kim")
+                        try:
+                            send_booking_confirmed(
+                                to_email=bk["email"],
+                                customer_name=bk.get("name",""),
+                                service=bk.get("service",""),
+                                stylist=bk.get("stylist",""),
+                                date=bk.get("date",""),
+                                time=bk.get("time",""),
+                                price=bk.get("price",0),
+                                salon_name=salon_name_str,
+                                salon_phone=st.secrets.get("SALON_PHONE","") if hasattr(st,"secrets") else "",
+                            )
+                        except Exception:
+                            pass
                     st.rerun()
             with c3:
                 if st.button("❌ " + u("cancel"), key=f"cx_{bk_id}"):
@@ -899,6 +925,23 @@ with tab1:
                         except Exception: pass
                     _bd()["bookings"] = st.session_state.bookings
                     st.rerun()
+            # WhatsApp quick-send button
+            if bk.get("phone"):
+                wa_msg = wa_booking_confirmed_msg(
+                    bk.get("name",""), bk.get("service",""),
+                    bk.get("stylist",""), bk.get("date",""),
+                    bk.get("time",""),
+                    st.session_state.branches.get(st.session_state.cur_branch,"Signature Kim")
+                ) if _NOTIFY else ""
+                if wa_msg:
+                    wa_url = whatsapp_link(bk["phone"], wa_msg)
+                    st.markdown(
+                        f'<a href="{wa_url}" target="_blank" style="display:inline-block;'
+                        f'background:#25D366;color:#fff;padding:5px 14px;border-radius:20px;'
+                        f'font-size:0.78rem;text-decoration:none;font-weight:600;">'
+                        f'📱 WhatsApp {bk.get("name","")}</a>',
+                        unsafe_allow_html=True
+                    )
         st.markdown("</div>", unsafe_allow_html=True)
 
     col_form, col_list = st.columns([1, 1.7], gap="large")
@@ -995,6 +1038,28 @@ with tab1:
                 st.rerun()
         else:
             st.info(u("no_bookings"))
+
+        # ── WhatsApp Reminder buttons ─────────────────────────────────────
+        bks_with_phone = [b for b in st.session_state.bookings if b.get("phone")]
+        if bks_with_phone and _NOTIFY:
+            st.markdown("---")
+            st.markdown(f'<p style="color:#c9a84c;font-size:0.8rem;letter-spacing:2px;">📱 WHATSAPP {"提醒" if st.session_state.lang=="zh" else "REMINDER"}</p>',
+                        unsafe_allow_html=True)
+            for bk in bks_with_phone[:10]:
+                salon_nm = st.session_state.branches.get(st.session_state.cur_branch, "Signature Kim")
+                wa_msg   = wa_booking_reminder_msg(
+                    bk.get("name",""), bk.get("service",""),
+                    bk.get("date",""), bk.get("time",""), salon_nm
+                )
+                wa_url = whatsapp_link(bk["phone"], wa_msg)
+                st.markdown(
+                    f'<a href="{wa_url}" target="_blank" style="display:inline-block;margin:3px 4px 3px 0;'
+                    f'background:#25D366;color:#fff;padding:5px 14px;border-radius:20px;'
+                    f'font-size:0.78rem;text-decoration:none;font-weight:600;">'
+                    f'📱 {bk.get("name","")} · {bk.get("date","")} {bk.get("time","")}</a>',
+                    unsafe_allow_html=True
+                )
+
         st.markdown('</div>', unsafe_allow_html=True)
 
 # ═════════════════════════════════════════════════════════════════════════════

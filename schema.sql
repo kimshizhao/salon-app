@@ -49,6 +49,7 @@ create table if not exists bookings (
 
 -- Add new columns to existing table (run if table already exists)
 alter table bookings add column if not exists phone text default '';
+alter table bookings add column if not exists email text default '';
 alter table bookings add column if not exists source text default 'staff';
 alter table bookings add column if not exists status text default 'confirmed';
 

@@ -4,6 +4,20 @@ URL: https://<your-app>.streamlit.app/booking?salon=B001
 """
 import streamlit as st
 from datetime import date as dt_date, timedelta
+try:
+    from notify import (
+        send_booking_received, send_salon_new_booking_alert,
+        email_configured, whatsapp_link
+    )
+    _NOTIFY = True
+except Exception:
+    _NOTIFY = False
+
+def _get_secret(key, default=""):
+    try:
+        return st.secrets.get(key, default)
+    except Exception:
+        return default
 
 st.set_page_config(
     page_title="Book Now — Signature Kim",
@@ -146,6 +160,8 @@ T = {
         "lang_toggle": "English",
         "from": "來自",
         "pending_note": "預約待確認，我們會盡快聯絡您",
+        "your_email": "電子郵件（選填）",
+        "email_ph": "例如：name@gmail.com",
     },
     "en": {
         "sub": "MANAGEMENT SYSTEM", "book_title": "ONLINE BOOKING",
@@ -173,6 +189,8 @@ T = {
         "lang_toggle": "中文",
         "from": "From",
         "pending_note": "Booking pending — we will contact you to confirm",
+        "your_email": "Email Address (optional)",
+        "email_ph": "e.g. name@gmail.com",
     },
 }
 
@@ -215,7 +233,7 @@ if _USE_DB:
 for k, v in [
     ("bk_step", 1), ("bk_service", ""), ("bk_stylist", ""),
     ("bk_date", dt_date.today() + timedelta(days=1)),
-    ("bk_time", ""), ("bk_name", ""), ("bk_phone", ""),
+    ("bk_time", ""), ("bk_name", ""), ("bk_phone", ""), ("bk_email", ""),
     ("bk_done", False),
 ]:
     if k not in st.session_state:
@@ -351,8 +369,11 @@ name_val  = st.text_input(t("your_name"),  value=st.session_state.bk_name,
                            placeholder="e.g. Mei Ling / 小明", key="name_input")
 phone_val = st.text_input(t("your_phone"), value=st.session_state.bk_phone,
                            placeholder="e.g. 012-3456789", key="phone_input")
+email_val = st.text_input(t("your_email"), value=st.session_state.bk_email,
+                           placeholder=t("email_ph"), key="email_input")
 st.session_state.bk_name  = name_val
 st.session_state.bk_phone = phone_val
+st.session_state.bk_email = email_val
 
 st.markdown("---")
 
@@ -396,11 +417,12 @@ if st.session_state.bk_service:
             bk_payload = {
                 "name":    st.session_state.bk_name.strip(),
                 "phone":   st.session_state.bk_phone.strip(),
+                "email":   st.session_state.bk_email.strip(),
                 "service": st.session_state.bk_service,
                 "stylist": st.session_state.bk_stylist,
                 "date":    str(st.session_state.bk_date),
                 "time":    st.session_state.bk_time,
-                "note":    f"📱 Online booking",
+                "note":    "📱 Online booking",
                 "price":   price_est,
                 "paid":    False,
                 "method":  "",
@@ -421,5 +443,34 @@ if st.session_state.bk_service:
                 saved = True  # Demo mode
 
             if saved:
+                # Send emails if configured
+                if _NOTIFY:
+                    salon_phone_cfg = _get_secret("SALON_PHONE", "")
+                    # Email to customer
+                    if st.session_state.bk_email.strip():
+                        send_booking_received(
+                            to_email=st.session_state.bk_email.strip(),
+                            customer_name=st.session_state.bk_name.strip(),
+                            service=st.session_state.bk_service,
+                            stylist=st.session_state.bk_stylist,
+                            date=str(st.session_state.bk_date),
+                            time=st.session_state.bk_time,
+                            price=price_est,
+                            salon_name=salon_name,
+                            salon_phone=salon_phone_cfg,
+                        )
+                    # Alert email to salon owner/manager
+                    notify_email = _get_secret("NOTIFY_EMAIL", "")
+                    if notify_email:
+                        send_salon_new_booking_alert(
+                            to_email=notify_email,
+                            customer_name=st.session_state.bk_name.strip(),
+                            customer_phone=st.session_state.bk_phone.strip(),
+                            service=st.session_state.bk_service,
+                            stylist=st.session_state.bk_stylist,
+                            date=str(st.session_state.bk_date),
+                            time=st.session_state.bk_time,
+                            salon_name=salon_name,
+                        )
                 st.session_state.bk_done = True
                 st.rerun()
