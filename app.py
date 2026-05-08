@@ -696,6 +696,37 @@ def tier_for_points(pts):
 def tier_label(tier_dict):
     return tier_dict["en"] if st.session_state.lang == "en" else tier_dict["key"]
 
+# ── Cookie manager for persistent login ──────────────────────────────────────
+try:
+    import extra_streamlit_components as stx
+    _cookie_mgr = stx.CookieManager(key="sk_cookie_mgr")
+    _COOKIES_OK = True
+except Exception:
+    _cookie_mgr = None
+    _COOKIES_OK = False
+
+def _save_login_cookie(username: str):
+    if _COOKIES_OK and _cookie_mgr:
+        try:
+            _cookie_mgr.set("sk_user", username, max_age=7*24*3600)
+        except Exception:
+            pass
+
+def _clear_login_cookie():
+    if _COOKIES_OK and _cookie_mgr:
+        try:
+            _cookie_mgr.delete("sk_user")
+        except Exception:
+            pass
+
+def _get_cookie_user() -> str:
+    if _COOKIES_OK and _cookie_mgr:
+        try:
+            return _cookie_mgr.get("sk_user") or ""
+        except Exception:
+            pass
+    return ""
+
 # ── Auth session state ────────────────────────────────────────────────────────
 if "logged_in"  not in st.session_state: st.session_state.logged_in  = False
 if "username"   not in st.session_state: st.session_state.username   = ""
@@ -704,6 +735,31 @@ if "user_name"  not in st.session_state: st.session_state.user_name  = ""
 if "cur_branch" not in st.session_state: st.session_state.cur_branch = ""
 if "accounts"   not in st.session_state: st.session_state.accounts   = dict(_DEFAULT_ACCOUNTS)
 if "branches"   not in st.session_state: st.session_state.branches   = dict(_DEFAULT_BRANCHES)
+
+# ── Auto-login from cookie ────────────────────────────────────────────────────
+if not st.session_state.logged_in:
+    _cookie_user = _get_cookie_user()
+    if _cookie_user:
+        if _USE_DB:
+            try: db_load_branches_and_accounts()
+            except Exception: pass
+        acct = st.session_state.accounts.get(_cookie_user)
+        if acct:
+            st.session_state.logged_in = True
+            st.session_state.username  = _cookie_user
+            st.session_state.role      = acct["role"]
+            st.session_state.user_name = acct["name"]
+            branch = acct["branch"]
+            if branch == "all":
+                branch = next(iter(st.session_state.branches), "B001")
+            st.session_state.cur_branch = branch
+            _init_branch(branch)
+            if _USE_DB:
+                try:
+                    data = db_load_salon(branch)
+                    st.session_state.branch_data[branch] = data
+                except Exception:
+                    pass
 
 # ── Branch-scoped data: keyed by branch_id ────────────────────────────────────
 def _init_branch(bid: str):
@@ -802,6 +858,7 @@ if not st.session_state.logged_in:
                         except Exception as e:
                             st.warning(f"Could not load data: {e}")
 
+                    _save_login_cookie(uname)
                     _sync_ss()
                     st.rerun()
                 else:
@@ -841,6 +898,7 @@ with hdr_r:
             st.rerun()
     with rc2:
         if st.button(f"{role_icon} 登出", key="logout_btn"):
+            _clear_login_cookie()
             for k in ["logged_in","username","role","user_name","cur_branch"]:
                 del st.session_state[k]
             st.rerun()
