@@ -2,7 +2,37 @@ import streamlit as st
 import pandas as pd
 import io
 import calendar as _cal
+import hashlib
 from datetime import date as dt_date
+
+# ── Auth helpers ──────────────────────────────────────────────────────────────
+def _hash(pw: str) -> str:
+    return hashlib.sha256(pw.encode()).hexdigest()
+
+# Default accounts — owner should change passwords after first login
+# Structure: { username: {hash, role, branch, display_name} }
+# Roles: "owner" | "manager" | "staff"
+# Branch: branch_id string or "all" for owner
+_DEFAULT_ACCOUNTS = {
+    "admin":  {"hash": _hash("admin123"),  "role": "owner",   "branch": "all", "name": "Admin"},
+    "kim":    {"hash": _hash("kim123"),    "role": "manager", "branch": "B001","name": "Kim"},
+    "lily":   {"hash": _hash("lily123"),   "role": "staff",   "branch": "B001","name": "Lily"},
+    "jason":  {"hash": _hash("jason123"),  "role": "staff",   "branch": "B001","name": "Jason"},
+}
+
+_DEFAULT_BRANCHES = {
+    "B001": "Signature Kim — KL",
+}
+
+def _can(action: str) -> bool:
+    """Check if current user has permission for an action."""
+    role = st.session_state.get("role", "staff")
+    perms = {
+        "owner":   {"settlement","member_delete","inventory_edit","admin","view_all","payment","booking"},
+        "manager": {"settlement","member_delete","inventory_edit","payment","booking"},
+        "staff":   {"payment","booking"},
+    }
+    return action in perms.get(role, set())
 
 st.set_page_config(
     page_title="Signature Kim",
@@ -268,6 +298,66 @@ UI = {
         "col_s_count":    "人次",
         "col_s_rev":      "業績 (RM)",
         "col_s_avg":      "平均 (RM)",
+        # Members
+        "tab6":           "  👥  會員  ",
+        "mem_title":      "👥 會員管理",
+        "mem_add":        "＋ 新增會員",
+        "mem_name":       "姓名",
+        "mem_name_ph":    "例如：Siti Aminah",
+        "mem_phone":      "電話號碼",
+        "mem_phone_ph":   "例如：012-3456789",
+        "mem_bday":       "生日（選填）",
+        "mem_notes":      "備注（頭髮狀況、過敏等）",
+        "mem_notes_ph":   "例如：對氨水過敏，頭髮細軟…",
+        "mem_add_btn":    "新增會員 →",
+        "mem_name_warn":  "請輸入會員姓名",
+        "mem_added":      "✦ 已新增會員 **{}**",
+        "mem_search":     "搜尋會員",
+        "mem_search_ph":  "輸入姓名或電話…",
+        "mem_no_result":  "找不到符合的會員",
+        "mem_no_members": "尚無會員資料",
+        "mem_select":     "點選會員查看詳情",
+        "mem_detail":     "會員詳情",
+        "mem_tier":       "等級",
+        "mem_points":     "積分",
+        "mem_spent":      "累計消費 (RM)",
+        "mem_visits":     "到訪次數",
+        "mem_joined":     "加入日期",
+        "mem_edit_notes": "更新備注",
+        "mem_save_notes": "儲存備注",
+        "mem_notes_saved":"✦ 備注已儲存",
+        "mem_delete":     "刪除會員",
+        "mem_deleted":    "✦ 已刪除會員 **{}**",
+        "mem_history":    "消費記錄",
+        "mem_no_history": "尚無消費記錄",
+        "mem_stats":      "會員總覽",
+        "mem_total":      "總會員數",
+        "mem_vip_count":  "VIP 會員",
+        "mem_pts_issued": "已發積分",
+        "mem_tier_up":    "✦ {} 已升級至 {}！",
+        "mem_disc_hint":  "會員折扣 {}%",
+        "mem_lookup":     "會員查詢（選填）",
+        "mem_pts_added":  "已為 {} 累加 {} 積分",
+        # Receipt
+        "rcpt_btn":       "🧾 收據",
+        "rcpt_title":     "收據",
+        "rcpt_print":     "🖨️ 列印收據",
+        "rcpt_email":     "📧 Email 收據",
+        "rcpt_email_to":  "收件人 Email",
+        "rcpt_email_ph":  "例如：client@email.com",
+        "rcpt_send":      "發送 →",
+        "rcpt_sent":      "✦ 郵件已開啟，請在郵件 App 確認發送",
+        "rcpt_close":     "關閉",
+        "rcpt_service":   "服務",
+        "rcpt_stylist":   "髮型師",
+        "rcpt_subtotal":  "小計",
+        "rcpt_discount":  "折扣",
+        "rcpt_total":     "總計",
+        "rcpt_method":    "付款方式",
+        "rcpt_member":    "會員",
+        "rcpt_pts":       "本次積分",
+        "rcpt_thanks":    "感謝您的光臨，期待再次為您服務！",
+        "rcpt_no_sel":    "請先從收款記錄中選擇一筆收據",
     },
     "en": {
         "subtitle":      "Salon Management System · Malaysia",
@@ -401,6 +491,66 @@ UI = {
         "col_s_count":    "Count",
         "col_s_rev":      "Revenue (RM)",
         "col_s_avg":      "Average (RM)",
+        # Members
+        "tab6":           "  👥  Members  ",
+        "mem_title":      "👥 Member Management",
+        "mem_add":        "＋ Add Member",
+        "mem_name":       "Name",
+        "mem_name_ph":    "e.g. Siti Aminah",
+        "mem_phone":      "Phone",
+        "mem_phone_ph":   "e.g. 012-3456789",
+        "mem_bday":       "Birthday (optional)",
+        "mem_notes":      "Notes (hair condition, allergies, etc.)",
+        "mem_notes_ph":   "e.g. Sensitive to ammonia, fine hair…",
+        "mem_add_btn":    "Add Member →",
+        "mem_name_warn":  "Please enter member name",
+        "mem_added":      "✦ Member **{}** added",
+        "mem_search":     "Search Members",
+        "mem_search_ph":  "Enter name or phone…",
+        "mem_no_result":  "No matching members",
+        "mem_no_members": "No members yet",
+        "mem_select":     "Select a member to view details",
+        "mem_detail":     "Member Profile",
+        "mem_tier":       "Tier",
+        "mem_points":     "Points",
+        "mem_spent":      "Total Spent (RM)",
+        "mem_visits":     "Visit Count",
+        "mem_joined":     "Member Since",
+        "mem_edit_notes": "Update Notes",
+        "mem_save_notes": "Save Notes",
+        "mem_notes_saved":"✦ Notes saved",
+        "mem_delete":     "Delete Member",
+        "mem_deleted":    "✦ Member **{}** deleted",
+        "mem_history":    "Spending History",
+        "mem_no_history": "No spending history yet",
+        "mem_stats":      "Member Overview",
+        "mem_total":      "Total Members",
+        "mem_vip_count":  "VIP Members",
+        "mem_pts_issued": "Points Issued",
+        "mem_tier_up":    "✦ {} upgraded to {}!",
+        "mem_disc_hint":  "{}% member discount",
+        "mem_lookup":     "Member Lookup (optional)",
+        "mem_pts_added":  "Added {} pts to {}",
+        # Receipt
+        "rcpt_btn":       "🧾 Receipt",
+        "rcpt_title":     "Receipt",
+        "rcpt_print":     "🖨️ Print Receipt",
+        "rcpt_email":     "📧 Email Receipt",
+        "rcpt_email_to":  "Recipient Email",
+        "rcpt_email_ph":  "e.g. client@email.com",
+        "rcpt_send":      "Send →",
+        "rcpt_sent":      "✦ Email app opened — confirm to send",
+        "rcpt_close":     "Close",
+        "rcpt_service":   "Service",
+        "rcpt_stylist":   "Stylist",
+        "rcpt_subtotal":  "Subtotal",
+        "rcpt_discount":  "Discount",
+        "rcpt_total":     "Total",
+        "rcpt_method":    "Payment",
+        "rcpt_member":    "Member",
+        "rcpt_pts":       "Points Earned",
+        "rcpt_thanks":    "Thank you for visiting — we look forward to seeing you again!",
+        "rcpt_no_sel":    "Select a receipt from the payment history",
     },
 }
 
@@ -408,52 +558,170 @@ def u(key):    return UI[st.session_state.lang][key]
 def svc_map(): return SERVICES[st.session_state.lang]
 def bar_color(r): return "#2ecc71" if r > 0.6 else ("#e67e22" if r > 0.3 else "#e74c3c")
 
-# ── Session State ─────────────────────────────────────────────────────────────
-if "stylists" not in st.session_state:
-    st.session_state.stylists = ["Kim", "Lily", "Jason"]
+# ── Member tier system ────────────────────────────────────────────────────────
+TIERS = [
+    {"key": "普通",  "en": "Regular", "min_pts": 0,    "disc": 0,    "color": "#888888", "badge": "⚪"},
+    {"key": "銀卡",  "en": "Silver",  "min_pts": 500,  "disc": 5,    "color": "#adb5bd", "badge": "🥈"},
+    {"key": "金卡",  "en": "Gold",    "min_pts": 1500, "disc": 10,   "color": "#c9a84c", "badge": "🥇"},
+    {"key": "VIP",   "en": "VIP",     "min_pts": 3000, "disc": 15,   "color": "#e74c3c", "badge": "💎"},
+]
 
-if "bookings" not in st.session_state:
-    st.session_state.bookings = [
-        {"name":"Siti Aminah",   "date":"2026-05-08","time":"10:00","stylist":"Kim",   "service":"染髮",    "note":"",         "price":180,"paid":False,"method":"","final":0},
-        {"name":"Raj Kumar",     "date":"2026-05-08","time":"13:00","stylist":"Jason",  "service":"剪髮",    "note":"",         "price":50, "paid":False,"method":"","final":0},
-        {"name":"Mei Ling",      "date":"2026-05-08","time":"15:30","stylist":"Lily",   "service":"頭皮護理","note":"第一次光顧","price":120,"paid":False,"method":"","final":0},
-        {"name":"Ahmad Firdaus", "date":"2026-05-09","time":"11:00","stylist":"Kim",   "service":"燙髮",    "note":"",         "price":250,"paid":False,"method":"","final":0},
-    ]
+def tier_for_points(pts):
+    t = TIERS[0]
+    for tier in TIERS:
+        if pts >= tier["min_pts"]:
+            t = tier
+    return t
 
-if "walkins" not in st.session_state:
-    st.session_state.walkins = []
+def tier_label(tier_dict):
+    return tier_dict["en"] if st.session_state.lang == "en" else tier_dict["key"]
 
-if "inventory" not in st.session_state:
-    st.session_state.inventory = [
-        {"name":"OSiS+ Dust It",        "category":"造型品",   "qty":14,"max":30,"unit":"瓶"},
-        {"name":"OSiS+ Freeze",          "category":"定型噴霧","qty":7, "max":24,"unit":"瓶"},
-        {"name":"Schwarzkopf IGORA",     "category":"染髮劑",  "qty":22,"max":50,"unit":"管"},
-        {"name":"Fibre Clinix 蛋白護理", "category":"護髮品",  "qty":5, "max":20,"unit":"瓶"},
-        {"name":"BLONDME 漂髮粉",        "category":"漂髮",    "qty":9, "max":25,"unit":"盒"},
-        {"name":"OSiS+ Session Label",   "category":"造型品",  "qty":18,"max":30,"unit":"瓶"},
-        {"name":"Chroma ID 酸性染",      "category":"染髮劑",  "qty":31,"max":60,"unit":"管"},
-        {"name":"Scalp Clinix 頭皮精華", "category":"頭皮護理","qty":3, "max":15,"unit":"瓶"},
-    ]
+# ── Auth session state ────────────────────────────────────────────────────────
+if "logged_in"  not in st.session_state: st.session_state.logged_in  = False
+if "username"   not in st.session_state: st.session_state.username   = ""
+if "role"       not in st.session_state: st.session_state.role       = ""
+if "user_name"  not in st.session_state: st.session_state.user_name  = ""
+if "cur_branch" not in st.session_state: st.session_state.cur_branch = ""
+if "accounts"   not in st.session_state: st.session_state.accounts   = dict(_DEFAULT_ACCOUNTS)
+if "branches"   not in st.session_state: st.session_state.branches   = dict(_DEFAULT_BRANCHES)
 
-TIME_SLOTS = [f"{h:02d}:{m:02d}" for h in range(9, 20) for m in (0, 30)]
+# ── Branch-scoped data: keyed by branch_id ────────────────────────────────────
+def _init_branch(bid: str):
+    bd = st.session_state.setdefault("branch_data", {})
+    if bid not in bd:
+        bd[bid] = {
+            "stylists":  ["Kim", "Lily", "Jason"],
+            "bookings":  [],
+            "walkins":   [],
+            "members":   [],
+            "inventory": [
+                {"name":"OSiS+ Dust It",        "category":"造型品",   "qty":14,"max":30,"unit":"瓶"},
+                {"name":"OSiS+ Freeze",          "category":"定型噴霧","qty":7, "max":24,"unit":"瓶"},
+                {"name":"Schwarzkopf IGORA",     "category":"染髮劑",  "qty":22,"max":50,"unit":"管"},
+                {"name":"Fibre Clinix 蛋白護理", "category":"護髮品",  "qty":5, "max":20,"unit":"瓶"},
+                {"name":"BLONDME 漂髮粉",        "category":"漂髮",    "qty":9, "max":25,"unit":"盒"},
+                {"name":"OSiS+ Session Label",   "category":"造型品",  "qty":18,"max":30,"unit":"瓶"},
+                {"name":"Chroma ID 酸性染",      "category":"染髮劑",  "qty":31,"max":60,"unit":"管"},
+                {"name":"Scalp Clinix 頭皮精華", "category":"頭皮護理","qty":3, "max":15,"unit":"瓶"},
+            ],
+        }
+
+def _bd():
+    """Return current branch data dict."""
+    _init_branch(st.session_state.cur_branch)
+    return st.session_state.branch_data[st.session_state.cur_branch]
+
+# Backwards-compat shims so existing code using st.session_state.bookings works:
+# We'll keep them as properties pointing into branch_data.
+def _sync_ss():
+    """Sync top-level session state aliases to current branch."""
+    bd = _bd()
+    st.session_state.stylists   = bd["stylists"]
+    st.session_state.bookings   = bd["bookings"]
+    st.session_state.walkins    = bd["walkins"]
+    st.session_state.members    = bd["members"]
+    st.session_state.inventory  = bd["inventory"]
+
+if "sel_member_id" not in st.session_state: st.session_state.sel_member_id = None
+if "sel_receipt"   not in st.session_state: st.session_state.sel_receipt   = None
+
+TIME_SLOTS     = [f"{h:02d}:{m:02d}" for h in range(9, 20) for m in (0, 30)]
 HIDDEN_BK_COLS = ["price", "paid", "method", "final"]
 
+# ══════════════════════════════════════════════════════════════════════════════
+# LOGIN PAGE
+# ══════════════════════════════════════════════════════════════════════════════
+if not st.session_state.logged_in:
+    st.markdown(f"""
+    <div style="max-width:420px;margin:6vh auto;padding:2.5rem 2.8rem;
+    background:#111;border:1px solid #c9a84c44;border-radius:16px;text-align:center;">
+      <div style="font-family:'Playfair Display',serif;font-size:2rem;font-weight:700;
+      letter-spacing:6px;background:linear-gradient(135deg,#c9a84c,#f5e19a,#c9a84c);
+      -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">
+        ✦ SIGNATURE KIM ✦</div>
+      <div style="font-size:0.7rem;letter-spacing:3px;color:#555;margin:4px 0 24px;
+      text-transform:uppercase;">Management System</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    with st.container():
+        col = st.columns([1, 2, 1])[1]
+        with col:
+            lg_user = st.text_input("👤 Username / 用戶名", key="lg_user", placeholder="username")
+            lg_pass = st.text_input("🔑 Password / 密碼",   key="lg_pass", placeholder="password", type="password")
+            if st.button("Login / 登入", key="login_btn", use_container_width=True):
+                acct = st.session_state.accounts.get(lg_user.strip())
+                if acct and acct["hash"] == _hash(lg_pass):
+                    st.session_state.logged_in  = True
+                    st.session_state.username   = lg_user.strip()
+                    st.session_state.role       = acct["role"]
+                    st.session_state.user_name  = acct["name"]
+                    # Set branch
+                    branch = acct["branch"]
+                    if branch == "all":
+                        # Owner defaults to first branch
+                        branch = next(iter(st.session_state.branches), "B001")
+                    st.session_state.cur_branch = branch
+                    _init_branch(branch)
+                    _sync_ss()
+                    st.rerun()
+                else:
+                    st.error("❌ 帳號或密碼錯誤 / Wrong username or password")
+    st.stop()
+
+# ── Logged in — sync data aliases ────────────────────────────────────────────
+_sync_ss()
+
 # ── Header ────────────────────────────────────────────────────────────────────
-_, _, hdr_r = st.columns([3, 3, 1])
+hdr_l, hdr_m, hdr_r = st.columns([2, 3, 2])
+with hdr_l:
+    st.markdown("<div style='height:10px'></div>", unsafe_allow_html=True)
+    # Branch selector (owner sees all branches)
+    if _can("view_all") and len(st.session_state.branches) > 1:
+        branch_opts  = list(st.session_state.branches.keys())
+        branch_names = [st.session_state.branches[b] for b in branch_opts]
+        cur_idx      = branch_opts.index(st.session_state.cur_branch) if st.session_state.cur_branch in branch_opts else 0
+        chosen_name  = st.selectbox("🏠 分店", branch_names, index=cur_idx, key="branch_sel", label_visibility="collapsed")
+        chosen_bid   = branch_opts[branch_names.index(chosen_name)]
+        if chosen_bid != st.session_state.cur_branch:
+            st.session_state.cur_branch = chosen_bid
+            _init_branch(chosen_bid)
+            _sync_ss()
+            st.rerun()
+    else:
+        branch_name = st.session_state.branches.get(st.session_state.cur_branch, st.session_state.cur_branch)
+        st.markdown(f"<div style='padding-top:8px;font-size:0.8rem;color:#c9a84c;letter-spacing:1px;'>🏠 {branch_name}</div>", unsafe_allow_html=True)
+
 with hdr_r:
     st.markdown("<div style='height:10px'></div>", unsafe_allow_html=True)
-    if st.button(u("lang_btn"), key="lang_toggle"):
-        st.session_state.lang = "en" if st.session_state.lang == "zh" else "zh"
-        st.rerun()
+    role_icon = {"owner":"👑","manager":"💼","staff":"✂️"}.get(st.session_state.role,"👤")
+    rc1, rc2 = st.columns(2)
+    with rc1:
+        if st.button(u("lang_btn"), key="lang_toggle"):
+            st.session_state.lang = "en" if st.session_state.lang == "zh" else "zh"
+            st.rerun()
+    with rc2:
+        if st.button(f"{role_icon} 登出", key="logout_btn"):
+            for k in ["logged_in","username","role","user_name","cur_branch"]:
+                del st.session_state[k]
+            st.rerun()
 
 st.markdown(f"""
 <div class="hero">
   <p class="hero-title">✦ SIGNATURE KIM ✦</p>
-  <p class="hero-sub">{u('subtitle')}</p>
+  <p class="hero-sub">{u('subtitle')} &nbsp;·&nbsp; {st.session_state.user_name} {role_icon}</p>
 </div>
 """, unsafe_allow_html=True)
 
-tab1, tab2, tab3, tab4, tab5 = st.tabs([u("tab1"), u("tab2"), u("tab3"), u("tab4"), u("tab5")])
+# Build tab list
+_tabs_labels = [u("tab1"), u("tab2"), u("tab3"), u("tab4"), u("tab5"), u("tab6")]
+if _can("admin"):
+    _tabs_labels.append("  ⚙️  " + ("管理" if st.session_state.lang=="zh" else "Admin") + "  ")
+
+_tabs = st.tabs(_tabs_labels)
+tab1, tab2, tab3, tab4, tab5, tab6 = _tabs[:6]
+if _can("admin"):
+    tab_admin = _tabs[6]
 
 # ═════════════════════════════════════════════════════════════════════════════
 # TAB 1 — BOOKINGS  (no pricing shown)
@@ -857,9 +1125,30 @@ with tab3:
                 sel_bk = unpaid_bk[bk_opts[sel_label]]
                 orig   = sel_bk.get("price", 0)
 
+                # ── Member lookup ──────────────────────────────────────────
+                mem_names = ["— " + ("非會員" if st.session_state.lang=="zh" else "Non-member") + " —"] + \
+                            [f"{m['name']}  ({m.get('phone','')})  {tier_label(tier_for_points(m.get('points',0)))}"
+                             for m in st.session_state.members]
+                mem_sel_label = st.selectbox(u("mem_lookup"), mem_names, key="pay_mem_sel")
+                pay_mem = None
+                mem_disc_pct = 0
+                if not mem_sel_label.startswith("—"):
+                    sel_mem_name = mem_sel_label.split("  (")[0]
+                    pay_mem = next((m for m in st.session_state.members if m["name"] == sel_mem_name), None)
+                    if pay_mem:
+                        mem_disc_pct = tier_for_points(pay_mem.get("points", 0))["disc"]
+                        tier_lbl = tier_label(tier_for_points(pay_mem.get("points", 0)))
+                        if mem_disc_pct:
+                            st.markdown(
+                                f'<div style="background:#1a1500;border:1px solid #c9a84c55;border-radius:8px;'
+                                f'padding:6px 12px;font-size:0.8rem;color:#c9a84c;margin-bottom:6px;">'
+                                f'{tier_lbl} · {u("mem_disc_hint").format(mem_disc_pct)}</div>',
+                                unsafe_allow_html=True)
+
                 a1, a2 = st.columns(2)
                 with a1:
-                    disc_pct = st.number_input(u("disc_label"), 0, 100, 0, 5, key="disc_pct")
+                    default_disc = mem_disc_pct
+                    disc_pct = st.number_input(u("disc_label"), 0, 100, default_disc, 5, key="disc_pct")
                 with a2:
                     extra = st.number_input(u("extra_label"), 0.0, 9999.0, 0.0, 5.0, key="extra_chg")
 
@@ -872,12 +1161,16 @@ with tab3:
                                 + (f" · 加收 RM {extra:.2f}" if extra else "")
                                 + "</div>")
 
+                pts_earn = int(final)
+                pts_note = f"<div style='font-size:0.74rem;color:#3498db;margin-top:4px;'>+{pts_earn} pts</div>" if pay_mem else ""
+
                 st.markdown(f"""
                 <div class="checkout-box" style="margin:0.8rem 0;">
                   <div class="checkout-customer">{sel_bk['name']}</div>
                   <div class="checkout-svc">{sel_bk.get('stylist','')} · {sel_bk['service']} · {sel_bk['time']}</div>
                   {adj_note}
                   <div class="checkout-price">RM {final:.2f}</div>
+                  {pts_note}
                 </div>
                 """, unsafe_allow_html=True)
 
@@ -891,6 +1184,43 @@ with tab3:
                                 and b["time"] == sel_bk["time"]):
                             b.update({"paid": True, "method": chosen_key, "final": final})
                             break
+                    # Pre-load receipt data
+                    st.session_state.sel_receipt = {
+                        "name":     sel_bk["name"],
+                        "service":  sel_bk["service"],
+                        "stylist":  sel_bk.get("stylist",""),
+                        "time":     sel_bk["time"],
+                        "date":     today_str,
+                        "subtotal": orig,
+                        "disc_pct": disc_pct,
+                        "extra":    extra,
+                        "final":    final,
+                        "method":   chosen_key,
+                        "member":   pay_mem["name"] if pay_mem else "",
+                        "pts":      pts_earn if pay_mem else 0,
+                    }
+                    # Add points + history to member
+                    if pay_mem:
+                        for m in st.session_state.members:
+                            if m["id"] == pay_mem["id"]:
+                                old_pts  = m.get("points", 0)
+                                m["points"]      = old_pts + pts_earn
+                                m["total_spent"] = round(m.get("total_spent", 0) + final, 2)
+                                m["visit_count"] = m.get("visit_count", 0) + 1
+                                m.setdefault("history", []).append({
+                                    "date":    today_str,
+                                    "service": sel_bk["service"],
+                                    "amt":     final,
+                                    "pts":     pts_earn,
+                                })
+                                new_tier = tier_for_points(m["points"])
+                                old_tier = tier_for_points(old_pts)
+                                if new_tier["key"] != old_tier["key"]:
+                                    st.balloons()
+                                    st.success(u("mem_tier_up").format(m["name"], tier_label(new_tier)))
+                                else:
+                                    st.info(u("mem_pts_added").format(pts_earn, m["name"]))
+                                break
                     st.success(u("pay_success").format(final, chosen_display))
                     st.rerun()
             st.markdown('</div>', unsafe_allow_html=True)
@@ -904,11 +1234,24 @@ with tab3:
             wi_svc  = st.text_input(u("service"), placeholder=u("wi_svc_ph"), key="wi_svc")
             wi_amt  = st.number_input(u("wi_amt_label"), 0.0, 99999.0, 50.0, 10.0, key="wi_amt")
 
+            # Walk-in member lookup
+            wi_mem_names = ["— " + ("非會員" if st.session_state.lang=="zh" else "Non-member") + " —"] + \
+                           [f"{m['name']}  ({m.get('phone','')})" for m in st.session_state.members]
+            wi_mem_sel = st.selectbox(u("mem_lookup"), wi_mem_names, key="wi_mem_sel")
+            wi_pay_mem = None
+            if not wi_mem_sel.startswith("—"):
+                wi_mem_nm = wi_mem_sel.split("  (")[0]
+                wi_pay_mem = next((m for m in st.session_state.members if m["name"] == wi_mem_nm), None)
+
+            wi_pts_earn = int(wi_amt)
+            wi_pts_note = f"<div style='font-size:0.74rem;color:#3498db;'>+{wi_pts_earn} pts</div>" if wi_pay_mem else ""
+
             st.markdown(f"""
             <div class="checkout-box" style="margin:0.8rem 0;">
               <div class="checkout-customer">{wi_name or "—"}</div>
               <div class="checkout-svc">{wi_svc or "—"}</div>
               <div class="checkout-price">RM {wi_amt:.2f}</div>
+              {wi_pts_note}
             </div>
             """, unsafe_allow_html=True)
 
@@ -924,6 +1267,39 @@ with tab3:
                         "name": wi_name.strip(), "service": wi_svc or "—",
                         "date": today_str, "final": wi_amt, "method": wi_key,
                     })
+                    st.session_state.sel_receipt = {
+                        "name":     wi_name.strip(),
+                        "service":  wi_svc or "—",
+                        "stylist":  "",
+                        "time":     "",
+                        "date":     today_str,
+                        "subtotal": wi_amt,
+                        "disc_pct": 0,
+                        "extra":    0,
+                        "final":    wi_amt,
+                        "method":   wi_key,
+                        "member":   wi_pay_mem["name"] if wi_pay_mem else "",
+                        "pts":      wi_pts_earn if wi_pay_mem else 0,
+                    }
+                    if wi_pay_mem:
+                        for m in st.session_state.members:
+                            if m["id"] == wi_pay_mem["id"]:
+                                old_pts = m.get("points", 0)
+                                m["points"]      = old_pts + wi_pts_earn
+                                m["total_spent"] = round(m.get("total_spent", 0) + wi_amt, 2)
+                                m["visit_count"] = m.get("visit_count", 0) + 1
+                                m.setdefault("history", []).append({
+                                    "date":    today_str,
+                                    "service": wi_svc or "—",
+                                    "amt":     wi_amt,
+                                    "pts":     wi_pts_earn,
+                                })
+                                new_tier = tier_for_points(m["points"])
+                                old_tier = tier_for_points(old_pts)
+                                if new_tier["key"] != old_tier["key"]:
+                                    st.balloons()
+                                    st.success(u("mem_tier_up").format(m["name"], tier_label(new_tier)))
+                                break
                     st.success(u("pay_success").format(wi_amt, wi_display))
                     st.rerun()
             st.markdown('</div>', unsafe_allow_html=True)
@@ -944,23 +1320,96 @@ with tab3:
             st.markdown('<div class="card">', unsafe_allow_html=True)
             st.markdown(f'<p class="card-title" style="font-size:0.95rem;">'
                         f'{u("history_title")}</p>', unsafe_allow_html=True)
-            for h in history:
+            for idx, h in enumerate(history):
                 m  = h["method"]
                 ic = PAY_METHODS.get(m,("","💰","#888"))[1]
                 cl = PAY_METHODS.get(m,("","💰","#888"))[2]
                 sub = " · ".join(filter(None, [h["stylist"], h["svc"], h["time"]]))
-                st.markdown(
-                    f"<div style='display:flex;justify-content:space-between;padding:8px 0;"
-                    f"border-bottom:1px solid #1a1a1a;'>"
-                    f"<div><span style='color:#f0ece0;font-size:0.88rem;'>{h['tag']} {h['name']}</span>"
-                    f"<span style='color:#555;font-size:0.74rem;margin-left:8px;'>{sub}</span></div>"
-                    f"<div style='text-align:right;'>"
-                    f"<span style='color:#c9a84c;font-weight:700;'>RM {h['final']:.2f}</span>"
-                    f"<span style='display:block;color:{cl};font-size:0.7rem;'>{ic} {m}</span>"
-                    f"</div></div>",
-                    unsafe_allow_html=True,
-                )
+                hcol1, hcol2 = st.columns([4, 1])
+                with hcol1:
+                    st.markdown(
+                        f"<div style='display:flex;justify-content:space-between;padding:8px 0;"
+                        f"border-bottom:1px solid #1a1a1a;'>"
+                        f"<div><span style='color:#f0ece0;font-size:0.88rem;'>{h['tag']} {h['name']}</span>"
+                        f"<span style='color:#555;font-size:0.74rem;margin-left:8px;'>{sub}</span></div>"
+                        f"<div style='text-align:right;'>"
+                        f"<span style='color:#c9a84c;font-weight:700;'>RM {h['final']:.2f}</span>"
+                        f"<span style='display:block;color:{cl};font-size:0.7rem;'>{ic} {m}</span>"
+                        f"</div></div>",
+                        unsafe_allow_html=True,
+                    )
+                with hcol2:
+                    if st.button(u("rcpt_btn"), key=f"rcpt_{idx}"):
+                        st.session_state.sel_receipt = {
+                            "name":     h["name"],
+                            "service":  h["svc"],
+                            "stylist":  h["stylist"],
+                            "time":     h["time"],
+                            "date":     today_str,
+                            "subtotal": h["final"],
+                            "disc_pct": 0,
+                            "extra":    0,
+                            "final":    h["final"],
+                            "method":   h["method"],
+                            "member":   "",
+                            "pts":      0,
+                        }
+                        st.rerun()
             st.markdown('</div>', unsafe_allow_html=True)
+
+        # ── Receipt panel ──────────────────────────────────────────────────
+        rcpt = st.session_state.sel_receipt
+        if rcpt:
+            st.markdown("<hr>", unsafe_allow_html=True)
+            st.markdown(f'<p class="card-title">🧾 {u("rcpt_title")}</p>', unsafe_allow_html=True)
+
+            # Build HTML and offer as download (opens in browser → Ctrl+P / Print button)
+            rcpt_html  = build_receipt_html(rcpt, st.session_state.lang)
+            rcpt_bytes = rcpt_html.encode("utf-8")
+
+            rc1, rc2, rc3 = st.columns([1, 1, 1])
+            with rc1:
+                st.download_button(
+                    label=u("rcpt_print"),
+                    data=rcpt_bytes,
+                    file_name=f"receipt_{rcpt['name'].replace(' ','_')}_{rcpt['date']}.html",
+                    mime="text/html",
+                    key="dl_receipt",
+                )
+            with rc2:
+                # Email via mailto: link
+                email_body = (
+                    f"Signature Kim Receipt\n"
+                    f"{'=' * 30}\n"
+                    f"{'客戶' if st.session_state.lang=='zh' else 'Client'}: {rcpt['name']}\n"
+                    f"{'日期' if st.session_state.lang=='zh' else 'Date'}: {rcpt['date']} {rcpt['time']}\n"
+                    f"{'服務' if st.session_state.lang=='zh' else 'Service'}: {rcpt['service']}\n"
+                    + (f"{'髮型師' if st.session_state.lang=='zh' else 'Stylist'}: {rcpt['stylist']}\n" if rcpt.get('stylist') else "")
+                    + (f"{'折扣' if st.session_state.lang=='zh' else 'Discount'}: {rcpt['disc_pct']}%\n" if rcpt.get('disc_pct') else "")
+                    + f"{'總計' if st.session_state.lang=='zh' else 'Total'}: RM {rcpt['final']:.2f}\n"
+                    f"{'付款方式' if st.session_state.lang=='zh' else 'Payment'}: {rcpt['method']}\n"
+                    + (f"{'積分' if st.session_state.lang=='zh' else 'Points'}: +{rcpt['pts']} pts\n" if rcpt.get('pts') else "")
+                    + f"\n{'感謝您的光臨！' if st.session_state.lang=='zh' else 'Thank you for visiting Signature Kim!'}"
+                )
+                email_to = st.text_input(u("rcpt_email_to"), placeholder=u("rcpt_email_ph"), key="rcpt_email_addr", label_visibility="collapsed")
+                import urllib.parse as _up
+                subject = _up.quote(f"Signature Kim Receipt — {rcpt['name']} {rcpt['date']}")
+                body    = _up.quote(email_body)
+                mailto  = f"mailto:{email_to}?subject={subject}&body={body}"
+                st.markdown(
+                    f'<a href="{mailto}" target="_blank" style="display:block;background:linear-gradient(135deg,#3498db,#1a6fa8);'
+                    f'color:#fff;text-align:center;padding:10px 16px;border-radius:8px;font-size:0.82rem;'
+                    f'font-weight:700;letter-spacing:2px;text-decoration:none;margin-top:2px;">'
+                    f'{u("rcpt_email")}</a>',
+                    unsafe_allow_html=True)
+            with rc3:
+                if st.button(u("rcpt_close"), key="close_receipt"):
+                    st.session_state.sel_receipt = None
+                    st.rerun()
+
+            # Preview
+            import streamlit.components.v1 as _components
+            _components.html(rcpt_html, height=520, scrolling=True)
 
 # ═════════════════════════════════════════════════════════════════════════════
 # TAB 4 — INVENTORY
@@ -1056,6 +1505,107 @@ with tab4:
             st.session_state.inventory = edited_inv.dropna(subset=["name"]).to_dict("records")
             st.success(u("inv_saved"))
             st.rerun()
+
+# ── Receipt builder ───────────────────────────────────────────────────────────
+def build_receipt_html(r: dict, lang: str) -> str:
+    """Return a full printable HTML receipt string for item dict r."""
+    is_zh   = (lang == "zh")
+    subtotal = r.get("subtotal", r.get("final", 0))
+    disc     = r.get("disc_pct", 0)
+    extra    = r.get("extra", 0)
+    final    = r.get("final", 0)
+    member   = r.get("member", "")
+    pts      = r.get("pts", 0)
+    method   = r.get("method", "Cash")
+    stylist  = r.get("stylist", "")
+    date_str = r.get("date", str(dt_date.today()))
+    time_str = r.get("time", "")
+    name     = r.get("name", "")
+    service  = r.get("service", "")
+
+    disc_row = ""
+    if disc:
+        disc_row = f"<tr><td>{'折扣' if is_zh else 'Discount'}</td><td style='color:#e67e22;'>-{disc}%</td></tr>"
+    extra_row = ""
+    if extra:
+        extra_row = f"<tr><td>{'加收' if is_zh else 'Extra'}</td><td>RM {extra:.2f}</td></tr>"
+    member_row = ""
+    if member:
+        member_row = (
+            f"<tr><td>{'會員' if is_zh else 'Member'}</td><td>{member}</td></tr>"
+            + (f"<tr><td>{'本次積分' if is_zh else 'Points Earned'}</td>"
+               f"<td style='color:#3498db;'>+{pts} pts</td></tr>" if pts else "")
+        )
+    thanks = "感謝您的光臨，期待再次為您服務！" if is_zh else "Thank you for visiting — see you again soon!"
+    receipt_no = f"SK-{date_str.replace('-','')}-{abs(hash(name+time_str)) % 10000:04d}"
+
+    return f"""<!DOCTYPE html><html><head><meta charset="utf-8">
+<title>Signature Kim Receipt</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Raleway:wght@300;400;600&display=swap');
+  * {{ box-sizing:border-box; margin:0; padding:0; }}
+  body {{ font-family:'Raleway',sans-serif; background:#fff; color:#111;
+         display:flex; justify-content:center; padding:30px 10px; }}
+  .receipt {{ width:360px; border:1px solid #ddd; border-radius:12px;
+              padding:28px 24px; background:#fff; }}
+  .logo {{ text-align:center; margin-bottom:18px; border-bottom:2px solid #c9a84c; padding-bottom:14px; }}
+  .logo-title {{ font-family:'Playfair Display',serif; font-size:1.5rem; font-weight:700;
+                 letter-spacing:6px; color:#c9a84c; }}
+  .logo-sub {{ font-size:0.65rem; letter-spacing:3px; color:#888; margin-top:3px; text-transform:uppercase; }}
+  .section {{ margin:14px 0; }}
+  .client-name {{ font-family:'Playfair Display',serif; font-size:1.1rem; color:#111; }}
+  .meta {{ font-size:0.75rem; color:#888; margin-top:2px; }}
+  table {{ width:100%; border-collapse:collapse; margin-top:10px; }}
+  td {{ padding:6px 0; font-size:0.85rem; vertical-align:top; }}
+  td:last-child {{ text-align:right; font-weight:600; }}
+  .divider {{ border:none; border-top:1px solid #eee; margin:10px 0; }}
+  .total-row td {{ font-size:1rem; font-weight:700; color:#c9a84c; padding:8px 0; }}
+  .badge {{ display:inline-block; background:#c9a84c22; color:#c9a84c; border-radius:20px;
+            padding:2px 10px; font-size:0.7rem; letter-spacing:1px; }}
+  .thanks {{ text-align:center; margin-top:18px; padding-top:14px; border-top:1px solid #eee;
+             font-size:0.75rem; color:#888; letter-spacing:1px; }}
+  .rcpt-no {{ text-align:center; font-size:0.65rem; color:#bbb; margin-top:6px; }}
+  .print-btn {{ display:block; width:100%; margin-top:20px; padding:10px; background:#c9a84c;
+                color:#fff; border:none; border-radius:8px; font-size:0.85rem; font-weight:700;
+                letter-spacing:2px; cursor:pointer; font-family:'Raleway',sans-serif; }}
+  .print-btn:hover {{ background:#a07830; }}
+  @media print {{
+    .print-btn {{ display:none; }}
+    body {{ padding:0; background:#fff; }}
+    .receipt {{ border:none; width:100%; }}
+  }}
+</style></head><body>
+<div class="receipt">
+  <div class="logo">
+    <div class="logo-title">✦ SIGNATURE KIM ✦</div>
+    <div class="logo-sub">Professional Hair Salon · Malaysia</div>
+  </div>
+  <div class="section">
+    <div class="client-name">{name}</div>
+    <div class="meta">{date_str} {time_str}</div>
+  </div>
+  <table>
+    <tr><td>{'服務' if is_zh else 'Service'}</td><td>{service}</td></tr>
+    {'<tr><td>' + ('髮型師' if is_zh else 'Stylist') + '</td><td>' + stylist + '</td></tr>' if stylist else ''}
+    <tr><td>{'小計' if is_zh else 'Subtotal'}</td><td>RM {subtotal:.2f}</td></tr>
+    {disc_row}{extra_row}
+    {member_row}
+  </table>
+  <hr class="divider">
+  <table>
+    <tr class="total-row"><td>{'總計' if is_zh else 'Total'}</td><td>RM {final:.2f}</td></tr>
+  </table>
+  <div style="margin-top:8px; font-size:0.78rem; color:#888;">
+    {'付款方式' if is_zh else 'Payment'}: {method}
+  </div>
+  <div class="thanks">{thanks}</div>
+  <div class="rcpt-no"># {receipt_no}</div>
+  <button class="print-btn" onclick="window.print()">
+    {'🖨️  列印收據' if is_zh else '🖨️  Print Receipt'}
+  </button>
+</div>
+</body></html>"""
+
 
 # ── Shared settlement helpers ─────────────────────────────────────────────────
 def _settle_build_panels(paid_list, walkin_list, total_coll, label_suffix=""):
@@ -1176,309 +1726,644 @@ def _render_sty_panel(df_sty):
 # TAB 5 — SETTLEMENT & EXCEL EXPORT
 # ═════════════════════════════════════════════════════════════════════════════
 with tab5:
-    st.markdown(f'<p class="card-title" style="margin-bottom:1rem;">{u("settle_title")}</p>',
-                unsafe_allow_html=True)
+    if not _can("settlement"):
+        st.info("⛔ " + ("您沒有權限查看結算報告" if st.session_state.lang=="zh" else "No permission to view reports"))
+    else:
+        st.markdown(f'<p class="card-title" style="margin-bottom:1rem;">{u("settle_title")}</p>',
+                    unsafe_allow_html=True)
 
-    # Mode toggle
-    settle_mode = st.radio(
-        "settle_mode", [u("settle_mode_day"), u("settle_mode_mth")],
-        horizontal=True, key="settle_mode_radio", label_visibility="collapsed",
-    )
-    is_monthly = (settle_mode == u("settle_mode_mth"))
-    st.markdown("<div style='height:6px'></div>", unsafe_allow_html=True)
-
-    # ════════════════════════════════════════════════════════════════════════
-    # DAILY MODE
-    # ════════════════════════════════════════════════════════════════════════
-    if not is_monthly:
-        # Date picker + export button on same row
-        settle_col1, settle_col2, settle_col3 = st.columns([1.2, 2, 1])
-        with settle_col1:
-            settle_date = st.date_input(u("settle_date"), value=dt_date.today(), key="settle_date_pick")
-        settle_str = str(settle_date)
-
-        # ── Gather data for selected date ──────────────────────────────────
-        day_bk      = [b for b in st.session_state.bookings if b.get("date") == settle_str]
-        day_paid    = [b for b in day_bk if b.get("paid")]
-        day_unpaid  = [b for b in day_bk if not b.get("paid")]
-        day_walkins = [w for w in st.session_state.walkins  if w.get("date") == settle_str]
-
-        total_collected = sum(b.get("final", b.get("price", 0)) for b in day_paid) \
-                        + sum(w.get("final", 0) for w in day_walkins)
-        total_pending   = sum(b.get("price", 0) for b in day_unpaid)
-        walkin_total    = sum(w.get("final", 0) for w in day_walkins)
-
-        # ── Summary stats ──────────────────────────────────────────────────
-        c1, c2, c3, c4 = st.columns(4, gap="medium")
-        for col, (lbl, val, col_override) in zip([c1, c2, c3, c4], [
-            (u("settle_total"),   f"RM {total_collected + total_pending:.2f}", "#c9a84c"),
-            (u("settle_paid"),    f"RM {total_collected:.2f}",                 "#2ecc71"),
-            (u("settle_pending"), f"RM {total_pending:.2f}",                   "#e67e22"),
-            (u("settle_walkin"),  f"RM {walkin_total:.2f}",                    "#9b59b6"),
-        ]):
-            with col:
-                st.markdown(
-                    f'<div class="stat-box"><div class="stat-val" style="color:{col_override};">'
-                    f'{val}</div><div class="stat-lbl">{lbl}</div></div>',
-                    unsafe_allow_html=True,
+        # Mode toggle
+        settle_mode = st.radio(
+            "settle_mode", [u("settle_mode_day"), u("settle_mode_mth")],
+            horizontal=True, key="settle_mode_radio", label_visibility="collapsed",
+        )
+        is_monthly = (settle_mode == u("settle_mode_mth"))
+        st.markdown("<div style='height:6px'></div>", unsafe_allow_html=True)
+    
+        # ════════════════════════════════════════════════════════════════════════
+        # DAILY MODE
+        # ════════════════════════════════════════════════════════════════════════
+        if not is_monthly:
+            # Date picker + export button on same row
+            settle_col1, settle_col2, settle_col3 = st.columns([1.2, 2, 1])
+            with settle_col1:
+                settle_date = st.date_input(u("settle_date"), value=dt_date.today(), key="settle_date_pick")
+            settle_str = str(settle_date)
+    
+            # ── Gather data for selected date ──────────────────────────────────
+            day_bk      = [b for b in st.session_state.bookings if b.get("date") == settle_str]
+            day_paid    = [b for b in day_bk if b.get("paid")]
+            day_unpaid  = [b for b in day_bk if not b.get("paid")]
+            day_walkins = [w for w in st.session_state.walkins  if w.get("date") == settle_str]
+    
+            total_collected = sum(b.get("final", b.get("price", 0)) for b in day_paid) \
+                            + sum(w.get("final", 0) for w in day_walkins)
+            total_pending   = sum(b.get("price", 0) for b in day_unpaid)
+            walkin_total    = sum(w.get("final", 0) for w in day_walkins)
+    
+            # ── Summary stats ──────────────────────────────────────────────────
+            c1, c2, c3, c4 = st.columns(4, gap="medium")
+            for col, (lbl, val, col_override) in zip([c1, c2, c3, c4], [
+                (u("settle_total"),   f"RM {total_collected + total_pending:.2f}", "#c9a84c"),
+                (u("settle_paid"),    f"RM {total_collected:.2f}",                 "#2ecc71"),
+                (u("settle_pending"), f"RM {total_pending:.2f}",                   "#e67e22"),
+                (u("settle_walkin"),  f"RM {walkin_total:.2f}",                    "#9b59b6"),
+            ]):
+                with col:
+                    st.markdown(
+                        f'<div class="stat-box"><div class="stat-val" style="color:{col_override};">'
+                        f'{val}</div><div class="stat-lbl">{lbl}</div></div>',
+                        unsafe_allow_html=True,
+                    )
+    
+            # ── Excel export helper ────────────────────────────────────────────
+            def build_excel():
+                output = io.BytesIO()
+                lang = st.session_state.lang
+    
+                # All bookings for selected date (not just paid)
+                all_bk_rows = [
+                    {
+                        (u("col_s_name")):    b.get("name",""),
+                        (u("col_s_stylist")): b.get("stylist",""),
+                        (u("col_s_svc")):     b.get("service",""),
+                        ("時間" if lang=="zh" else "Time"): b.get("time",""),
+                        (u("col_s_method")):  b.get("method",""),
+                        (u("col_s_amt")):     b.get("final", b.get("price",0)),
+                        ("已付款" if lang=="zh" else "Paid"): ("是" if b.get("paid") else "否") if lang=="zh" else ("Yes" if b.get("paid") else "No"),
+                    }
+                    for b in day_bk
+                ]
+                # Paid + walk-ins
+                paid_rows = [
+                    {
+                        u("col_s_name"):    b.get("name",""),
+                        u("col_s_stylist"): b.get("stylist",""),
+                        u("col_s_svc"):     b.get("service",""),
+                        u("col_s_method"):  b.get("method",""),
+                        u("col_s_amt"):     b.get("final", b.get("price",0)),
+                        u("col_s_type"):    ("預約" if lang=="zh" else "Booking"),
+                    }
+                    for b in day_paid
+                ] + [
+                    {
+                        u("col_s_name"):    w.get("name",""),
+                        u("col_s_stylist"): "—",
+                        u("col_s_svc"):     w.get("service",""),
+                        u("col_s_method"):  w.get("method",""),
+                        u("col_s_amt"):     w.get("final",0),
+                        u("col_s_type"):    ("即場客" if lang=="zh" else "Walk-in"),
+                    }
+                    for w in day_walkins
+                ]
+                summary_data = [
+                    {("項目" if lang=="zh" else "Item"): ("結算日期" if lang=="zh" else "Date"), ("數值" if lang=="zh" else "Value"): settle_str},
+                    {("項目" if lang=="zh" else "Item"): u("settle_total"),   ("數值" if lang=="zh" else "Value"): f"RM {total_collected + total_pending:.2f}"},
+                    {("項目" if lang=="zh" else "Item"): u("settle_paid"),    ("數值" if lang=="zh" else "Value"): f"RM {total_collected:.2f}"},
+                    {("項目" if lang=="zh" else "Item"): u("settle_pending"), ("數值" if lang=="zh" else "Value"): f"RM {total_pending:.2f}"},
+                    {("項目" if lang=="zh" else "Item"): u("settle_walkin"),  ("數值" if lang=="zh" else "Value"): f"RM {walkin_total:.2f}"},
+                ]
+    
+                with pd.ExcelWriter(output, engine="openpyxl") as writer:
+                    pd.DataFrame(summary_data).to_excel(writer, sheet_name=("摘要" if lang=="zh" else "Summary"), index=False)
+                    if all_bk_rows:
+                        pd.DataFrame(all_bk_rows).to_excel(writer, sheet_name=("全部預約" if lang=="zh" else "All Bookings"), index=False)
+                    if paid_rows:
+                        pd.DataFrame(paid_rows).to_excel(writer, sheet_name=("收款明細" if lang=="zh" else "Payments"), index=False)
+                    for sheet in writer.sheets.values():
+                        for col_cells in sheet.columns:
+                            max_len = max((len(str(c.value)) for c in col_cells if c.value), default=10)
+                            sheet.column_dimensions[col_cells[0].column_letter].width = min(max_len + 4, 40)
+                return output.getvalue()
+    
+            with settle_col3:
+                st.markdown("<div style='height:28px'></div>", unsafe_allow_html=True)
+                st.download_button(
+                    label=u("settle_export"),
+                    data=build_excel(),
+                    file_name=f"SignatureKim_{settle_str}.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    key="excel_download",
                 )
-
-        # ── Excel export helper ────────────────────────────────────────────
-        def build_excel():
-            output = io.BytesIO()
-            lang = st.session_state.lang
-
-            # All bookings for selected date (not just paid)
-            all_bk_rows = [
+    
+            st.markdown("<hr>", unsafe_allow_html=True)
+    
+            # ── Detail rows ────────────────────────────────────────────────────
+            detail_rows = [
                 {
-                    (u("col_s_name")):    b.get("name",""),
-                    (u("col_s_stylist")): b.get("stylist",""),
-                    (u("col_s_svc")):     b.get("service",""),
-                    ("時間" if lang=="zh" else "Time"): b.get("time",""),
-                    (u("col_s_method")):  b.get("method",""),
-                    (u("col_s_amt")):     b.get("final", b.get("price",0)),
-                    ("已付款" if lang=="zh" else "Paid"): ("是" if b.get("paid") else "否") if lang=="zh" else ("Yes" if b.get("paid") else "No"),
-                }
-                for b in day_bk
-            ]
-            # Paid + walk-ins
-            paid_rows = [
-                {
-                    u("col_s_name"):    b.get("name",""),
-                    u("col_s_stylist"): b.get("stylist",""),
-                    u("col_s_svc"):     b.get("service",""),
-                    u("col_s_method"):  b.get("method",""),
-                    u("col_s_amt"):     b.get("final", b.get("price",0)),
-                    u("col_s_type"):    ("預約" if lang=="zh" else "Booking"),
+                    u("col_s_name"):    b.get("name", ""),
+                    u("col_s_stylist"): b.get("stylist", ""),
+                    u("col_s_svc"):     b.get("service", ""),
+                    u("col_s_method"):  b.get("method", ""),
+                    u("col_s_amt"):     b.get("final", b.get("price", 0)),
+                    u("col_s_type"):    "預約" if st.session_state.lang == "zh" else "Booking",
                 }
                 for b in day_paid
             ] + [
                 {
-                    u("col_s_name"):    w.get("name",""),
+                    u("col_s_name"):    w.get("name", ""),
                     u("col_s_stylist"): "—",
-                    u("col_s_svc"):     w.get("service",""),
-                    u("col_s_method"):  w.get("method",""),
-                    u("col_s_amt"):     w.get("final",0),
-                    u("col_s_type"):    ("即場客" if lang=="zh" else "Walk-in"),
+                    u("col_s_svc"):     w.get("service", ""),
+                    u("col_s_method"):  w.get("method", ""),
+                    u("col_s_amt"):     w.get("final", 0),
+                    u("col_s_type"):    "即場客" if st.session_state.lang == "zh" else "Walk-in",
                 }
                 for w in day_walkins
             ]
-            summary_data = [
-                {("項目" if lang=="zh" else "Item"): ("結算日期" if lang=="zh" else "Date"), ("數值" if lang=="zh" else "Value"): settle_str},
-                {("項目" if lang=="zh" else "Item"): u("settle_total"),   ("數值" if lang=="zh" else "Value"): f"RM {total_collected + total_pending:.2f}"},
-                {("項目" if lang=="zh" else "Item"): u("settle_paid"),    ("數值" if lang=="zh" else "Value"): f"RM {total_collected:.2f}"},
-                {("項目" if lang=="zh" else "Item"): u("settle_pending"), ("數值" if lang=="zh" else "Value"): f"RM {total_pending:.2f}"},
-                {("項目" if lang=="zh" else "Item"): u("settle_walkin"),  ("數值" if lang=="zh" else "Value"): f"RM {walkin_total:.2f}"},
-            ]
+    
+            if not detail_rows:
+                st.markdown(f'<div class="alert-warn">{u("settle_no_data")}</div>', unsafe_allow_html=True)
+            else:
+                df_detail, df_sty, df_svc, df_mth = _settle_build_panels(
+                    day_paid, day_walkins, total_collected)
+                left_col, right_col = st.columns([1.6, 1], gap="large")
+                with left_col:
+                    st.markdown('<div class="card">', unsafe_allow_html=True)
+                    st.markdown(f'<p class="card-title">{u("settle_detail")}</p>', unsafe_allow_html=True)
+                    st.dataframe(df_detail, use_container_width=True, hide_index=True)
+                    st.markdown('</div>', unsafe_allow_html=True)
+                    _render_sty_panel(df_sty)
+                with right_col:
+                    _render_right_panels(df_svc, df_mth, total_collected)
+    
+        # ════════════════════════════════════════════════════════════════════════
+        # MONTHLY MODE
+        # ════════════════════════════════════════════════════════════════════════
+        if is_monthly:
+            today_now = dt_date.today()
+            month_names_zh = ["1月","2月","3月","4月","5月","6月","7月","8月","9月","10月","11月","12月"]
+            month_names_en = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]
+            mnames = month_names_zh if st.session_state.lang == "zh" else month_names_en
+    
+            mc1, mc2, mc3 = st.columns([0.8, 0.8, 1.4])
+            with mc1:
+                sel_year  = st.number_input(
+                    "年份 / Year", min_value=2020, max_value=2035,
+                    value=today_now.year, step=1, key="settle_year",
+                )
+            with mc2:
+                sel_mname = st.selectbox(
+                    "月份 / Month", mnames,
+                    index=today_now.month - 1, key="settle_month_sel",
+                )
+                sel_month = mnames.index(sel_mname) + 1
+            settle_mth_str = f"{int(sel_year)}-{sel_month:02d}"
+    
+            # ── Gather monthly data ───────────────────────────────────────────
+            mth_prefix   = settle_mth_str
+            mth_bk       = [b for b in st.session_state.bookings if b.get("date","").startswith(mth_prefix)]
+            mth_paid     = [b for b in mth_bk if b.get("paid")]
+            mth_unpaid   = [b for b in mth_bk if not b.get("paid")]
+            mth_walkins  = [w for w in st.session_state.walkins if w.get("date","").startswith(mth_prefix)]
+    
+            mth_collected = sum(b.get("final",b.get("price",0)) for b in mth_paid) \
+                          + sum(w.get("final",0) for w in mth_walkins)
+            mth_pending   = sum(b.get("price",0) for b in mth_unpaid)
+            mth_walkin_t  = sum(w.get("final",0) for w in mth_walkins)
+            mth_clients   = len(mth_paid) + len(mth_walkins)
+    
+            # ── Build Excel for monthly ───────────────────────────────────────
+            def build_excel_monthly():
+                df_det_m, df_sty_m, df_svc_m, df_mth_m = _settle_build_panels(
+                    mth_paid, mth_walkins, mth_collected)
+                # daily breakdown
+                days_in_m = _cal.monthrange(int(sel_year), sel_month)[1]
+                daily_rows = []
+                for d in range(1, days_in_m + 1):
+                    ds = f"{int(sel_year)}-{sel_month:02d}-{d:02d}"
+                    dp = [b for b in mth_paid if b.get("date") == ds]
+                    dw = [w for w in mth_walkins if w.get("date") == ds]
+                    if dp or dw:
+                        rev = sum(b.get("final",b.get("price",0)) for b in dp) + sum(w.get("final",0) for w in dw)
+                        daily_rows.append({
+                            u("col_s_date"): ds,
+                            u("col_s_clients"): len(dp)+len(dw),
+                            u("col_s_rev"): round(rev,2),
+                        })
+                lang = st.session_state.lang
+                summary_data = [
+                    {("月份" if lang=="zh" else "Month"): settle_mth_str},
+                    {("已收款" if lang=="zh" else "Collected"): f"RM {mth_collected:.2f}"},
+                    {("待收款" if lang=="zh" else "Pending"):   f"RM {mth_pending:.2f}"},
+                    {("即場客" if lang=="zh" else "Walk-ins"):  f"RM {mth_walkin_t:.2f}"},
+                    {("總客數" if lang=="zh" else "Clients"):   mth_clients},
+                ]
+                out = io.BytesIO()
+                with pd.ExcelWriter(out, engine="openpyxl") as writer:
+                    pd.DataFrame(summary_data).to_excel(writer, sheet_name=("摘要" if lang=="zh" else "Summary"), index=False)
+                    if daily_rows: pd.DataFrame(daily_rows).to_excel(writer, sheet_name=("每日明細" if lang=="zh" else "Daily"), index=False)
+                    if not df_det_m.empty: df_det_m.to_excel(writer, sheet_name=("收款明細" if lang=="zh" else "Payments"), index=False)
+                    if not df_sty_m.empty: df_sty_m.to_excel(writer, sheet_name=("髮型師業績" if lang=="zh" else "Stylists"), index=False)
+                    if not df_svc_m.empty: df_svc_m.to_excel(writer, sheet_name=("服務統計" if lang=="zh" else "Services"), index=False)
+                    if not df_mth_m.empty: df_mth_m.to_excel(writer, sheet_name=("付款方式" if lang=="zh" else "Methods"), index=False)
+                    for sheet in writer.sheets.values():
+                        for col_cells in sheet.columns:
+                            ml = max((len(str(c.value)) for c in col_cells if c.value), default=10)
+                            sheet.column_dimensions[col_cells[0].column_letter].width = min(ml+4, 40)
+                return out.getvalue()
+    
+            with mc3:
+                st.markdown("<div style='height:28px'></div>", unsafe_allow_html=True)
+                st.download_button(
+                    label=u("settle_export"),
+                    data=build_excel_monthly(),
+                    file_name=f"SignatureKim_{settle_mth_str}.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    key="excel_monthly",
+                )
+    
+            # ── Monthly stats ─────────────────────────────────────────────────
+            st.markdown("<hr>", unsafe_allow_html=True)
+            ms1,ms2,ms3,ms4 = st.columns(4, gap="medium")
+            for col,(lbl,val,cl) in zip([ms1,ms2,ms3,ms4],[
+                (u("settle_paid"),    f"RM {mth_collected:.2f}", "#2ecc71"),
+                (u("settle_pending"), f"RM {mth_pending:.2f}",   "#e67e22"),
+                (u("settle_walkin"),  f"RM {mth_walkin_t:.2f}",  "#9b59b6"),
+                (u("settle_clients"), str(mth_clients),           "#c9a84c"),
+            ]):
+                with col:
+                    st.markdown(
+                        f'<div class="stat-box"><div class="stat-val" style="color:{cl};">'
+                        f'{val}</div><div class="stat-lbl">{lbl}</div></div>',
+                        unsafe_allow_html=True)
+    
+            st.markdown("<div style='height:10px'></div>", unsafe_allow_html=True)
+    
+            if not mth_paid and not mth_walkins:
+                st.markdown(f'<div class="alert-warn">{u("settle_no_data")}</div>', unsafe_allow_html=True)
+            else:
+                df_det_m, df_sty_m, df_svc_m, df_mth_m = _settle_build_panels(
+                    mth_paid, mth_walkins, mth_collected)
+    
+                # Daily bar chart (text-based)
+                days_in_m = _cal.monthrange(int(sel_year), sel_month)[1]
+                daily_rows = []
+                for d in range(1, days_in_m+1):
+                    ds = f"{int(sel_year)}-{sel_month:02d}-{d:02d}"
+                    dp = [b for b in mth_paid if b.get("date")==ds]
+                    dw = [w for w in mth_walkins if w.get("date")==ds]
+                    rev = sum(b.get("final",b.get("price",0)) for b in dp)+sum(w.get("final",0) for w in dw)
+                    daily_rows.append({u("col_s_date"):ds, u("col_s_clients"):len(dp)+len(dw), u("col_s_rev"):round(rev,2)})
+                df_daily = pd.DataFrame(daily_rows)
+                df_daily_show = df_daily[df_daily[u("col_s_rev")]>0].reset_index(drop=True)
+    
+                ml_col, mr_col = st.columns([1.6, 1], gap="large")
+                with ml_col:
+                    # Daily breakdown table
+                    st.markdown('<div class="card">', unsafe_allow_html=True)
+                    st.markdown(f'<p class="card-title">{u("settle_daily_bk")}</p>', unsafe_allow_html=True)
+                    if df_daily_show.empty:
+                        st.markdown("<p style='color:#555;font-size:0.85rem;'>—</p>", unsafe_allow_html=True)
+                    else:
+                        max_rev_d = df_daily_show[u("col_s_rev")].max() or 1
+                        for _, row in df_daily_show.iterrows():
+                            bar_w = int(row[u("col_s_rev")] / max_rev_d * 100)
+                            date_label = row[u("col_s_date")][5:]  # MM-DD
+                            st.markdown(
+                                f"<div style='display:flex;align-items:center;gap:10px;margin-bottom:6px;'>"
+                                f"<span style='color:#888;font-size:0.78rem;min-width:42px;'>{date_label}</span>"
+                                f"<div style='flex:1;height:18px;background:#1a1a1a;border-radius:4px;overflow:hidden;'>"
+                                f"<div style='width:{bar_w}%;height:100%;background:linear-gradient(90deg,#c9a84c,#f5e19a);border-radius:4px;'></div>"
+                                f"</div>"
+                                f"<span style='color:#c9a84c;font-size:0.82rem;min-width:75px;text-align:right;font-weight:700;'>"
+                                f"RM {row[u('col_s_rev')]:.2f}</span>"
+                                f"<span style='color:#666;font-size:0.72rem;min-width:28px;'>"
+                                f"×{int(row[u('col_s_clients')])}</span>"
+                                f"</div>", unsafe_allow_html=True)
+                    st.markdown('</div>', unsafe_allow_html=True)
+                    _render_sty_panel(df_sty_m)
+                with mr_col:
+                    _render_right_panels(df_svc_m, df_mth_m, mth_collected)
+    
+    # ═════════════════════════════════════════════════════════════════════════════
+    # TAB 6 — MEMBERS
+    # ═════════════════════════════════════════════════════════════════════════════
+with tab6:
+    st.markdown(f'<p class="card-title" style="font-size:1.3rem;">{u("mem_title")}</p>', unsafe_allow_html=True)
 
-            with pd.ExcelWriter(output, engine="openpyxl") as writer:
-                pd.DataFrame(summary_data).to_excel(writer, sheet_name=("摘要" if lang=="zh" else "Summary"), index=False)
-                if all_bk_rows:
-                    pd.DataFrame(all_bk_rows).to_excel(writer, sheet_name=("全部預約" if lang=="zh" else "All Bookings"), index=False)
-                if paid_rows:
-                    pd.DataFrame(paid_rows).to_excel(writer, sheet_name=("收款明細" if lang=="zh" else "Payments"), index=False)
-                for sheet in writer.sheets.values():
-                    for col_cells in sheet.columns:
-                        max_len = max((len(str(c.value)) for c in col_cells if c.value), default=10)
-                        sheet.column_dimensions[col_cells[0].column_letter].width = min(max_len + 4, 40)
-            return output.getvalue()
+    # ── Overview stats ─────────────────────────────────────────────────────
+    total_mem   = len(st.session_state.members)
+    vip_count   = sum(1 for m in st.session_state.members if tier_for_points(m.get("points",0))["key"]=="VIP")
+    total_pts   = sum(m.get("points",0) for m in st.session_state.members)
 
-        with settle_col3:
-            st.markdown("<div style='height:28px'></div>", unsafe_allow_html=True)
-            st.download_button(
-                label=u("settle_export"),
-                data=build_excel(),
-                file_name=f"SignatureKim_{settle_str}.xlsx",
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                key="excel_download",
-            )
+    ov1, ov2, ov3 = st.columns(3, gap="medium")
+    for col, (lbl, val, clr) in zip([ov1, ov2, ov3], [
+        (u("mem_total"),      str(total_mem), "#c9a84c"),
+        (u("mem_vip_count"),  str(vip_count), "#e74c3c"),
+        (u("mem_pts_issued"), f"{total_pts:,}", "#3498db"),
+    ]):
+        with col:
+            st.markdown(
+                f'<div class="stat-box"><div class="stat-val" style="color:{clr};">'
+                f'{val}</div><div class="stat-lbl">{lbl}</div></div>',
+                unsafe_allow_html=True)
 
-        st.markdown("<hr>", unsafe_allow_html=True)
+    st.markdown("<div style='height:12px'></div>", unsafe_allow_html=True)
 
-        # ── Detail rows ────────────────────────────────────────────────────
-        detail_rows = [
-            {
-                u("col_s_name"):    b.get("name", ""),
-                u("col_s_stylist"): b.get("stylist", ""),
-                u("col_s_svc"):     b.get("service", ""),
-                u("col_s_method"):  b.get("method", ""),
-                u("col_s_amt"):     b.get("final", b.get("price", 0)),
-                u("col_s_type"):    "預約" if st.session_state.lang == "zh" else "Booking",
-            }
-            for b in day_paid
-        ] + [
-            {
-                u("col_s_name"):    w.get("name", ""),
-                u("col_s_stylist"): "—",
-                u("col_s_svc"):     w.get("service", ""),
-                u("col_s_method"):  w.get("method", ""),
-                u("col_s_amt"):     w.get("final", 0),
-                u("col_s_type"):    "即場客" if st.session_state.lang == "zh" else "Walk-in",
-            }
-            for w in day_walkins
-        ]
+    mem_left, mem_right = st.columns([1, 1.6], gap="large")
 
-        if not detail_rows:
-            st.markdown(f'<div class="alert-warn">{u("settle_no_data")}</div>', unsafe_allow_html=True)
+    # ── LEFT: Add form + search + list ────────────────────────────────────
+    with mem_left:
+        # Add member form
+        with st.expander(u("mem_add"), expanded=(total_mem == 0)):
+            new_name  = st.text_input(u("mem_name"),  placeholder=u("mem_name_ph"),  key="new_mem_name")
+            new_phone = st.text_input(u("mem_phone"), placeholder=u("mem_phone_ph"), key="new_mem_phone")
+            new_bday  = st.text_input(u("mem_bday"),  placeholder="YYYY-MM-DD",      key="new_mem_bday")
+            new_notes = st.text_area(u("mem_notes"),  placeholder=u("mem_notes_ph"), key="new_mem_notes", height=80)
+            if st.button(u("mem_add_btn"), key="add_mem_btn"):
+                if not new_name.strip():
+                    st.markdown(f'<div class="alert-warn">{u("mem_name_warn")}</div>', unsafe_allow_html=True)
+                else:
+                    import uuid as _uuid
+                    new_mem = {
+                        "id":         str(_uuid.uuid4())[:8],
+                        "name":       new_name.strip(),
+                        "phone":      new_phone.strip(),
+                        "birthday":   new_bday.strip(),
+                        "tier":       "普通",
+                        "points":     0,
+                        "total_spent":0.0,
+                        "visit_count":0,
+                        "notes":      new_notes.strip(),
+                        "join_date":  str(dt_date.today()),
+                        "history":    [],
+                    }
+                    st.session_state.members.append(new_mem)
+                    st.markdown(f'<div class="alert-safe">{u("mem_added").format(new_name.strip())}</div>', unsafe_allow_html=True)
+                    st.rerun()
+
+        # Search
+        mem_q = st.text_input(u("mem_search"), placeholder=u("mem_search_ph"), key="mem_search_q", label_visibility="collapsed")
+        st.markdown(f"<p style='margin:0 0 8px;font-size:0.78rem;letter-spacing:2px;color:#666;'>{u('mem_search').upper()}</p>", unsafe_allow_html=True)
+
+        filtered = [
+            m for m in st.session_state.members
+            if mem_q.lower() in m.get("name","").lower() or mem_q.lower() in m.get("phone","").lower()
+        ] if mem_q else st.session_state.members
+
+        if not st.session_state.members:
+            st.markdown(f'<div class="alert-warn">{u("mem_no_members")}</div>', unsafe_allow_html=True)
+        elif not filtered:
+            st.markdown(f'<div class="alert-warn">{u("mem_no_result")}</div>', unsafe_allow_html=True)
         else:
-            df_detail, df_sty, df_svc, df_mth = _settle_build_panels(
-                day_paid, day_walkins, total_collected)
-            left_col, right_col = st.columns([1.6, 1], gap="large")
-            with left_col:
-                st.markdown('<div class="card">', unsafe_allow_html=True)
-                st.markdown(f'<p class="card-title">{u("settle_detail")}</p>', unsafe_allow_html=True)
-                st.dataframe(df_detail, use_container_width=True, hide_index=True)
-                st.markdown('</div>', unsafe_allow_html=True)
-                _render_sty_panel(df_sty)
-            with right_col:
-                _render_right_panels(df_svc, df_mth, total_collected)
-
-    # ════════════════════════════════════════════════════════════════════════
-    # MONTHLY MODE
-    # ════════════════════════════════════════════════════════════════════════
-    if is_monthly:
-        today_now = dt_date.today()
-        month_names_zh = ["1月","2月","3月","4月","5月","6月","7月","8月","9月","10月","11月","12月"]
-        month_names_en = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]
-        mnames = month_names_zh if st.session_state.lang == "zh" else month_names_en
-
-        mc1, mc2, mc3 = st.columns([0.8, 0.8, 1.4])
-        with mc1:
-            sel_year  = st.number_input(
-                "年份 / Year", min_value=2020, max_value=2035,
-                value=today_now.year, step=1, key="settle_year",
-            )
-        with mc2:
-            sel_mname = st.selectbox(
-                "月份 / Month", mnames,
-                index=today_now.month - 1, key="settle_month_sel",
-            )
-            sel_month = mnames.index(sel_mname) + 1
-        settle_mth_str = f"{int(sel_year)}-{sel_month:02d}"
-
-        # ── Gather monthly data ───────────────────────────────────────────
-        mth_prefix   = settle_mth_str
-        mth_bk       = [b for b in st.session_state.bookings if b.get("date","").startswith(mth_prefix)]
-        mth_paid     = [b for b in mth_bk if b.get("paid")]
-        mth_unpaid   = [b for b in mth_bk if not b.get("paid")]
-        mth_walkins  = [w for w in st.session_state.walkins if w.get("date","").startswith(mth_prefix)]
-
-        mth_collected = sum(b.get("final",b.get("price",0)) for b in mth_paid) \
-                      + sum(w.get("final",0) for w in mth_walkins)
-        mth_pending   = sum(b.get("price",0) for b in mth_unpaid)
-        mth_walkin_t  = sum(w.get("final",0) for w in mth_walkins)
-        mth_clients   = len(mth_paid) + len(mth_walkins)
-
-        # ── Build Excel for monthly ───────────────────────────────────────
-        def build_excel_monthly():
-            df_det_m, df_sty_m, df_svc_m, df_mth_m = _settle_build_panels(
-                mth_paid, mth_walkins, mth_collected)
-            # daily breakdown
-            days_in_m = _cal.monthrange(int(sel_year), sel_month)[1]
-            daily_rows = []
-            for d in range(1, days_in_m + 1):
-                ds = f"{int(sel_year)}-{sel_month:02d}-{d:02d}"
-                dp = [b for b in mth_paid if b.get("date") == ds]
-                dw = [w for w in mth_walkins if w.get("date") == ds]
-                if dp or dw:
-                    rev = sum(b.get("final",b.get("price",0)) for b in dp) + sum(w.get("final",0) for w in dw)
-                    daily_rows.append({
-                        u("col_s_date"): ds,
-                        u("col_s_clients"): len(dp)+len(dw),
-                        u("col_s_rev"): round(rev,2),
-                    })
-            lang = st.session_state.lang
-            summary_data = [
-                {("月份" if lang=="zh" else "Month"): settle_mth_str},
-                {("已收款" if lang=="zh" else "Collected"): f"RM {mth_collected:.2f}"},
-                {("待收款" if lang=="zh" else "Pending"):   f"RM {mth_pending:.2f}"},
-                {("即場客" if lang=="zh" else "Walk-ins"):  f"RM {mth_walkin_t:.2f}"},
-                {("總客數" if lang=="zh" else "Clients"):   mth_clients},
-            ]
-            out = io.BytesIO()
-            with pd.ExcelWriter(out, engine="openpyxl") as writer:
-                pd.DataFrame(summary_data).to_excel(writer, sheet_name=("摘要" if lang=="zh" else "Summary"), index=False)
-                if daily_rows: pd.DataFrame(daily_rows).to_excel(writer, sheet_name=("每日明細" if lang=="zh" else "Daily"), index=False)
-                if not df_det_m.empty: df_det_m.to_excel(writer, sheet_name=("收款明細" if lang=="zh" else "Payments"), index=False)
-                if not df_sty_m.empty: df_sty_m.to_excel(writer, sheet_name=("髮型師業績" if lang=="zh" else "Stylists"), index=False)
-                if not df_svc_m.empty: df_svc_m.to_excel(writer, sheet_name=("服務統計" if lang=="zh" else "Services"), index=False)
-                if not df_mth_m.empty: df_mth_m.to_excel(writer, sheet_name=("付款方式" if lang=="zh" else "Methods"), index=False)
-                for sheet in writer.sheets.values():
-                    for col_cells in sheet.columns:
-                        ml = max((len(str(c.value)) for c in col_cells if c.value), default=10)
-                        sheet.column_dimensions[col_cells[0].column_letter].width = min(ml+4, 40)
-            return out.getvalue()
-
-        with mc3:
-            st.markdown("<div style='height:28px'></div>", unsafe_allow_html=True)
-            st.download_button(
-                label=u("settle_export"),
-                data=build_excel_monthly(),
-                file_name=f"SignatureKim_{settle_mth_str}.xlsx",
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                key="excel_monthly",
-            )
-
-        # ── Monthly stats ─────────────────────────────────────────────────
-        st.markdown("<hr>", unsafe_allow_html=True)
-        ms1,ms2,ms3,ms4 = st.columns(4, gap="medium")
-        for col,(lbl,val,cl) in zip([ms1,ms2,ms3,ms4],[
-            (u("settle_paid"),    f"RM {mth_collected:.2f}", "#2ecc71"),
-            (u("settle_pending"), f"RM {mth_pending:.2f}",   "#e67e22"),
-            (u("settle_walkin"),  f"RM {mth_walkin_t:.2f}",  "#9b59b6"),
-            (u("settle_clients"), str(mth_clients),           "#c9a84c"),
-        ]):
-            with col:
+            for m in filtered:
+                t     = tier_for_points(m.get("points", 0))
+                tlbl  = tier_label(t)
+                is_sel = (st.session_state.sel_member_id == m["id"])
+                border = f"2px solid {t['color']}" if is_sel else f"1px solid #c9a84c33"
+                bg     = "#1a1500" if is_sel else "#111"
                 st.markdown(
-                    f'<div class="stat-box"><div class="stat-val" style="color:{cl};">'
-                    f'{val}</div><div class="stat-lbl">{lbl}</div></div>',
+                    f'<div style="background:{bg};border:{border};border-radius:12px;'
+                    f'padding:10px 14px;margin-bottom:8px;cursor:pointer;">',
+                    unsafe_allow_html=True)
+                c1, c2 = st.columns([3, 1])
+                with c1:
+                    st.markdown(
+                        f'<div style="font-family:\'Playfair Display\',serif;color:#c9a84c;font-size:0.95rem;">'
+                        f'{t["badge"]} {m["name"]}</div>'
+                        f'<div style="font-size:0.72rem;color:#666;letter-spacing:1px;">'
+                        f'{m.get("phone","—")} &nbsp;|&nbsp; {m.get("points",0)} pts</div>',
+                        unsafe_allow_html=True)
+                with c2:
+                    if st.button(tlbl, key=f"sel_mem_{m['id']}", help=m["name"]):
+                        st.session_state.sel_member_id = m["id"]
+                        st.rerun()
+                st.markdown('</div>', unsafe_allow_html=True)
+
+    # ── RIGHT: Member detail ───────────────────────────────────────────────
+    with mem_right:
+        sel_id  = st.session_state.sel_member_id
+        sel_mem = next((m for m in st.session_state.members if m["id"] == sel_id), None)
+
+        if sel_mem is None:
+            st.markdown(
+                f'<div class="card" style="text-align:center;padding:3rem 1rem;">'
+                f'<div style="font-size:3rem;">👥</div>'
+                f'<div style="color:#555;font-size:0.9rem;letter-spacing:2px;margin-top:1rem;">'
+                f'{u("mem_select")}</div></div>',
+                unsafe_allow_html=True)
+        else:
+            t     = tier_for_points(sel_mem.get("points", 0))
+            tlbl  = tier_label(t)
+
+            # Profile header
+            st.markdown(
+                f'<div class="card">'
+                f'<div style="display:flex;align-items:center;gap:16px;margin-bottom:1rem;">'
+                f'<div style="width:56px;height:56px;border-radius:50%;background:{t["color"]}22;'
+                f'border:2px solid {t["color"]};display:flex;align-items:center;justify-content:center;'
+                f'font-size:1.6rem;">{t["badge"]}</div>'
+                f'<div><div style="font-family:\'Playfair Display\',serif;font-size:1.3rem;color:#f0ece0;">'
+                f'{sel_mem["name"]}</div>'
+                f'<div style="font-size:0.75rem;color:{t["color"]};letter-spacing:2px;font-weight:700;">'
+                f'{tlbl} — {t["disc"]}% {("折扣" if st.session_state.lang=="zh" else "discount")}</div></div></div>',
+                unsafe_allow_html=True)
+
+            # Points progress bar to next tier
+            next_tiers = [x for x in TIERS if x["min_pts"] > sel_mem.get("points",0)]
+            if next_tiers:
+                nt       = next_tiers[0]
+                pts_now  = sel_mem.get("points", 0)
+                pts_need = nt["min_pts"]
+                prog     = min(pts_now / pts_need, 1.0)
+                nt_lbl   = nt["en"] if st.session_state.lang=="en" else nt["key"]
+                st.markdown(
+                    f'<div style="margin-bottom:0.8rem;">'
+                    f'<div style="display:flex;justify-content:space-between;font-size:0.72rem;color:#666;margin-bottom:4px;">'
+                    f'<span>{pts_now} pts</span>'
+                    f'<span>→ {nt_lbl} @ {pts_need} pts</span></div>'
+                    f'<div style="height:6px;background:#1a1a1a;border-radius:3px;">'
+                    f'<div style="width:{int(prog*100)}%;height:100%;background:linear-gradient(90deg,{t["color"]},{nt["color"]});border-radius:3px;"></div>'
+                    f'</div></div>',
                     unsafe_allow_html=True)
 
-        st.markdown("<div style='height:10px'></div>", unsafe_allow_html=True)
+            # Stats grid
+            stats_data = [
+                (u("mem_points"),  f'{sel_mem.get("points",0):,}',             "#c9a84c"),
+                (u("mem_spent"),   f'RM {sel_mem.get("total_spent",0):.2f}',   "#2ecc71"),
+                (u("mem_visits"),  str(sel_mem.get("visit_count",0)),           "#3498db"),
+                (u("mem_joined"),  sel_mem.get("join_date","—"),                "#888"),
+            ]
+            sg1, sg2 = st.columns(2)
+            for col, (lbl, val, clr) in zip([sg1, sg2, sg1, sg2], stats_data):
+                with col:
+                    st.markdown(
+                        f'<div style="background:#0a0a0a;border:1px solid #c9a84c22;border-radius:8px;'
+                        f'padding:8px 12px;margin-bottom:8px;text-align:center;">'
+                        f'<div style="font-size:1rem;color:{clr};font-weight:700;">{val}</div>'
+                        f'<div style="font-size:0.65rem;color:#555;letter-spacing:1px;">{lbl}</div></div>',
+                        unsafe_allow_html=True)
 
-        if not mth_paid and not mth_walkins:
-            st.markdown(f'<div class="alert-warn">{u("settle_no_data")}</div>', unsafe_allow_html=True)
-        else:
-            df_det_m, df_sty_m, df_svc_m, df_mth_m = _settle_build_panels(
-                mth_paid, mth_walkins, mth_collected)
+            # Birthday
+            if sel_mem.get("birthday"):
+                st.markdown(
+                    f'<div style="font-size:0.8rem;color:#888;margin-bottom:6px;">🎂 {sel_mem["birthday"]}</div>',
+                    unsafe_allow_html=True)
+            if sel_mem.get("phone"):
+                st.markdown(
+                    f'<div style="font-size:0.8rem;color:#888;margin-bottom:6px;">📞 {sel_mem["phone"]}</div>',
+                    unsafe_allow_html=True)
 
-            # Daily bar chart (text-based)
-            days_in_m = _cal.monthrange(int(sel_year), sel_month)[1]
-            daily_rows = []
-            for d in range(1, days_in_m+1):
-                ds = f"{int(sel_year)}-{sel_month:02d}-{d:02d}"
-                dp = [b for b in mth_paid if b.get("date")==ds]
-                dw = [w for w in mth_walkins if w.get("date")==ds]
-                rev = sum(b.get("final",b.get("price",0)) for b in dp)+sum(w.get("final",0) for w in dw)
-                daily_rows.append({u("col_s_date"):ds, u("col_s_clients"):len(dp)+len(dw), u("col_s_rev"):round(rev,2)})
-            df_daily = pd.DataFrame(daily_rows)
-            df_daily_show = df_daily[df_daily[u("col_s_rev")]>0].reset_index(drop=True)
+            st.markdown('</div>', unsafe_allow_html=True)
 
-            ml_col, mr_col = st.columns([1.6, 1], gap="large")
-            with ml_col:
-                # Daily breakdown table
-                st.markdown('<div class="card">', unsafe_allow_html=True)
-                st.markdown(f'<p class="card-title">{u("settle_daily_bk")}</p>', unsafe_allow_html=True)
-                if df_daily_show.empty:
-                    st.markdown("<p style='color:#555;font-size:0.85rem;'>—</p>", unsafe_allow_html=True)
+            # Notes editor
+            with st.expander(u("mem_edit_notes")):
+                new_notes_val = st.text_area(
+                    "", value=sel_mem.get("notes",""),
+                    placeholder=u("mem_notes_ph"), key=f"edit_notes_{sel_id}", height=100,
+                    label_visibility="collapsed")
+                if st.button(u("mem_save_notes"), key=f"save_notes_{sel_id}"):
+                    for m in st.session_state.members:
+                        if m["id"] == sel_id:
+                            m["notes"] = new_notes_val
+                    st.markdown(f'<div class="alert-safe">{u("mem_notes_saved")}</div>', unsafe_allow_html=True)
+                    st.rerun()
+
+            # Spending history
+            st.markdown('<div class="card">', unsafe_allow_html=True)
+            st.markdown(f'<p class="card-title">{u("mem_history")}</p>', unsafe_allow_html=True)
+            hist = sel_mem.get("history", [])
+            if not hist:
+                st.markdown(f'<div style="color:#555;font-size:0.85rem;">{u("mem_no_history")}</div>', unsafe_allow_html=True)
+            else:
+                for h in reversed(hist[-20:]):
+                    st.markdown(
+                        f'<div style="display:flex;justify-content:space-between;align-items:center;'
+                        f'border-bottom:1px solid #c9a84c11;padding:6px 0;font-size:0.82rem;">'
+                        f'<span style="color:#888;">{h.get("date","")}</span>'
+                        f'<span style="color:#f0ece0;">{h.get("service","")}</span>'
+                        f'<span style="color:#c9a84c;font-weight:700;">RM {h.get("amt",0):.2f}</span>'
+                        f'<span style="color:#3498db;font-size:0.72rem;">+{h.get("pts",0)} pts</span>'
+                        f'</div>',
+                        unsafe_allow_html=True)
+            st.markdown('</div>', unsafe_allow_html=True)
+
+            # Delete button (manager+ only)
+            if _can("member_delete"):
+                st.markdown("<div style='height:6px'></div>", unsafe_allow_html=True)
+                if st.button(f"🗑 {u('mem_delete')} — {sel_mem['name']}", key=f"del_mem_{sel_id}"):
+                    mem_name_del = sel_mem["name"]
+                    st.session_state.members = [m for m in st.session_state.members if m["id"] != sel_id]
+                    _bd()["members"] = st.session_state.members
+                    st.session_state.sel_member_id = None
+                    st.markdown(f'<div class="alert-warn">{u("mem_deleted").format(mem_name_del)}</div>', unsafe_allow_html=True)
+                    st.rerun()
+
+# ═════════════════════════════════════════════════════════════════════════════
+# ADMIN TAB — Owner only
+# ═════════════════════════════════════════════════════════════════════════════
+if _can("admin"):
+    with tab_admin:
+        is_zh = st.session_state.lang == "zh"
+        st.markdown(f'<p class="card-title" style="font-size:1.3rem;">⚙️ {"系統管理" if is_zh else "Admin Panel"}</p>', unsafe_allow_html=True)
+
+        adm_l, adm_r = st.columns([1, 1.4], gap="large")
+
+        # ── Branch management ──────────────────────────────────────────────
+        with adm_l:
+            st.markdown('<div class="card">', unsafe_allow_html=True)
+            st.markdown(f'<p class="card-title">🏠 {"分店管理" if is_zh else "Branch Management"}</p>', unsafe_allow_html=True)
+
+            # List branches
+            for bid, bname in list(st.session_state.branches.items()):
+                bc1, bc2 = st.columns([3, 1])
+                with bc1:
+                    st.markdown(f'<div style="color:#f0ece0;padding:6px 0;border-bottom:1px solid #1a1a1a;">'
+                                f'<span style="color:#c9a84c;">{bid}</span> · {bname}</div>', unsafe_allow_html=True)
+                with bc2:
+                    if len(st.session_state.branches) > 1:
+                        if st.button("🗑", key=f"del_branch_{bid}", help=f"Delete {bname}"):
+                            del st.session_state.branches[bid]
+                            if st.session_state.cur_branch == bid:
+                                st.session_state.cur_branch = next(iter(st.session_state.branches))
+                            st.rerun()
+
+            st.markdown("<div style='height:10px'></div>", unsafe_allow_html=True)
+            new_bid   = st.text_input("Branch ID", placeholder="B002", key="new_bid")
+            new_bname = st.text_input("Branch Name" if not is_zh else "分店名稱",
+                                      placeholder="Signature Kim — PJ", key="new_bname")
+            if st.button("＋ " + ("新增分店" if is_zh else "Add Branch"), key="add_branch_btn"):
+                if new_bid.strip() and new_bname.strip():
+                    st.session_state.branches[new_bid.strip()] = new_bname.strip()
+                    _init_branch(new_bid.strip())
+                    st.rerun()
+            st.markdown('</div>', unsafe_allow_html=True)
+
+        # ── Account management ──────────────────────────────────────────────
+        with adm_r:
+            st.markdown('<div class="card">', unsafe_allow_html=True)
+            st.markdown(f'<p class="card-title">👤 {"帳號管理" if is_zh else "Account Management"}</p>', unsafe_allow_html=True)
+
+            # List accounts
+            for uname, acct in list(st.session_state.accounts.items()):
+                role_icon = {"owner":"👑","manager":"💼","staff":"✂️"}.get(acct["role"],"👤")
+                branch_lbl = st.session_state.branches.get(acct["branch"], acct["branch"])
+                ac1, ac2 = st.columns([4, 1])
+                with ac1:
+                    st.markdown(
+                        f'<div style="padding:6px 0;border-bottom:1px solid #1a1a1a;font-size:0.85rem;">'
+                        f'{role_icon} <span style="color:#f0ece0;">{uname}</span>'
+                        f' <span style="color:#888;">({acct["name"]})</span>'
+                        f' <span style="color:#c9a84c;font-size:0.72rem;">{acct["role"]} · {branch_lbl}</span>'
+                        f'</div>', unsafe_allow_html=True)
+                with ac2:
+                    if uname != st.session_state.username:  # can't delete own account
+                        if st.button("🗑", key=f"del_acct_{uname}"):
+                            del st.session_state.accounts[uname]
+                            st.rerun()
+
+            st.markdown("<div style='height:12px'></div>", unsafe_allow_html=True)
+            st.markdown(f'<p style="color:#c9a84c;font-size:0.82rem;letter-spacing:1px;">{"新增帳號" if is_zh else "Add Account"}</p>', unsafe_allow_html=True)
+
+            na1, na2 = st.columns(2)
+            with na1:
+                na_user = st.text_input("Username", placeholder="staff01", key="na_user")
+                na_name = st.text_input("Display Name" if not is_zh else "顯示名稱", placeholder="Kim", key="na_name")
+            with na2:
+                na_pass = st.text_input("Password" if not is_zh else "密碼", type="password", key="na_pass")
+                na_role = st.selectbox("Role" if not is_zh else "角色",
+                                       ["staff","manager","owner"], key="na_role",
+                                       format_func=lambda r: {"staff":"✂️ "+("員工" if is_zh else "Staff"),
+                                                              "manager":"💼 "+("經理" if is_zh else "Manager"),
+                                                              "owner":"👑 "+("老闆" if is_zh else "Owner")}[r])
+            branch_list = list(st.session_state.branches.keys())
+            branch_disp = [st.session_state.branches[b] for b in branch_list]
+            na_branch_name = st.selectbox("Branch" if not is_zh else "分店", branch_disp + (["All / 全部"] if na_role=="owner" else []), key="na_branch_sel")
+            na_branch_id = "all" if na_branch_name == "All / 全部" else branch_list[branch_disp.index(na_branch_name)] if na_branch_name in branch_disp else branch_list[0]
+
+            if st.button("＋ " + ("新增帳號" if is_zh else "Add Account"), key="add_acct_btn"):
+                if na_user.strip() and na_pass.strip():
+                    if na_user.strip() in st.session_state.accounts:
+                        st.error("⚠ " + ("用戶名已存在" if is_zh else "Username already exists"))
+                    else:
+                        st.session_state.accounts[na_user.strip()] = {
+                            "hash":   _hash(na_pass),
+                            "role":   na_role,
+                            "branch": na_branch_id,
+                            "name":   na_name.strip() or na_user.strip(),
+                        }
+                        st.success("✦ " + (f"已新增 {na_user.strip()}" if is_zh else f"Added {na_user.strip()}"))
+                        st.rerun()
                 else:
-                    max_rev_d = df_daily_show[u("col_s_rev")].max() or 1
-                    for _, row in df_daily_show.iterrows():
-                        bar_w = int(row[u("col_s_rev")] / max_rev_d * 100)
-                        date_label = row[u("col_s_date")][5:]  # MM-DD
-                        st.markdown(
-                            f"<div style='display:flex;align-items:center;gap:10px;margin-bottom:6px;'>"
-                            f"<span style='color:#888;font-size:0.78rem;min-width:42px;'>{date_label}</span>"
-                            f"<div style='flex:1;height:18px;background:#1a1a1a;border-radius:4px;overflow:hidden;'>"
-                            f"<div style='width:{bar_w}%;height:100%;background:linear-gradient(90deg,#c9a84c,#f5e19a);border-radius:4px;'></div>"
-                            f"</div>"
-                            f"<span style='color:#c9a84c;font-size:0.82rem;min-width:75px;text-align:right;font-weight:700;'>"
-                            f"RM {row[u('col_s_rev')]:.2f}</span>"
-                            f"<span style='color:#666;font-size:0.72rem;min-width:28px;'>"
-                            f"×{int(row[u('col_s_clients')])}</span>"
-                            f"</div>", unsafe_allow_html=True)
-                st.markdown('</div>', unsafe_allow_html=True)
-                _render_sty_panel(df_sty_m)
-            with mr_col:
-                _render_right_panels(df_svc_m, df_mth_m, mth_collected)
+                    st.warning("⚠ " + ("請填寫用戶名和密碼" if is_zh else "Please fill in username and password"))
 
+            st.markdown("<div style='height:12px'></div>", unsafe_allow_html=True)
+
+            # Change own password
+            with st.expander("🔑 " + ("修改密碼" if is_zh else "Change Password")):
+                cp_old  = st.text_input("Old / 舊密碼",     type="password", key="cp_old")
+                cp_new  = st.text_input("New / 新密碼",     type="password", key="cp_new")
+                cp_new2 = st.text_input("Confirm / 確認密碼", type="password", key="cp_new2")
+                if st.button("Update / 更新", key="cp_btn"):
+                    me = st.session_state.accounts.get(st.session_state.username)
+                    if not me or me["hash"] != _hash(cp_old):
+                        st.error("❌ " + ("舊密碼不正確" if is_zh else "Old password incorrect"))
+                    elif cp_new != cp_new2:
+                        st.error("❌ " + ("新密碼不一致" if is_zh else "Passwords don't match"))
+                    elif len(cp_new) < 6:
+                        st.warning("⚠ " + ("密碼至少6位" if is_zh else "Password must be 6+ chars"))
+                    else:
+                        st.session_state.accounts[st.session_state.username]["hash"] = _hash(cp_new)
+                        st.success("✦ " + ("密碼已更新" if is_zh else "Password updated"))
+
+            st.markdown('</div>', unsafe_allow_html=True)
