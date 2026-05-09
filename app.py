@@ -19,6 +19,7 @@ try:
         db_update_salon_contact, db_get_salon_info,
         db_save_commissions, db_get_commissions,
         db_update_salon_profile,
+        db_create_session, db_get_session, db_delete_session,
     )
     _USE_DB = "SUPABASE_URL" in st.secrets and st.secrets["SUPABASE_URL"] != "https://YOUR_PROJECT_ID.supabase.co"
 except Exception:
@@ -768,38 +769,36 @@ def tier_for_points(pts):
 def tier_label(tier_dict):
     return tier_dict["en"] if st.session_state.lang == "en" else tier_dict["key"]
 
-# ── Cookie manager for persistent login ──────────────────────────────────────
-try:
-    from streamlit_cookies_controller import CookieController as _CookieController
-    _cookie_mgr = _CookieController()
-    _COOKIES_OK = True
-except Exception:
-    _cookie_mgr = None
-    _COOKIES_OK = False
+# ── Session token helpers (persistent login via URL ?t=TOKEN) ─────────────────
+def _save_session_token(username: str):
+    """Create DB session token and write it to the URL query params."""
+    if not _USE_DB:
+        return
+    try:
+        token = db_create_session(username)
+        st.query_params["t"] = token
+    except Exception:
+        pass
 
-def _save_login_cookie(username: str):
-    if _COOKIES_OK and _cookie_mgr:
+def _clear_session_token():
+    """Delete DB session and remove token from URL."""
+    token = st.query_params.get("t", "")
+    if token and _USE_DB:
         try:
-            from datetime import datetime, timedelta
-            _cookie_mgr.set("sk_user", username,
-                            expires=datetime.now() + timedelta(days=7))
+            db_delete_session(token)
         except Exception:
             pass
+    st.query_params.clear()
 
-def _clear_login_cookie():
-    if _COOKIES_OK and _cookie_mgr:
-        try:
-            _cookie_mgr.remove("sk_user")
-        except Exception:
-            pass
-
-def _get_cookie_user() -> str:
-    if _COOKIES_OK and _cookie_mgr:
-        try:
-            return _cookie_mgr.get("sk_user") or ""
-        except Exception:
-            pass
-    return ""
+def _get_session_user() -> str:
+    """Return username if URL token is valid, else empty string."""
+    token = st.query_params.get("t", "")
+    if not token or not _USE_DB:
+        return ""
+    try:
+        return db_get_session(token)
+    except Exception:
+        return ""
 
 # ── Auth session state ────────────────────────────────────────────────────────
 if "logged_in"  not in st.session_state: st.session_state.logged_in  = False
@@ -810,17 +809,17 @@ if "cur_branch" not in st.session_state: st.session_state.cur_branch = ""
 if "accounts"   not in st.session_state: st.session_state.accounts   = dict(_DEFAULT_ACCOUNTS)
 if "branches"   not in st.session_state: st.session_state.branches   = dict(_DEFAULT_BRANCHES)
 
-# ── Auto-login from cookie ────────────────────────────────────────────────────
+# ── Auto-login from URL session token (F5-persistent) ────────────────────────
 if not st.session_state.logged_in:
-    _cookie_user = _get_cookie_user()
-    if _cookie_user:
+    _token_user = _get_session_user()
+    if _token_user:
         if _USE_DB:
             try: db_load_branches_and_accounts()
             except Exception: pass
-        acct = st.session_state.accounts.get(_cookie_user)
+        acct = st.session_state.accounts.get(_token_user)
         if acct:
             st.session_state.logged_in = True
-            st.session_state.username  = _cookie_user
+            st.session_state.username  = _token_user
             st.session_state.role      = acct["role"]
             st.session_state.user_name = acct["name"]
             branch = acct["branch"]
@@ -934,7 +933,7 @@ if not st.session_state.logged_in:
                         except Exception as e:
                             st.warning(f"Could not load data: {e}")
 
-                    _save_login_cookie(uname)
+                    _save_session_token(uname)
                     _sync_ss()
                     st.rerun()
                 else:
@@ -1007,7 +1006,7 @@ if not _sub["ok"] and st.session_state.role != "owner":
     </div>
     """, unsafe_allow_html=True)
     if st.button("🚪 " + ("登出" if is_zh else "Logout"), key="exp_logout"):
-        _clear_login_cookie()
+        _clear_session_token()
         for k in ["logged_in","username","role","user_name","cur_branch"]:
             if k in st.session_state: del st.session_state[k]
         st.rerun()
@@ -1063,7 +1062,7 @@ with hdr_r:
             st.rerun()
     with rc2:
         if st.button(_logout_label, key="logout_btn"):
-            _clear_login_cookie()
+            _clear_session_token()
             for k in ["logged_in","username","role","user_name","cur_branch"]:
                 del st.session_state[k]
             st.rerun()

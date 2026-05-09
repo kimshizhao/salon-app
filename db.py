@@ -18,6 +18,46 @@ def _sb() -> Client:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
+# SESSION TOKENS  (persistent login via URL query param)
+# ═════════════════════════════════════════════════════════════════════════════
+
+def db_create_session(username: str) -> str:
+    """Create a new session token for the user, return the token string."""
+    import secrets, datetime
+    token = secrets.token_urlsafe(32)
+    expires = (datetime.datetime.utcnow() + datetime.timedelta(days=7)).isoformat()
+    _sb().table("sessions").insert({
+        "token": token, "username": username, "expires_at": expires
+    }).execute()
+    return token
+
+
+def db_get_session(token: str) -> str:
+    """Return username if token is valid and not expired, else empty string."""
+    import datetime
+    now = datetime.datetime.utcnow().isoformat()
+    res = _sb().table("sessions").select("username, expires_at")\
+               .eq("token", token)\
+               .gt("expires_at", now)\
+               .execute()
+    if res.data:
+        return res.data[0]["username"]
+    return ""
+
+
+def db_delete_session(token: str):
+    """Delete a specific session (logout)."""
+    _sb().table("sessions").delete().eq("token", token).execute()
+
+
+def db_cleanup_sessions():
+    """Remove expired sessions (maintenance, optional)."""
+    import datetime
+    now = datetime.datetime.utcnow().isoformat()
+    _sb().table("sessions").delete().lt("expires_at", now).execute()
+
+
+# ═════════════════════════════════════════════════════════════════════════════
 # AUTH
 # ═════════════════════════════════════════════════════════════════════════════
 

@@ -135,6 +135,16 @@ alter table salons add column if not exists website          text    default '';
 alter table salons add column if not exists city             text    default '';
 alter table salons add column if not exists postcode         text    default '';
 
+-- Session tokens for persistent login (F5 refresh)
+create table if not exists sessions (
+  token       text primary key,
+  username    text not null references accounts(username) on delete cascade,
+  created_at  timestamptz default now(),
+  expires_at  timestamptz default (now() + interval '7 days')
+);
+-- Auto-delete expired sessions
+create index if not exists idx_sessions_expires on sessions(expires_at);
+
 -- ============================================================
 -- SEED DATA — First salon + admin account
 -- Replace password_hash with: sha256('your_password')
