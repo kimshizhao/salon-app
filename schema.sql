@@ -66,6 +66,7 @@ create table if not exists walkins (
   created_at timestamptz default now()
 );
 alter table walkins add column if not exists stylist text default '';
+alter table walkins add column if not exists phone  text default '';
 
 -- Inventory
 create table if not exists inventory (

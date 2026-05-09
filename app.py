@@ -508,6 +508,20 @@ UI = {
         "mem_disc_hint":  "會員折扣 {}%",
         "mem_lookup":     "會員查詢（選填）",
         "mem_pts_added":  "已為 {} 累加 {} 積分",
+        # Member DB enhancements
+        "bk_phone":       "客戶電話",
+        "bk_phone_ph":    "例如：012-3456789",
+        "mem_on_file":    "✓ 已建檔  · {}  {}",
+        "mem_new_client": "✦ 新客戶 — 可在【會員】頁建檔",
+        "mem_auto_match": "🔗 自動匹配：{} {}",
+        "mem_bk_section": "📅 預約記錄",
+        "mem_upcoming":   "即將到來",
+        "mem_past_bk":    "過去記錄",
+        "mem_no_upcoming":"暫無即將到來的預約",
+        "mem_no_bk":      "尚無預約記錄",
+        "wi_phone":       "客戶電話（選填）",
+        "wi_quick_mem":   "＋ 將此客戶加入會員",
+        "wi_mem_created": "✦ 已建立會員檔案：**{}**",
         # Receipt
         "rcpt_btn":       "🧾 收據",
         "rcpt_title":     "收據",
@@ -724,6 +738,20 @@ UI = {
         "mem_disc_hint":  "{}% member discount",
         "mem_lookup":     "Member Lookup (optional)",
         "mem_pts_added":  "Added {} pts to {}",
+        # Member DB enhancements
+        "bk_phone":       "Client Phone",
+        "bk_phone_ph":    "e.g. 012-3456789",
+        "mem_on_file":    "✓ On file  · {}  {}",
+        "mem_new_client": "✦ New client — add profile in Members tab",
+        "mem_auto_match": "🔗 Auto-matched: {} {}",
+        "mem_bk_section": "📅 Bookings",
+        "mem_upcoming":   "Upcoming",
+        "mem_past_bk":    "Past",
+        "mem_no_upcoming":"No upcoming bookings",
+        "mem_no_bk":      "No bookings on record",
+        "wi_phone":       "Client Phone (optional)",
+        "wi_quick_mem":   "＋ Add to Members",
+        "wi_mem_created": "✦ Member profile created: **{}**",
         # Receipt
         "rcpt_btn":       "🧾 Receipt",
         "rcpt_title":     "Receipt",
@@ -1605,6 +1633,33 @@ with tab1:
         st.markdown(f'<p class="card-title">{u("new_booking")}</p>', unsafe_allow_html=True)
 
         b_name = st.text_input(u("client_name"), placeholder=u("name_ph"), key="b_name")
+        b_phone = st.text_input(u("bk_phone"), placeholder=u("bk_phone_ph"), key="b_phone")
+
+        # Auto-match member by phone or name
+        _bk_matched_mem = None
+        _bk_phone_clean = b_phone.strip()
+        _bk_name_clean  = b_name.strip()
+        if _bk_phone_clean:
+            _bk_matched_mem = next(
+                (m for m in st.session_state.members
+                 if m.get("phone","").strip() == _bk_phone_clean), None)
+        if not _bk_matched_mem and _bk_name_clean:
+            _bk_matched_mem = next(
+                (m for m in st.session_state.members
+                 if m.get("name","").strip() == _bk_name_clean), None)
+        if _bk_matched_mem:
+            _bt = tier_for_points(_bk_matched_mem.get("points", 0))
+            st.markdown(
+                f'<div style="background:#0d1a00;border:1px solid #2ecc71;border-radius:8px;'
+                f'padding:6px 12px;font-size:0.8rem;color:#2ecc71;margin-bottom:4px;">'
+                f'{u("mem_on_file").format(_bk_matched_mem["name"], tier_label(_bt))}</div>',
+                unsafe_allow_html=True)
+        elif _bk_phone_clean or _bk_name_clean:
+            st.markdown(
+                f'<div style="background:#1a1000;border:1px solid #c9a84c33;border-radius:8px;'
+                f'padding:6px 12px;font-size:0.78rem;color:#888;margin-bottom:4px;">'
+                f'{u("mem_new_client")}</div>',
+                unsafe_allow_html=True)
 
         col_d, col_t = st.columns(2)
         with col_d:
@@ -1627,7 +1682,8 @@ with tab1:
                 st.warning(u("name_warn"))
             else:
                 new_bk = {
-                    "name": b_name.strip(), "date": str(b_date), "time": b_time,
+                    "name": b_name.strip(), "phone": b_phone.strip(),
+                    "date": str(b_date), "time": b_time,
                     "stylist": b_stylist,   "service": b_svc,    "note": b_note,
                     "price": b_price, "paid": False, "method": "", "final": 0,
                 }
@@ -2085,11 +2141,31 @@ with tab3:
                 sel_bk = unpaid_bk[bk_opts[sel_label]]
                 orig   = sel_bk.get("price", 0)
 
-                # ── Member lookup ──────────────────────────────────────────
-                mem_names = ["— " + ("非會員" if st.session_state.lang=="zh" else "Non-member") + " —"] + \
+                # ── Member lookup (auto-match by phone or name) ────────────
+                _bk_phone = sel_bk.get("phone", "").strip()
+                _bk_cname = sel_bk.get("name", "").strip()
+                _pre_match_idx = 0
+                for _mi, _mm in enumerate(st.session_state.members):
+                    if _bk_phone and _mm.get("phone","").strip() == _bk_phone:
+                        _pre_match_idx = _mi + 1
+                        break
+                    elif not _bk_phone and _mm.get("name","").strip() == _bk_cname:
+                        _pre_match_idx = _mi + 1
+                        break
+                _non_mem_lbl = "— " + ("非會員" if st.session_state.lang=="zh" else "Non-member") + " —"
+                mem_names = [_non_mem_lbl] + \
                             [f"{m['name']}  ({m.get('phone','')})  {tier_label(tier_for_points(m.get('points',0)))}"
                              for m in st.session_state.members]
-                mem_sel_label = st.selectbox(u("mem_lookup"), mem_names, key="pay_mem_sel")
+                if _pre_match_idx > 0:
+                    _am = st.session_state.members[_pre_match_idx - 1]
+                    _at = tier_for_points(_am.get("points", 0))
+                    st.markdown(
+                        f'<div style="background:#0d1a00;border:1px solid #2ecc71;border-radius:8px;'
+                        f'padding:6px 12px;font-size:0.78rem;color:#2ecc71;margin-bottom:4px;">'
+                        f'{u("mem_auto_match").format(_am["name"], tier_label(_at))}</div>',
+                        unsafe_allow_html=True)
+                mem_sel_label = st.selectbox(u("mem_lookup"), mem_names,
+                                             index=_pre_match_idx, key="pay_mem_sel")
                 pay_mem = None
                 mem_disc_pct = 0
                 if not mem_sel_label.startswith("—"):
@@ -2197,6 +2273,7 @@ with tab3:
             st.markdown(f'<p class="card-title">{u("walkin_title")}</p>', unsafe_allow_html=True)
 
             wi_name = st.text_input(u("client_name"), placeholder=u("name_ph"), key="wi_name")
+            wi_phone = st.text_input(u("wi_phone"), placeholder=u("bk_phone_ph"), key="wi_phone")
             _no_sty = "— " + ("不指定" if st.session_state.lang == "zh" else "No stylist") + " —"
             wi_stylist = st.selectbox(
                 u("stylist"),
@@ -2207,10 +2284,29 @@ with tab3:
             wi_svc  = st.text_input(u("service"), placeholder=u("wi_svc_ph"), key="wi_svc")
             wi_amt  = st.number_input(u("wi_amt_label"), 0.0, 99999.0, 50.0, 10.0, key="wi_amt")
 
-            # Walk-in member lookup
+            # Walk-in member lookup — auto-match by phone or name
+            _wi_phone_clean = wi_phone.strip()
+            _wi_name_clean  = wi_name.strip()
+            _wi_pre_idx = 0
+            for _wmi, _wmm in enumerate(st.session_state.members):
+                if _wi_phone_clean and _wmm.get("phone","").strip() == _wi_phone_clean:
+                    _wi_pre_idx = _wmi + 1
+                    break
+                elif not _wi_phone_clean and _wmm.get("name","").strip() == _wi_name_clean:
+                    _wi_pre_idx = _wmi + 1
+                    break
+            if _wi_pre_idx > 0:
+                _wam = st.session_state.members[_wi_pre_idx - 1]
+                _wat = tier_for_points(_wam.get("points", 0))
+                st.markdown(
+                    f'<div style="background:#0d1a00;border:1px solid #2ecc71;border-radius:8px;'
+                    f'padding:6px 12px;font-size:0.78rem;color:#2ecc71;margin-bottom:4px;">'
+                    f'{u("mem_auto_match").format(_wam["name"], tier_label(_wat))}</div>',
+                    unsafe_allow_html=True)
             wi_mem_names = ["— " + ("非會員" if st.session_state.lang=="zh" else "Non-member") + " —"] + \
                            [f"{m['name']}  ({m.get('phone','')})" for m in st.session_state.members]
-            wi_mem_sel = st.selectbox(u("mem_lookup"), wi_mem_names, key="wi_mem_sel")
+            wi_mem_sel = st.selectbox(u("mem_lookup"), wi_mem_names,
+                                      index=_wi_pre_idx, key="wi_mem_sel")
             wi_pay_mem = None
             if not wi_mem_sel.startswith("—"):
                 wi_mem_nm = wi_mem_sel.split("  (")[0]
@@ -2236,7 +2332,8 @@ with tab3:
                 if not wi_name.strip():
                     st.warning(u("name_warn"))
                 else:
-                    new_wi = {"name": wi_name.strip(), "service": wi_svc or "—",
+                    new_wi = {"name": wi_name.strip(), "phone": wi_phone.strip(),
+                              "service": wi_svc or "—",
                               "stylist": wi_stylist_val,
                               "date": today_str, "final": wi_amt, "method": wi_key}
                     st.session_state.walkins.append(new_wi)
@@ -2244,6 +2341,13 @@ with tab3:
                     if _USE_DB:
                         try: db_add_walkin(st.session_state.cur_branch, new_wi)
                         except Exception: pass
+                    # Track non-member for quick-create prompt
+                    if not wi_pay_mem and wi_name.strip():
+                        st.session_state["_wi_quick_mem"] = {
+                            "name":  wi_name.strip(),
+                            "phone": wi_phone.strip(),
+                            "svc":   wi_svc or "—",
+                        }
                     st.session_state.sel_receipt = {
                         "name":     wi_name.strip(),
                         "service":  wi_svc or "—",
@@ -2280,6 +2384,52 @@ with tab3:
                     st.success(u("pay_success").format(wi_amt, wi_display))
                     st.rerun()
             st.markdown('</div>', unsafe_allow_html=True)
+
+            # ── Quick member create after walk-in ──────────────────────────
+            _qm = st.session_state.get("_wi_quick_mem")
+            if _qm:
+                _already_mem = any(
+                    m.get("name","").strip() == _qm["name"]
+                    or (m.get("phone","").strip() and m.get("phone","").strip() == _qm.get("phone","").strip())
+                    for m in st.session_state.members)
+                if not _already_mem:
+                    st.markdown('<div class="card" style="border-color:#c9a84c55;">', unsafe_allow_html=True)
+                    st.markdown(
+                        f'<p style="color:#c9a84c;font-size:0.82rem;letter-spacing:1px;margin-bottom:8px;">'
+                        f'{"💡 新客戶，是否建立會員檔案？" if st.session_state.lang=="zh" else "💡 New client — create member profile?"}'
+                        f'<strong style="margin-left:6px;">{_qm["name"]}</strong></p>',
+                        unsafe_allow_html=True)
+                    _qcol1, _qcol2 = st.columns([3, 1])
+                    with _qcol1:
+                        _qphone = st.text_input(u("mem_phone"), value=_qm.get("phone",""),
+                                                key="_qm_phone", label_visibility="collapsed",
+                                                placeholder=u("bk_phone_ph"))
+                    with _qcol2:
+                        if st.button(u("wi_quick_mem"), key="_qm_create_btn"):
+                            import uuid as _uuid
+                            _nm = {
+                                "id":          str(_uuid.uuid4())[:8],
+                                "name":        _qm["name"],
+                                "phone":       _qphone.strip(),
+                                "birthday":    "",
+                                "tier":        "普通",
+                                "points":      0,
+                                "total_spent": 0.0,
+                                "visit_count": 0,
+                                "notes":       "",
+                                "join_date":   str(dt_date.today()),
+                                "history":     [],
+                            }
+                            st.session_state.members.append(_nm)
+                            _bd()["members"] = st.session_state.members
+                            if _USE_DB:
+                                try: db_add_member(st.session_state.cur_branch, _nm)
+                                except Exception: pass
+                            del st.session_state["_wi_quick_mem"]
+                            st.markdown(f'<div class="alert-safe">{u("wi_mem_created").format(_qm["name"])}</div>',
+                                        unsafe_allow_html=True)
+                            st.rerun()
+                    st.markdown('</div>', unsafe_allow_html=True)
 
         # ── History ───────────────────────────────────────────────────────
         history = [
@@ -3216,6 +3366,62 @@ with tab6:
                         f'</div>',
                         unsafe_allow_html=True)
             st.markdown('</div>', unsafe_allow_html=True)
+
+            # ── Booking history (matched by phone or name) ─────────────────
+            _m_phone = sel_mem.get("phone","").strip()
+            _m_name  = sel_mem.get("name","").strip()
+            _mem_bks = [b for b in st.session_state.bookings
+                        if ((_m_phone and b.get("phone","").strip() == _m_phone)
+                            or (not _m_phone and b.get("name","").strip() == _m_name))]
+            if _mem_bks:
+                _today_s = str(dt_date.today())
+                _upcoming_bks = sorted(
+                    [b for b in _mem_bks if b.get("date","") >= _today_s and not b.get("paid")],
+                    key=lambda x: (x.get("date",""), x.get("time","")))
+                _past_bks = sorted(
+                    [b for b in _mem_bks if b.get("paid") or b.get("date","") < _today_s],
+                    key=lambda x: (x.get("date",""), x.get("time","")), reverse=True)
+
+                st.markdown('<div class="card">', unsafe_allow_html=True)
+                st.markdown(f'<p class="card-title">{u("mem_bk_section")}</p>', unsafe_allow_html=True)
+
+                # Upcoming
+                st.markdown(
+                    f'<div style="font-size:0.72rem;letter-spacing:2px;color:#c9a84c;'
+                    f'margin-bottom:6px;">{u("mem_upcoming").upper()}</div>',
+                    unsafe_allow_html=True)
+                if _upcoming_bks:
+                    for _bk in _upcoming_bks[:5]:
+                        _bk_sub = " · ".join(filter(None,[_bk.get("stylist",""), _bk.get("service",""), _bk.get("time","")]))
+                        st.markdown(
+                            f'<div style="display:flex;justify-content:space-between;'
+                            f'border-bottom:1px solid #c9a84c11;padding:6px 0;font-size:0.82rem;">'
+                            f'<span style="color:#c9a84c;font-weight:700;">{_bk.get("date","")}</span>'
+                            f'<span style="color:#f0ece0;flex:1;margin-left:10px;">{_bk_sub}</span>'
+                            f'<span style="color:#888;font-size:0.72rem;">📅</span></div>',
+                            unsafe_allow_html=True)
+                else:
+                    st.markdown(f'<div style="color:#555;font-size:0.8rem;padding:4px 0;">{u("mem_no_upcoming")}</div>', unsafe_allow_html=True)
+
+                # Past
+                if _past_bks:
+                    st.markdown(
+                        f'<div style="font-size:0.72rem;letter-spacing:2px;color:#666;'
+                        f'margin-top:10px;margin-bottom:6px;">{u("mem_past_bk").upper()}</div>',
+                        unsafe_allow_html=True)
+                    for _bk in _past_bks[:8]:
+                        _bk_sub = " · ".join(filter(None,[_bk.get("stylist",""), _bk.get("service","")]))
+                        _paid_clr = "#c9a84c" if _bk.get("paid") else "#555"
+                        _paid_tag = f'RM {float(_bk.get("final",0) or 0):.2f}' if _bk.get("paid") else ("已取消" if st.session_state.lang=="zh" else "Cancelled")
+                        st.markdown(
+                            f'<div style="display:flex;justify-content:space-between;'
+                            f'border-bottom:1px solid #1a1a1a;padding:5px 0;font-size:0.8rem;">'
+                            f'<span style="color:#666;">{_bk.get("date","")}</span>'
+                            f'<span style="color:#f0ece0;flex:1;margin-left:10px;">{_bk_sub}</span>'
+                            f'<span style="color:{_paid_clr};font-weight:700;">{_paid_tag}</span></div>',
+                            unsafe_allow_html=True)
+
+                st.markdown('</div>', unsafe_allow_html=True)
 
             # Delete button (manager+ only)
             if _can("member_delete"):
