@@ -282,21 +282,29 @@ SERVICES = {
     "zh": {"剪髮": 50, "染髮": 180, "頭皮護理": 120, "燙髮": 250, "角蛋白護理": 350, "頭皮SPA": 100},
     "en": {"Haircut": 50, "Hair Coloring": 180, "Scalp Treatment": 120,
            "Perm": 250, "Keratin Treatment": 350, "Scalp SPA": 100},
+    "ms": {"Gunting Rambut": 50, "Warna Rambut": 180, "Rawatan Kulit Kepala": 120,
+           "Kerinting": 250, "Rawatan Keratin": 350, "Spa Kulit Kepala": 100},
 }
 # Canonical service names (ZH <-> EN mapping)
 SVC_ZH_EN = {"剪髮":"Haircut","染髮":"Hair Coloring","頭皮護理":"Scalp Treatment",
               "燙髮":"Perm","角蛋白護理":"Keratin Treatment","頭皮SPA":"Scalp SPA"}
 SVC_EN_ZH = {v: k for k, v in SVC_ZH_EN.items()}
+SVC_MS_ZH = {"Gunting Rambut":"剪髮","Warna Rambut":"染髮","Rawatan Kulit Kepala":"頭皮護理",
+             "Kerinting":"燙髮","Rawatan Keratin":"角蛋白護理","Spa Kulit Kepala":"頭皮SPA"}
 SVC_ALL_ZH = list(SVC_ZH_EN.keys())  # canonical service name list
 
 def _canonical_svc(svc: str) -> str:
     """Normalise a service name to ZH canonical form."""
     if svc in SVC_ZH_EN:
         return svc
-    return SVC_EN_ZH.get(svc, svc)
+    if svc in SVC_EN_ZH:
+        return SVC_EN_ZH[svc]
+    return SVC_MS_ZH.get(svc, svc)
 CATS  = {"zh": ["造型品","定型噴霧","染髮劑","護髮品","漂髮","頭皮護理"],
-         "en": ["Styling","Setting Spray","Hair Color","Hair Care","Bleach","Scalp Care"]}
-UNITS = {"zh": ["瓶","管","盒","罐","組"], "en": ["bottle","tube","box","can","set"]}
+         "en": ["Styling","Setting Spray","Hair Color","Hair Care","Bleach","Scalp Care"],
+         "ms": ["Penggayaan","Semburan Set","Pewarna Rambut","Penjagaan Rambut","Bleach","Rawatan Kulit Kepala"]}
+UNITS = {"zh": ["瓶","管","盒","罐","組"], "en": ["bottle","tube","box","can","set"],
+         "ms": ["botol","tiub","kotak","tin","set"]}
 
 PAY_METHODS = {
     "Cash":        ("Cash 現金",    "💵", "#2ecc71"),
@@ -773,18 +781,259 @@ UI = {
         "rcpt_thanks":    "Thank you for visiting — we look forward to seeing you again!",
         "rcpt_no_sel":    "Select a receipt from the payment history",
     },
+    "ms": {
+        "subtitle":      "Sistem Pengurusan Salun · Malaysia",
+        "lang_btn":      "🌐 中文",
+        "tab1":          "  ✂  Tempahan  ",
+        "tab2":          "  💇  Jurugaya  ",
+        "tab3":          "  💳  Bayaran  ",
+        "tab4":          "  📦  Inventori  ",
+        "tab5":          "  📊  Laporan  ",
+        "new_booking":   "＋ Tempahan Baru",
+        "client_name":   "Nama Pelanggan",
+        "name_ph":       "Masukkan nama penuh",
+        "book_date":     "Tarikh",
+        "book_time":     "Masa",
+        "stylist":       "Jurugaya",
+        "service":       "Perkhidmatan",
+        "note":          "Nota (pilihan)",
+        "note_ph":       "Cth: Alahan, keadaan rambut…",
+        "confirm_btn":   "Sahkan Tempahan →",
+        "name_warn":     "Sila masukkan nama pelanggan",
+        "online_pending":"Permintaan Tempahan Dalam Talian",
+        "any_stylist":   "Tiada keutamaan",
+        "cancel":        "Tolak",
+        "book_list":     "📅 Senarai Tempahan",
+        "save_bookings": "Simpan Perubahan",
+        "bookings_saved":"✦ Tempahan dikemaskini",
+        "no_bookings":   "Tiada rekod tempahan",
+        "col_name":      "Nama",
+        "col_date":      "Tarikh",
+        "col_time":      "Masa",
+        "col_stylist":   "Jurugaya",
+        "col_service":   "Perkhidmatan",
+        "col_note":      "Nota",
+        "sty_title":     "💇 Pengurusan Jurugaya",
+        "sty_roster":    "Senarai Jurugaya",
+        "sty_add":       "Tambah Jurugaya",
+        "sty_name_lbl":  "Nama",
+        "sty_name_ph":   "Cth: Kim",
+        "sty_add_btn":   "Tambah →",
+        "sty_name_warn": "Sila masukkan nama jurugaya",
+        "sty_added":     "✦ **{}** ditambah",
+        "sty_removed":   "✦ **{}** dibuang",
+        "sty_schedule":  "Jadual Hari Ini",
+        "sty_filter":    "Tapis Jurugaya",
+        "sty_all":       "Semua",
+        "sty_no_bk":     "Tiada tempahan hari ini",
+        "sty_clients":   "pelanggan",
+        "sty_remove":    "Buang",
+        "sty_view_sched":"📅 Jadual",
+        "sty_view_perf": "📊 Prestasi",
+        "sty_view_comm": "💰 Kadar Komisen",
+        "perf_title":    "📊 Kedudukan Prestasi",
+        "perf_today_rev":"Hasil Hari Ini",
+        "perf_total_rev":"Jumlah Hasil",
+        "perf_clients":  "Bilangan Pelanggan",
+        "perf_top_svc":  "Perkhidmatan Teratas",
+        "perf_avg":      "Purata / Pelanggan",
+        "perf_rank":     "Kedudukan",
+        "perf_no_data":  "Tiada data prestasi lagi",
+        "comm_title":    "💰 Tetapan Kadar Komisen",
+        "comm_desc":     "Tetapkan peratusan komisen (%) untuk setiap jurugaya bagi setiap perkhidmatan",
+        "comm_save":     "Simpan Kadar Komisen",
+        "comm_saved":    "✦ Kadar komisen disimpan",
+        "comm_svc":      "Perkhidmatan",
+        "comm_rate":     "Kadar (%)",
+        "comm_no_sty":   "Sila tambah jurugaya dahulu",
+        "comm_report_title": "💰 Laporan Komisen",
+        "comm_stylist":  "Jurugaya",
+        "comm_service":  "Perkhidmatan",
+        "comm_revenue":  "Hasil",
+        "comm_rate_col": "Komisen %",
+        "comm_amount":   "Jumlah Komisen",
+        "comm_subtotal": "Subtotal",
+        "comm_grand":    "Jumlah Keseluruhan",
+        "comm_period":   "Tempoh Laporan",
+        "comm_export":   "Eksport Laporan Komisen (Excel)",
+        "comm_no_data":  "Tiada bayaran selesai dalam tempoh yang dipilih",
+        "pay_title":     "💳 Bayaran Hari Ini",
+        "stat_paid":     "Diterima",
+        "stat_pending":  "Tertunggak",
+        "stat_total":    "Jumlah Hari Ini",
+        "stat_count":    "Pelanggan Hari Ini",
+        "pending_list":  "⏳ Belum Bayar",
+        "no_pending":    "✦ Semua bayaran telah diselesaikan",
+        "checkout_title":"Daftar Keluar",
+        "select_booking":"Pilih Tempahan",
+        "pay_method":    "Kaedah Bayaran",
+        "confirm_pay":   "Sahkan Bayaran →",
+        "pay_success":   "✦ Diterima RM {:.2f} ({})",
+        "history_title": "📋 Rekod Bayaran Hari Ini",
+        "breakdown_title":"Pecahan Kaedah Bayaran",
+        "disc_label":    "Diskaun (%)",
+        "extra_label":   "Caj Tambahan (RM)",
+        "walkin_title":  "Bayaran Terus (Walk-in)",
+        "wi_svc_ph":     "Gunting / Warna / Rawatan…",
+        "wi_amt_label":  "Jumlah (RM)",
+        "wi_confirm":    "Terima →",
+        "mode_booked":   "Pelanggan Bertempahan",
+        "mode_walkin":   "Terus Masuk",
+        "inv_title":     "📦 Inventori Produk",
+        "add_product":   "＋ Tambah Produk",
+        "p_name":        "Nama Produk",
+        "p_name_ph":     "Cth: OSiS+ Dust It",
+        "p_cat":         "Kategori",
+        "p_qty":         "Kuantiti",
+        "p_max":         "Stok Maksimum",
+        "p_unit":        "Unit",
+        "add_btn":       "Tambah Produk →",
+        "name_req":      "Sila masukkan nama produk",
+        "add_success":   "✦ **{}** ditambah",
+        "low_warn":      "⚠ Stok Rendah: {}",
+        "filter":        "Tapis",
+        "search":        "Cari",
+        "search_ph":     "Masukkan nama produk…",
+        "all_cat":       "Semua",
+        "edit_section":  "✏  Edit / Padam Inventori",
+        "save_inv":      "Simpan Perubahan",
+        "inv_saved":     "✦ Inventori dikemaskini",
+        "remain":        "baki",
+        "col_pname":     "Produk",
+        "col_pcat":      "Kategori",
+        "col_pqty":      "Kuantiti",
+        "col_pmax":      "Maks",
+        "col_punit":     "Unit",
+        "settle_title":   "📊 Laporan Penyelesaian",
+        "settle_mode_day":  "📅 Harian",
+        "settle_mode_mth":  "📆 Bulanan",
+        "settle_mode_comm": "💰 Komisen",
+        "settle_date":    "Pilih Tarikh",
+        "settle_month":   "Pilih Bulan",
+        "settle_mth_title":"📆 Laporan Bulanan",
+        "settle_clients": "Jumlah Pelanggan",
+        "settle_daily_bk":"Terperinci Harian",
+        "col_s_date":     "Tarikh",
+        "col_s_clients":  "Pelanggan",
+        "settle_total":   "Jumlah Hasil",
+        "settle_paid":    "Diterima",
+        "settle_pending": "Tertunggak",
+        "settle_walkin":  "Terus Masuk",
+        "settle_detail":  "Terperinci Bayaran",
+        "settle_sty":     "Prestasi Jurugaya",
+        "settle_svc":     "Ringkasan Perkhidmatan",
+        "settle_method":  "Kaedah Bayaran",
+        "settle_no_data": "Tiada rekod bayaran pada tarikh ini",
+        "settle_export":  "📥 Eksport Excel",
+        "settle_exporting":"Sedang menjana…",
+        "col_s_name":     "Pelanggan",
+        "col_s_stylist":  "Jurugaya",
+        "col_s_svc":      "Perkhidmatan",
+        "col_s_method":   "Kaedah",
+        "col_s_amt":      "Jumlah (RM)",
+        "col_s_type":     "Jenis",
+        "col_s_count":    "Bilangan",
+        "col_s_rev":      "Hasil (RM)",
+        "col_s_avg":      "Purata (RM)",
+        "tab6":           "  👥  Ahli  ",
+        "mem_title":      "👥 Pengurusan Ahli",
+        "mem_add":        "＋ Tambah Ahli",
+        "mem_name":       "Nama",
+        "mem_name_ph":    "Cth: Siti Aminah",
+        "mem_phone":      "Nombor Telefon",
+        "mem_phone_ph":   "Cth: 012-3456789",
+        "mem_bday":       "Tarikh Lahir (pilihan)",
+        "mem_notes":      "Nota (keadaan rambut, alahan, dll.)",
+        "mem_notes_ph":   "Cth: Alahan ammonia, rambut halus…",
+        "mem_add_btn":    "Tambah Ahli →",
+        "mem_name_warn":  "Sila masukkan nama ahli",
+        "mem_added":      "✦ Ahli **{}** ditambah",
+        "mem_search":     "Cari Ahli",
+        "mem_search_ph":  "Masukkan nama atau telefon…",
+        "mem_no_result":  "Tiada ahli yang sepadan",
+        "mem_no_members": "Tiada rekod ahli lagi",
+        "mem_select":     "Pilih ahli untuk melihat butiran",
+        "mem_detail":     "Profil Ahli",
+        "mem_tier":       "Tahap",
+        "mem_points":     "Mata",
+        "mem_spent":      "Jumlah Perbelanjaan (RM)",
+        "mem_visits":     "Bilangan Kunjungan",
+        "mem_joined":     "Ahli Sejak",
+        "mem_edit_notes": "Kemaskini Nota",
+        "mem_save_notes": "Simpan Nota",
+        "mem_notes_saved":"✦ Nota disimpan",
+        "mem_delete":     "Padam Ahli",
+        "mem_deleted":    "✦ Ahli **{}** dipadam",
+        "mem_history":    "Sejarah Perbelanjaan",
+        "mem_no_history": "Tiada sejarah perbelanjaan lagi",
+        "mem_stats":      "Ringkasan Ahli",
+        "mem_total":      "Jumlah Ahli",
+        "mem_vip_count":  "Ahli VIP",
+        "mem_pts_issued": "Mata Dikeluarkan",
+        "mem_tier_up":    "✦ {} dinaikkan ke {}!",
+        "mem_disc_hint":  "Diskaun ahli {}%",
+        "mem_lookup":     "Cari Ahli (pilihan)",
+        "mem_pts_added":  "Tambah {} mata untuk {}",
+        "bk_phone":       "Telefon Pelanggan",
+        "bk_phone_ph":    "Cth: 012-3456789",
+        "mem_on_file":    "✓ Ada rekod  · {}  {}",
+        "mem_new_client": "✦ Pelanggan baru — boleh tambah di tab Ahli",
+        "mem_auto_match": "🔗 Padanan automatik: {} {}",
+        "mem_bk_section": "📅 Rekod Tempahan",
+        "mem_upcoming":   "Akan Datang",
+        "mem_past_bk":    "Lepas",
+        "mem_no_upcoming":"Tiada tempahan akan datang",
+        "mem_no_bk":      "Tiada rekod tempahan",
+        "wi_phone":       "Telefon Pelanggan (pilihan)",
+        "wi_quick_mem":   "＋ Tambah ke Ahli",
+        "wi_mem_created": "✦ Profil ahli dicipta: **{}**",
+        "rcpt_btn":       "🧾 Resit",
+        "rcpt_title":     "Resit",
+        "rcpt_print":     "🖨️ Cetak Resit",
+        "rcpt_email":     "📧 E-mel Resit",
+        "rcpt_email_to":  "Penerima E-mel",
+        "rcpt_email_ph":  "Cth: pelanggan@email.com",
+        "rcpt_send":      "Hantar →",
+        "rcpt_sent":      "✦ Aplikasi e-mel dibuka — sahkan untuk hantar",
+        "rcpt_close":     "Tutup",
+        "rcpt_service":   "Perkhidmatan",
+        "rcpt_stylist":   "Jurugaya",
+        "rcpt_subtotal":  "Subtotal",
+        "rcpt_discount":  "Diskaun",
+        "rcpt_total":     "Jumlah",
+        "rcpt_method":    "Bayaran",
+        "rcpt_member":    "Ahli",
+        "rcpt_pts":       "Mata Diperoleh",
+        "rcpt_thanks":    "Terima kasih kerana melawat — kami berharap dapat melayani anda lagi!",
+        "rcpt_no_sel":    "Pilih resit daripada rekod bayaran",
+    },
 }
 
-def u(key):    return UI[st.session_state.lang][key]
+def u(key):
+    lang = st.session_state.lang
+    if key in UI[lang]:
+        return UI[lang][key]
+    # Fallback: ms → en, then zh → en
+    if lang == "ms" and key in UI["en"]:
+        return UI["en"][key]
+    return UI["zh"].get(key, key)
+
 def svc_map(): return SERVICES[st.session_state.lang]
 def bar_color(r): return "#2ecc71" if r > 0.6 else ("#e67e22" if r > 0.3 else "#e74c3c")
 
+def _t(zh: str, en: str, ms: str = None) -> str:
+    """Inline trilingual string helper."""
+    lang = st.session_state.lang
+    if lang == "zh":  return zh
+    if lang == "ms":  return ms if ms is not None else en
+    return en
+
 # ── Member tier system ────────────────────────────────────────────────────────
 TIERS = [
-    {"key": "普通",  "en": "Regular", "min_pts": 0,    "disc": 0,    "color": "#888888", "badge": "⚪"},
-    {"key": "銀卡",  "en": "Silver",  "min_pts": 500,  "disc": 5,    "color": "#adb5bd", "badge": "🥈"},
-    {"key": "金卡",  "en": "Gold",    "min_pts": 1500, "disc": 10,   "color": "#c9a84c", "badge": "🥇"},
-    {"key": "VIP",   "en": "VIP",     "min_pts": 3000, "disc": 15,   "color": "#e74c3c", "badge": "💎"},
+    {"key": "普通",  "en": "Regular", "ms": "Biasa",  "min_pts": 0,    "disc": 0,    "color": "#888888", "badge": "⚪"},
+    {"key": "銀卡",  "en": "Silver",  "ms": "Perak",  "min_pts": 500,  "disc": 5,    "color": "#adb5bd", "badge": "🥈"},
+    {"key": "金卡",  "en": "Gold",    "ms": "Emas",   "min_pts": 1500, "disc": 10,   "color": "#c9a84c", "badge": "🥇"},
+    {"key": "VIP",   "en": "VIP",     "ms": "VIP",    "min_pts": 3000, "disc": 15,   "color": "#e74c3c", "badge": "💎"},
 ]
 
 def tier_for_points(pts):
@@ -795,7 +1044,10 @@ def tier_for_points(pts):
     return t
 
 def tier_label(tier_dict):
-    return tier_dict["en"] if st.session_state.lang == "en" else tier_dict["key"]
+    lang = st.session_state.lang
+    if lang == "en":  return tier_dict["en"]
+    if lang == "ms":  return tier_dict.get("ms", tier_dict["en"])
+    return tier_dict["key"]
 
 # ── Session token helpers (persistent login via URL ?t=TOKEN) ─────────────────
 def _save_session_token(username: str):
@@ -1081,12 +1333,14 @@ with hdr_r:
         padding:0.55rem 0.6rem !important; text-transform:none !important;
     }
     </style>""", unsafe_allow_html=True)
-    _lang_label = ("🌐 English" if st.session_state.lang == "zh" else "🌐 中文")
-    _logout_label = f"{role_icon} " + ("登出" if st.session_state.lang == "zh" else "Logout")
+    _lang_cycle  = {"zh": "en", "en": "ms", "ms": "zh"}
+    _lang_labels = {"zh": "🌐 EN", "en": "🌐 BM", "ms": "🌐 中文"}
+    _lang_label  = _lang_labels[st.session_state.lang]
+    _logout_label = f"{role_icon} " + _t("登出", "Logout", "Log Keluar")
     rc1, rc2 = st.columns(2)
     with rc1:
         if st.button(_lang_label, key="lang_toggle"):
-            st.session_state.lang = "en" if st.session_state.lang == "zh" else "zh"
+            st.session_state.lang = _lang_cycle[st.session_state.lang]
             st.rerun()
     with rc2:
         if st.button(_logout_label, key="logout_btn"):
@@ -1098,11 +1352,11 @@ with hdr_r:
 # Build subscription badge for header
 _sub_badge = ""
 if _sub["plan"] == "trial" and _sub["days_left"] <= 7:
-    _sub_badge = f'<span style="background:#e67e22;color:#fff;font-size:0.65rem;padding:3px 10px;border-radius:20px;letter-spacing:1px;margin-left:8px">⏳ {"試用期剩" if st.session_state.lang=="zh" else "Trial"} {_sub["days_left"]} {"天" if st.session_state.lang=="zh" else "days"}</span>'
+    _sub_badge = f'<span style="background:#e67e22;color:#fff;font-size:0.65rem;padding:3px 10px;border-radius:20px;letter-spacing:1px;margin-left:8px">⏳ {_t("試用期剩","Trial","Percubaan")} {_sub["days_left"]} {_t("天","days","hari")}</span>'
 elif _sub["plan"] == "trial":
-    _sub_badge = f'<span style="background:#2ecc71;color:#0a0a0a;font-size:0.65rem;padding:3px 10px;border-radius:20px;letter-spacing:1px;margin-left:8px">✓ {"試用中" if st.session_state.lang=="zh" else "Trial"} {_sub["days_left"]}{"天" if st.session_state.lang=="zh" else "d"}</span>'
+    _sub_badge = f'<span style="background:#2ecc71;color:#0a0a0a;font-size:0.65rem;padding:3px 10px;border-radius:20px;letter-spacing:1px;margin-left:8px">✓ {_t("試用中","Trial","Percubaan")} {_sub["days_left"]}{_t("天","d","h")}</span>'
 elif _sub["plan"] == "active":
-    _sub_badge = f'<span style="background:#c9a84c;color:#0a0a0a;font-size:0.65rem;padding:3px 10px;border-radius:20px;letter-spacing:1px;margin-left:8px">✦ {"已訂閱" if st.session_state.lang=="zh" else "Subscribed"}</span>'
+    _sub_badge = f'<span style="background:#c9a84c;color:#0a0a0a;font-size:0.65rem;padding:3px 10px;border-radius:20px;letter-spacing:1px;margin-left:8px">✦ {_t("已訂閱","Subscribed","Dilanggan")}</span>'
 
 _salon_display = st.session_state.branches.get(st.session_state.cur_branch, "IQSALON")
 st.markdown(f"""
@@ -1394,13 +1648,13 @@ def _settle_build_panels(paid_list, walkin_list, total_coll, label_suffix=""):
         {u("col_s_name"):    b.get("name",""),  u("col_s_stylist"): b.get("stylist",""),
          u("col_s_svc"):     b.get("service",""), u("col_s_method"):  b.get("method",""),
          u("col_s_amt"):     b.get("final", b.get("price",0)),
-         u("col_s_type"):    ("預約" if st.session_state.lang=="zh" else "Booking")}
+         u("col_s_type"):    _t("預約","Booking","Tempahan")}
         for b in paid_list
     ] + [
         {u("col_s_name"):    w.get("name",""),  u("col_s_stylist"): "—",
          u("col_s_svc"):     w.get("service",""), u("col_s_method"):  w.get("method",""),
          u("col_s_amt"):     w.get("final",0),
-         u("col_s_type"):    ("即場客" if st.session_state.lang=="zh" else "Walk-in")}
+         u("col_s_type"):    _t("即場客","Walk-in","Terus Masuk")}
         for w in walkin_list
     ]
     df_detail = pd.DataFrame(detail_rows) if detail_rows else pd.DataFrame()
@@ -1502,9 +1756,9 @@ def _render_sty_panel(df_sty):
 # Build tab list
 _tabs_labels = [u("tab1"), u("tab2"), u("tab3"), u("tab4"), u("tab5"), u("tab6")]
 if _can("analytics"):
-    _tabs_labels.append("  📊  " + ("業績" if st.session_state.lang=="zh" else "Analytics") + "  ")
+    _tabs_labels.append("  📊  " + _t("業績","Analytics","Analitik") + "  ")
 if _can("admin"):
-    _tabs_labels.append("  ⚙️  " + ("管理" if st.session_state.lang=="zh" else "Admin") + "  ")
+    _tabs_labels.append("  ⚙️  " + _t("管理","Admin","Pentadbir") + "  ")
 
 _tabs = st.tabs(_tabs_labels)
 tab1, tab2, tab3, tab4, tab5, tab6 = _tabs[:6]
@@ -1522,7 +1776,7 @@ with tab1:
     import datetime as _dt
     _ref_col, _time_col = st.columns([1, 3])
     with _ref_col:
-        if st.button("🔄 " + ("刷新" if st.session_state.lang=="zh" else "Refresh"), key="manual_refresh_bk"):
+        if st.button("🔄 " + _t("刷新","Refresh","Muat Semula"), key="manual_refresh_bk"):
             if _USE_DB:
                 try:
                     branch = st.session_state.cur_branch
@@ -1536,8 +1790,8 @@ with tab1:
         _now_str = _dt.datetime.now().strftime("%H:%M:%S")
         st.markdown(
             f'<p style="color:#555;font-size:0.75rem;margin-top:0.6rem;letter-spacing:1px;">'
-            f'⏱ {"上次更新" if st.session_state.lang=="zh" else "Last updated"}: {_now_str} '
-            f'· {"每60秒自動刷新" if st.session_state.lang=="zh" else "Auto-refresh every 60s"}</p>',
+            f'⏱ {_t("上次更新","Last updated","Kemaskini terakhir")}: {_now_str} '
+            f'· {_t("每60秒自動刷新","Auto-refresh every 60s","Muat semula setiap 60s")}</p>',
             unsafe_allow_html=True
         )
 
@@ -1753,7 +2007,7 @@ with tab1:
         bks_with_phone = [b for b in st.session_state.bookings if b.get("phone")]
         if bks_with_phone and _NOTIFY:
             st.markdown("---")
-            st.markdown(f'<p style="color:#c9a84c;font-size:0.8rem;letter-spacing:2px;">📱 WHATSAPP {"提醒" if st.session_state.lang=="zh" else "REMINDER"}</p>',
+            st.markdown(f'<p style="color:#c9a84c;font-size:0.8rem;letter-spacing:2px;">📱 WHATSAPP {_t("提醒","REMINDER","PERINGATAN")}</p>',
                         unsafe_allow_html=True)
             for bk in bks_with_phone[:10]:
                 salon_nm = st.session_state.branches.get(st.session_state.cur_branch, "Signature Kim")
@@ -2152,7 +2406,7 @@ with tab3:
                     elif not _bk_phone and _mm.get("name","").strip() == _bk_cname:
                         _pre_match_idx = _mi + 1
                         break
-                _non_mem_lbl = "— " + ("非會員" if st.session_state.lang=="zh" else "Non-member") + " —"
+                _non_mem_lbl = "— " + _t("非會員","Non-member","Bukan Ahli") + " —"
                 mem_names = [_non_mem_lbl] + \
                             [f"{m['name']}  ({m.get('phone','')})  {tier_label(tier_for_points(m.get('points',0)))}"
                              for m in st.session_state.members]
@@ -2274,7 +2528,7 @@ with tab3:
 
             wi_name = st.text_input(u("client_name"), placeholder=u("name_ph"), key="wi_name")
             wi_phone = st.text_input(u("wi_phone"), placeholder=u("bk_phone_ph"), key="wi_phone")
-            _no_sty = "— " + ("不指定" if st.session_state.lang == "zh" else "No stylist") + " —"
+            _no_sty = "— " + _t("不指定","No stylist","Tiada pilihan") + " —"
             wi_stylist = st.selectbox(
                 u("stylist"),
                 [_no_sty] + (st.session_state.stylists or []),
@@ -2303,7 +2557,7 @@ with tab3:
                     f'padding:6px 12px;font-size:0.78rem;color:#2ecc71;margin-bottom:4px;">'
                     f'{u("mem_auto_match").format(_wam["name"], tier_label(_wat))}</div>',
                     unsafe_allow_html=True)
-            wi_mem_names = ["— " + ("非會員" if st.session_state.lang=="zh" else "Non-member") + " —"] + \
+            wi_mem_names = ["— " + _t("非會員","Non-member","Bukan Ahli") + " —"] + \
                            [f"{m['name']}  ({m.get('phone','')})" for m in st.session_state.members]
             wi_mem_sel = st.selectbox(u("mem_lookup"), wi_mem_names,
                                       index=_wi_pre_idx, key="wi_mem_sel")
@@ -2396,7 +2650,7 @@ with tab3:
                     st.markdown('<div class="card" style="border-color:#c9a84c55;">', unsafe_allow_html=True)
                     st.markdown(
                         f'<p style="color:#c9a84c;font-size:0.82rem;letter-spacing:1px;margin-bottom:8px;">'
-                        f'{"💡 新客戶，是否建立會員檔案？" if st.session_state.lang=="zh" else "💡 New client — create member profile?"}'
+                        f'{_t("💡 新客戶，是否建立會員檔案？","💡 New client — create member profile?","💡 Pelanggan baru — buat profil ahli?")}'
                         f'<strong style="margin-left:6px;">{_qm["name"]}</strong></p>',
                         unsafe_allow_html=True)
                     _qcol1, _qcol2 = st.columns([3, 1])
@@ -2678,7 +2932,7 @@ with tab4:
             column_config={
                 "name":     st.column_config.TextColumn(u("col_pname"), width="large"),
                 "category": st.column_config.SelectboxColumn(u("col_pcat"),
-                                options=CATS["zh"] + CATS["en"], width="medium"),
+                                options=CATS["zh"] + CATS["en"] + CATS["ms"], width="medium"),
                 "qty":      st.column_config.NumberColumn(u("col_pqty"), min_value=0, max_value=9999, width="small"),
                 "max":      st.column_config.NumberColumn(u("col_pmax"), min_value=1, max_value=9999, width="small"),
                 "unit":     st.column_config.TextColumn(u("col_punit"), width="small"),
@@ -2699,7 +2953,7 @@ with tab4:
 # ═════════════════════════════════════════════════════════════════════════════
 with tab5:
     if not _can("settlement"):
-        st.info("⛔ " + ("您沒有權限查看結算報告" if st.session_state.lang=="zh" else "No permission to view reports"))
+        st.info("⛔ " + _t("您沒有權限查看結算報告","No permission to view reports","Tiada kebenaran untuk melihat laporan"))
     else:
         st.markdown(f'<p class="card-title" style="margin-bottom:1rem;">{u("settle_title")}</p>',
                     unsafe_allow_html=True)
@@ -2760,10 +3014,10 @@ with tab5:
                         (u("col_s_name")):    b.get("name",""),
                         (u("col_s_stylist")): b.get("stylist",""),
                         (u("col_s_svc")):     b.get("service",""),
-                        ("時間" if lang=="zh" else "Time"): b.get("time",""),
+                        _t("時間","Time","Masa"): b.get("time",""),
                         (u("col_s_method")):  b.get("method",""),
                         (u("col_s_amt")):     b.get("final", b.get("price",0)),
-                        ("已付款" if lang=="zh" else "Paid"): ("是" if b.get("paid") else "否") if lang=="zh" else ("Yes" if b.get("paid") else "No"),
+                        _t("已付款","Paid","Dibayar"): _t("是","Yes","Ya") if b.get("paid") else _t("否","No","Tidak"),
                     }
                     for b in day_bk
                 ]
@@ -2775,7 +3029,7 @@ with tab5:
                         u("col_s_svc"):     b.get("service",""),
                         u("col_s_method"):  b.get("method",""),
                         u("col_s_amt"):     b.get("final", b.get("price",0)),
-                        u("col_s_type"):    ("預約" if lang=="zh" else "Booking"),
+                        u("col_s_type"):    _t("預約","Booking","Tempahan"),
                     }
                     for b in day_paid
                 ] + [
@@ -2785,24 +3039,26 @@ with tab5:
                         u("col_s_svc"):     w.get("service",""),
                         u("col_s_method"):  w.get("method",""),
                         u("col_s_amt"):     w.get("final",0),
-                        u("col_s_type"):    ("即場客" if lang=="zh" else "Walk-in"),
+                        u("col_s_type"):    _t("即場客","Walk-in","Terus Masuk"),
                     }
                     for w in day_walkins
                 ]
+                _k_item  = _t("項目","Item","Perkara")
+                _k_value = _t("數值","Value","Nilai")
                 summary_data = [
-                    {("項目" if lang=="zh" else "Item"): ("結算日期" if lang=="zh" else "Date"), ("數值" if lang=="zh" else "Value"): settle_str},
-                    {("項目" if lang=="zh" else "Item"): u("settle_total"),   ("數值" if lang=="zh" else "Value"): f"RM {total_collected + total_pending:.2f}"},
-                    {("項目" if lang=="zh" else "Item"): u("settle_paid"),    ("數值" if lang=="zh" else "Value"): f"RM {total_collected:.2f}"},
-                    {("項目" if lang=="zh" else "Item"): u("settle_pending"), ("數值" if lang=="zh" else "Value"): f"RM {total_pending:.2f}"},
-                    {("項目" if lang=="zh" else "Item"): u("settle_walkin"),  ("數值" if lang=="zh" else "Value"): f"RM {walkin_total:.2f}"},
+                    {_k_item: _t("結算日期","Date","Tarikh"), _k_value: settle_str},
+                    {_k_item: u("settle_total"),   _k_value: f"RM {total_collected + total_pending:.2f}"},
+                    {_k_item: u("settle_paid"),    _k_value: f"RM {total_collected:.2f}"},
+                    {_k_item: u("settle_pending"), _k_value: f"RM {total_pending:.2f}"},
+                    {_k_item: u("settle_walkin"),  _k_value: f"RM {walkin_total:.2f}"},
                 ]
     
                 with pd.ExcelWriter(output, engine="openpyxl") as writer:
-                    pd.DataFrame(summary_data).to_excel(writer, sheet_name=("摘要" if lang=="zh" else "Summary"), index=False)
+                    pd.DataFrame(summary_data).to_excel(writer, sheet_name=_t("摘要","Summary","Ringkasan"), index=False)
                     if all_bk_rows:
-                        pd.DataFrame(all_bk_rows).to_excel(writer, sheet_name=("全部預約" if lang=="zh" else "All Bookings"), index=False)
+                        pd.DataFrame(all_bk_rows).to_excel(writer, sheet_name=_t("全部預約","All Bookings","Semua Tempahan"), index=False)
                     if paid_rows:
-                        pd.DataFrame(paid_rows).to_excel(writer, sheet_name=("收款明細" if lang=="zh" else "Payments"), index=False)
+                        pd.DataFrame(paid_rows).to_excel(writer, sheet_name=_t("收款明細","Payments","Bayaran"), index=False)
                     for sheet in writer.sheets.values():
                         for col_cells in sheet.columns:
                             max_len = max((len(str(c.value)) for c in col_cells if c.value), default=10)
@@ -2829,7 +3085,7 @@ with tab5:
                     u("col_s_svc"):     b.get("service", ""),
                     u("col_s_method"):  b.get("method", ""),
                     u("col_s_amt"):     b.get("final", b.get("price", 0)),
-                    u("col_s_type"):    "預約" if st.session_state.lang == "zh" else "Booking",
+                    u("col_s_type"):    _t("預約","Booking","Tempahan"),
                 }
                 for b in day_paid
             ] + [
@@ -2839,7 +3095,7 @@ with tab5:
                     u("col_s_svc"):     w.get("service", ""),
                     u("col_s_method"):  w.get("method", ""),
                     u("col_s_amt"):     w.get("final", 0),
-                    u("col_s_type"):    "即場客" if st.session_state.lang == "zh" else "Walk-in",
+                    u("col_s_type"):    _t("即場客","Walk-in","Terus Masuk"),
                 }
                 for w in day_walkins
             ]
@@ -2866,7 +3122,9 @@ with tab5:
             today_now = dt_date.today()
             month_names_zh = ["1月","2月","3月","4月","5月","6月","7月","8月","9月","10月","11月","12月"]
             month_names_en = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]
-            mnames = month_names_zh if st.session_state.lang == "zh" else month_names_en
+            month_names_ms = ["Jan","Feb","Mac","Apr","Mei","Jun","Jul","Ogos","Sep","Okt","Nov","Dis"]
+            _mn_map = {"zh": month_names_zh, "en": month_names_en, "ms": month_names_ms}
+            mnames = _mn_map.get(st.session_state.lang, month_names_en)
     
             mc1, mc2, mc3 = st.columns([0.8, 0.8, 1.4])
             with mc1:
@@ -2913,22 +3171,21 @@ with tab5:
                             u("col_s_clients"): len(dp)+len(dw),
                             u("col_s_rev"): round(rev,2),
                         })
-                lang = st.session_state.lang
                 summary_data = [
-                    {("月份" if lang=="zh" else "Month"): settle_mth_str},
-                    {("已收款" if lang=="zh" else "Collected"): f"RM {mth_collected:.2f}"},
-                    {("待收款" if lang=="zh" else "Pending"):   f"RM {mth_pending:.2f}"},
-                    {("即場客" if lang=="zh" else "Walk-ins"):  f"RM {mth_walkin_t:.2f}"},
-                    {("總客數" if lang=="zh" else "Clients"):   mth_clients},
+                    {_t("月份","Month","Bulan"): settle_mth_str},
+                    {_t("已收款","Collected","Diterima"): f"RM {mth_collected:.2f}"},
+                    {_t("待收款","Pending","Tertunggak"):   f"RM {mth_pending:.2f}"},
+                    {_t("即場客","Walk-ins","Terus Masuk"):  f"RM {mth_walkin_t:.2f}"},
+                    {_t("總客數","Clients","Pelanggan"):   mth_clients},
                 ]
                 out = io.BytesIO()
                 with pd.ExcelWriter(out, engine="openpyxl") as writer:
-                    pd.DataFrame(summary_data).to_excel(writer, sheet_name=("摘要" if lang=="zh" else "Summary"), index=False)
-                    if daily_rows: pd.DataFrame(daily_rows).to_excel(writer, sheet_name=("每日明細" if lang=="zh" else "Daily"), index=False)
-                    if not df_det_m.empty: df_det_m.to_excel(writer, sheet_name=("收款明細" if lang=="zh" else "Payments"), index=False)
-                    if not df_sty_m.empty: df_sty_m.to_excel(writer, sheet_name=("髮型師業績" if lang=="zh" else "Stylists"), index=False)
-                    if not df_svc_m.empty: df_svc_m.to_excel(writer, sheet_name=("服務統計" if lang=="zh" else "Services"), index=False)
-                    if not df_mth_m.empty: df_mth_m.to_excel(writer, sheet_name=("付款方式" if lang=="zh" else "Methods"), index=False)
+                    pd.DataFrame(summary_data).to_excel(writer, sheet_name=_t("摘要","Summary","Ringkasan"), index=False)
+                    if daily_rows: pd.DataFrame(daily_rows).to_excel(writer, sheet_name=_t("每日明細","Daily","Harian"), index=False)
+                    if not df_det_m.empty: df_det_m.to_excel(writer, sheet_name=_t("收款明細","Payments","Bayaran"), index=False)
+                    if not df_sty_m.empty: df_sty_m.to_excel(writer, sheet_name=_t("髮型師業績","Stylists","Jurugaya"), index=False)
+                    if not df_svc_m.empty: df_svc_m.to_excel(writer, sheet_name=_t("服務統計","Services","Perkhidmatan"), index=False)
+                    if not df_mth_m.empty: df_mth_m.to_excel(writer, sheet_name=_t("付款方式","Methods","Kaedah"), index=False)
                     for sheet in writer.sheets.values():
                         for col_cells in sheet.columns:
                             ml = max((len(str(c.value)) for c in col_cells if c.value), default=10)
@@ -3285,7 +3542,7 @@ with tab6:
                 f'<div><div style="font-family:\'Playfair Display\',serif;font-size:1.3rem;color:#f0ece0;">'
                 f'{sel_mem["name"]}</div>'
                 f'<div style="font-size:0.75rem;color:{t["color"]};letter-spacing:2px;font-weight:700;">'
-                f'{tlbl} — {t["disc"]}% {("折扣" if st.session_state.lang=="zh" else "discount")}</div></div></div>',
+                f'{tlbl} — {t["disc"]}% {_t("折扣","discount","diskaun")}</div></div></div>',
                 unsafe_allow_html=True)
 
             # Points progress bar to next tier
@@ -3412,7 +3669,7 @@ with tab6:
                     for _bk in _past_bks[:8]:
                         _bk_sub = " · ".join(filter(None,[_bk.get("stylist",""), _bk.get("service","")]))
                         _paid_clr = "#c9a84c" if _bk.get("paid") else "#555"
-                        _paid_tag = f'RM {float(_bk.get("final",0) or 0):.2f}' if _bk.get("paid") else ("已取消" if st.session_state.lang=="zh" else "Cancelled")
+                        _paid_tag = f'RM {float(_bk.get("final",0) or 0):.2f}' if _bk.get("paid") else _t("已取消","Cancelled","Dibatal")
                         st.markdown(
                             f'<div style="display:flex;justify-content:space-between;'
                             f'border-bottom:1px solid #1a1a1a;padding:5px 0;font-size:0.8rem;">'
