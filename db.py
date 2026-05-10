@@ -149,10 +149,11 @@ def db_update_salon_contact(salon_id: str, name: str, phone: str, email: str):
 
 
 def db_update_salon_profile(salon_id: str, profile: dict):
-    """Save full salon profile (address, ssm_no, hours, website, etc.)."""
+    """Save full salon profile (address, ssm_no, hours, website, tin, msic_code, etc.)."""
     allowed = {"contact_name", "contact_phone", "contact_email",
                "address", "city", "postcode", "ssm_no",
-               "operating_hours", "website"}
+               "operating_hours", "website",
+               "tin", "msic_code", "state_code"}
     payload = {k: v for k, v in profile.items() if k in allowed}
     if payload:
         _sb().table("salons").update(payload).eq("id", salon_id).execute()

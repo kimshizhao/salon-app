@@ -3201,7 +3201,178 @@ with tab5:
                     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                     key="excel_monthly",
                 )
-    
+
+            # ── LHDN e-Invoice (Consolidated B2C) ─────────────────────────
+            with st.expander(f"📄 {_t('生成合併 e-Invoice','Generate Consolidated e-Invoice','Jana e-Invois Disatukan')} — {settle_mth_str}"):
+                _si = st.session_state.get("salon_info", {}).get(st.session_state.cur_branch, {})
+                _tin  = _si.get("tin","")
+                _msic = _si.get("msic_code","96020")
+                _sc   = _si.get("state_code","14")
+
+                if not _tin:
+                    st.warning(_t(
+                        "⚠ 請先在【管理】頁面填寫 TIN（稅務編號）才能生成 e-Invoice",
+                        "⚠ Please enter your TIN (Tax ID) in the Admin tab before generating e-Invoice",
+                        "⚠ Sila masukkan TIN anda dalam tab Pentadbir sebelum menjana e-Invois"
+                    ))
+                else:
+                    _salon_nm  = st.session_state.branches.get(st.session_state.cur_branch,"Salon")
+                    _salon_adr = _si.get("address","NA")
+                    _salon_cty = _si.get("city","Kuala Lumpur")
+                    _salon_pst = _si.get("postcode","50000")
+                    _salon_tel = _si.get("contact_phone","")
+                    _salon_eml = _si.get("contact_email","")
+                    _salon_ssm = _si.get("ssm_no","NA")
+
+                    # Totals
+                    _ei_total   = round(mth_collected + mth_walkin_t, 2)
+                    _inv_num    = f"CIN-{int(sel_year)}{sel_month:02d}-001"
+                    _start_date = f"{int(sel_year)}-{sel_month:02d}-01"
+                    _days_em    = _cal.monthrange(int(sel_year), sel_month)[1]
+                    _end_date   = f"{int(sel_year)}-{sel_month:02d}-{_days_em:02d}"
+                    _issue_date = _end_date
+                    _issue_time = "23:59:59Z"
+
+                    st.markdown(
+                        f'<div style="background:#0d1a00;border:1px solid #2ecc7133;border-radius:8px;'
+                        f'padding:10px 14px;font-size:0.8rem;color:#aaa;margin-bottom:8px;">'
+                        f'<b style="color:#2ecc71;">Invoice No:</b> {_inv_num} &nbsp;·&nbsp; '
+                        f'<b style="color:#2ecc71;">Period:</b> {_start_date} → {_end_date} &nbsp;·&nbsp; '
+                        f'<b style="color:#c9a84c;">Total:</b> RM {_ei_total:.2f} &nbsp;·&nbsp; '
+                        f'<b>Tax:</b> RM 0.00 (SST-Exempt) &nbsp;·&nbsp; '
+                        f'<b>TIN:</b> {_tin}</div>',
+                        unsafe_allow_html=True)
+
+                    def _build_einvoice_json():
+                        """Build LHDN UBL 2.1 compliant JSON for consolidated B2C monthly invoice."""
+                        import json as _json
+                        doc = {
+                          "_D": "urn:oasis:names:specification:ubl:schema:xsd:Invoice-2",
+                          "_A": "urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2",
+                          "_B": "urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2",
+                          "Invoice": [{
+                            "ID": [{"_": _inv_num}],
+                            "IssueDate": [{"_": _issue_date}],
+                            "IssueTime": [{"_": _issue_time}],
+                            "InvoiceTypeCode": [{"_": "01", "listVersionID": "1.0"}],
+                            "DocumentCurrencyCode": [{"_": "MYR"}],
+                            "TaxCurrencyCode": [{"_": "MYR"}],
+                            "InvoicePeriod": [{
+                              "StartDate": [{"_": _start_date}],
+                              "EndDate": [{"_": _end_date}],
+                              "Description": [{"_": "Monthly"}]
+                            }],
+                            "BillingReference": [{"AdditionalDocumentReference": [{"ID": [{"_": "NA"}]}]}],
+                            "AccountingSupplierParty": [{
+                              "Party": [{
+                                "IndustryClassificationCode": [{"_": _msic, "name": "Hairdressing and other beauty treatment"}],
+                                "PartyIdentification": [
+                                  {"ID": [{"_": _tin,      "schemeID": "TIN"}]},
+                                  {"ID": [{"_": _salon_ssm or "NA", "schemeID": "BRN"}]},
+                                  {"ID": [{"_": "NA",      "schemeID": "SST"}]},
+                                  {"ID": [{"_": "NA",      "schemeID": "TTX"}]},
+                                ],
+                                "PostalAddress": [{
+                                  "CityName": [{"_": _salon_cty}],
+                                  "PostalZone": [{"_": _salon_pst}],
+                                  "CountrySubentityCode": [{"_": _sc}],
+                                  "AddressLine": [{"Line": [{"_": _salon_adr or "NA"}]}],
+                                  "Country": [{"IdentificationCode": [{"_": "MYS"}]}]
+                                }],
+                                "PartyLegalEntity": [{"RegistrationName": [{"_": _salon_nm}]}],
+                                "Contact": [{"Telephone": [{"_": _salon_tel or "NA"}], "ElectronicMail": [{"_": _salon_eml or "NA"}]}]
+                              }]
+                            }],
+                            "AccountingCustomerParty": [{
+                              "Party": [{
+                                "PostalAddress": [{
+                                  "CityName": [{"_": "NA"}],
+                                  "PostalZone": [{"_": "00000"}],
+                                  "CountrySubentityCode": [{"_": "14"}],
+                                  "AddressLine": [{"Line": [{"_": "NA"}]}],
+                                  "Country": [{"IdentificationCode": [{"_": "MYS"}]}]
+                                }],
+                                "PartyIdentification": [{"ID": [{"_": "EI00000000010", "schemeID": "TIN"}]}],
+                                "PartyLegalEntity": [{"RegistrationName": [{"_": "General Public"}]}]
+                              }]
+                            }],
+                            "Delivery": [{"DeliveryParty": [{"PostalAddress": [{"CityName": [{"_": "NA"}], "PostalZone": [{"_": "00000"}], "CountrySubentityCode": [{"_": "14"}], "AddressLine": [{"Line": [{"_": "NA"}]}], "Country": [{"IdentificationCode": [{"_": "MYS"}]}]}], "PartyLegalEntity": [{"RegistrationName": [{"_": "General Public"}]}]}]}],
+                            "PaymentMeans": [{"PaymentMeansCode": [{"_": "01"}], "PayeeFinancialAccount": [{"ID": [{"_": "NA"}]}]}],
+                            "PaymentTerms": [{"Note": [{"_": "Cash / Card / E-wallet"}]}],
+                            "TaxTotal": [{
+                              "TaxAmount": [{"_": 0, "currencyID": "MYR"}],
+                              "TaxSubtotal": [{
+                                "TaxableAmount": [{"_": _ei_total, "currencyID": "MYR"}],
+                                "TaxAmount": [{"_": 0, "currencyID": "MYR"}],
+                                "TaxCategory": [{
+                                  "ID": [{"_": "E"}],
+                                  "TaxExemptionReason": [{"_": "SST-Exempt"}],
+                                  "TaxScheme": [{"ID": [{"_": "OTH", "schemeID": "UN/ECE 5153", "schemeAgencyID": "6"}]}]
+                                }]
+                              }]
+                            }],
+                            "LegalMonetaryTotal": [{
+                              "LineExtensionAmount": [{"_": _ei_total, "currencyID": "MYR"}],
+                              "TaxExclusiveAmount": [{"_": _ei_total, "currencyID": "MYR"}],
+                              "TaxInclusiveAmount": [{"_": _ei_total, "currencyID": "MYR"}],
+                              "AllowanceTotalAmount": [{"_": 0, "currencyID": "MYR"}],
+                              "ChargeTotalAmount": [{"_": 0, "currencyID": "MYR"}],
+                              "PayableRoundingAmount": [{"_": 0, "currencyID": "MYR"}],
+                              "PayableAmount": [{"_": _ei_total, "currencyID": "MYR"}]
+                            }],
+                            "InvoiceLine": [{
+                              "ID": [{"_": "1"}],
+                              "InvoicedQuantity": [{"_": 1, "unitCode": "C62"}],
+                              "LineExtensionAmount": [{"_": _ei_total, "currencyID": "MYR"}],
+                              "AllowanceCharge": [{"ChargeIndicator": [{"_": False}], "MultiplierFactorNumeric": [{"_": 0}], "Amount": [{"_": 0, "currencyID": "MYR"}]}],
+                              "TaxTotal": [{
+                                "TaxAmount": [{"_": 0, "currencyID": "MYR"}],
+                                "TaxSubtotal": [{
+                                  "TaxableAmount": [{"_": _ei_total, "currencyID": "MYR"}],
+                                  "TaxAmount": [{"_": 0, "currencyID": "MYR"}],
+                                  "TaxCategory": [{
+                                    "ID": [{"_": "E"}],
+                                    "TaxExemptionReason": [{"_": "SST-Exempt"}],
+                                    "TaxScheme": [{"ID": [{"_": "OTH", "schemeID": "UN/ECE 5153", "schemeAgencyID": "6"}]}]
+                                  }]
+                                }]
+                              }],
+                              "Item": [{
+                                "CommodityClassification": [{"ItemClassificationCode": [{"_": "022", "listID": "CLASS"}]}],
+                                "Description": [{"_": f"Salon Services (Consolidated B2C) — {_start_date} to {_end_date}"}]
+                              }],
+                              "Price": [{"PriceAmount": [{"_": _ei_total, "currencyID": "MYR"}]}],
+                              "ItemPriceExtension": [{"Amount": [{"_": _ei_total, "currencyID": "MYR"}]}]
+                            }]
+                          }]
+                        }
+                        return _json.dumps(doc, ensure_ascii=False, indent=2).encode("utf-8")
+
+                    _ei_col1, _ei_col2 = st.columns(2)
+                    with _ei_col1:
+                        st.download_button(
+                            label=f"⬇ {_t('下載 e-Invoice JSON','Download e-Invoice JSON','Muat Turun e-Invois JSON')}",
+                            data=_build_einvoice_json(),
+                            file_name=f"eInvoice_{_inv_num}.json",
+                            mime="application/json",
+                            key="einv_json_dl",
+                        )
+                    with _ei_col2:
+                        st.markdown(
+                            f'<a href="https://myinvois.hasil.gov.my" target="_blank" '
+                            f'style="display:inline-block;background:#1a3300;border:1px solid #2ecc71;'
+                            f'color:#2ecc71;padding:0.5rem 1rem;border-radius:8px;font-size:0.82rem;'
+                            f'text-decoration:none;font-weight:600;margin-top:4px;">'
+                            f'🌐 {_t("提交到 MyInvois Portal","Submit to MyInvois Portal","Hantar ke Portal MyInvois")}'
+                            f'</a>',
+                            unsafe_allow_html=True)
+                    st.markdown(
+                        f'<div style="background:#1a1a00;border:1px solid #c9a84c33;border-radius:6px;'
+                        f'padding:8px 12px;font-size:0.75rem;color:#888;margin-top:8px;">'
+                        f'📌 {_t("步驟：① 下載 JSON ② 登入 MyInvois Portal ③ 選擇「提交 e-Invoice」→「批量上傳」→ 上傳此 JSON 檔案","Steps: ① Download JSON ② Log into MyInvois Portal ③ Select Submit e-Invoice → Bulk Upload → Upload this JSON file","Langkah: ① Muat turun JSON ② Log masuk ke Portal MyInvois ③ Pilih Hantar e-Invois → Muat Naik Pukal → Muat naik fail JSON ini")}'
+                        f'</div>',
+                        unsafe_allow_html=True)
+
             # ── Monthly stats ─────────────────────────────────────────────────
             st.markdown("<hr>", unsafe_allow_html=True)
             ms1,ms2,ms3,ms4 = st.columns(4, gap="medium")
@@ -4003,6 +4174,47 @@ if _can("admin"):
                                           value=cur_info.get("operating_hours",""), key="pf_hours",
                                           placeholder="Mon–Sat: 10am – 8pm, Sun: Closed")
 
+            # ── e-Invoice (LHDN MyInvois) ──────────────────────────────────
+            st.markdown("<hr style='margin:10px 0;border-color:#1a1a1a'>", unsafe_allow_html=True)
+            st.markdown(
+                f'<p style="color:#c9a84c;font-size:0.8rem;letter-spacing:2px;margin-bottom:6px;">'
+                f'📄 e-INVOICE (LHDN MyInvois)</p>',
+                unsafe_allow_html=True)
+            _MY_STATES = {
+                "14": "W.P. Kuala Lumpur", "12": "Selangor", "01": "Johor",
+                "02": "Kedah", "09": "Pulau Pinang", "07": "Perak",
+                "06": "Pahang", "05": "Negeri Sembilan", "04": "Melaka",
+                "13": "Terengganu", "03": "Kelantan", "08": "Perlis",
+                "10": "Sabah", "11": "Sarawak", "15": "W.P. Labuan",
+                "16": "W.P. Putrajaya",
+            }
+            _state_labels = [f"{code} — {name}" for code, name in _MY_STATES.items()]
+            _cur_state = cur_info.get("state_code", "14")
+            _cur_state_label = next((l for l in _state_labels if l.startswith(_cur_state)), _state_labels[0])
+            ei_c1, ei_c2, ei_c3 = st.columns(3)
+            with ei_c1:
+                pf_tin  = st.text_input("TIN (No. Cukai Pendapatan)",
+                                        value=cur_info.get("tin",""), key="pf_tin",
+                                        placeholder="C12345678901",
+                                        help="LHDN Tax Identification Number")
+            with ei_c2:
+                pf_msic = st.text_input("Kod MSIC",
+                                        value=cur_info.get("msic_code","96020"), key="pf_msic",
+                                        placeholder="96020",
+                                        help="96020 = Hairdressing & Beauty Treatment")
+            with ei_c3:
+                pf_state_sel = st.selectbox("Negeri / 州屬", _state_labels,
+                                            index=_state_labels.index(_cur_state_label),
+                                            key="pf_state")
+            pf_state_code = pf_state_sel.split(" — ")[0]
+            st.markdown(
+                f'<div style="background:#0d1000;border:1px solid #2ecc7133;border-radius:6px;'
+                f'padding:6px 10px;font-size:0.75rem;color:#888;margin-top:4px;">'
+                f'💡 {"TIN 可在 MyTax 入口網站查詢：" if is_zh else "Find your TIN at: "}'
+                f'<a href="https://mytax.hasil.gov.my" target="_blank" style="color:#2ecc71;">mytax.hasil.gov.my</a>'
+                f'&nbsp;·&nbsp; MSIC 96020 = Hairdressing & Other Beauty Treatment</div>',
+                unsafe_allow_html=True)
+
             if st.button("💾 " + ("儲存基本資料" if is_zh else "Save Profile"),
                          key="save_profile_btn", type="primary"):
                 profile_data = {
@@ -4015,6 +4227,9 @@ if _can("admin"):
                     "ssm_no":          pf_ssm.strip(),
                     "operating_hours": pf_hours.strip(),
                     "website":         pf_web.strip(),
+                    "tin":             pf_tin.strip(),
+                    "msic_code":       pf_msic.strip() or "96020",
+                    "state_code":      pf_state_code,
                 }
                 if _USE_DB:
                     try:

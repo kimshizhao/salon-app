@@ -136,6 +136,11 @@ alter table salons add column if not exists website          text    default '';
 alter table salons add column if not exists city             text    default '';
 alter table salons add column if not exists postcode         text    default '';
 
+-- e-Invoice fields (Malaysia LHDN MyInvois compliance)
+alter table salons add column if not exists tin          text default '';   -- Tax Identification Number
+alter table salons add column if not exists msic_code    text default '96020'; -- MSIC 96020 = Hair salons
+alter table salons add column if not exists state_code   text default '14'; -- 14 = WP Kuala Lumpur
+
 -- Session tokens for persistent login (F5 refresh)
 create table if not exists sessions (
   token       text primary key,
