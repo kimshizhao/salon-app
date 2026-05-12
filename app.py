@@ -1556,6 +1556,16 @@ def build_receipt_html(r: dict, lang: str) -> str:
         <td colspan="2" style="text-align:right;">{stylist}</td>
       </tr>"""
 
+    note_val = r.get("note", "")
+    note_row = ""
+    if note_val:
+        note_lbl = "Catatan / 备注" if not is_zh else "备注"
+        note_row = f"""
+      <tr class="info-row">
+        <td colspan="2">{note_lbl}</td>
+        <td colspan="2" style="text-align:right;font-style:italic;color:#555;">{note_val}</td>
+      </tr>"""
+
     pay_lbl   = "Kaedah Pembayaran" if not is_zh else "付款方式"
     total_lbl = "JUMLAH / TOTAL" if not is_zh else "总计"
     sst_note  = "Harga adalah termasuk SST / Harga tidak termasuk SST (Dikecualikan)" \
@@ -1694,6 +1704,7 @@ def build_receipt_html(r: dict, lang: str) -> str:
         {disc_row_html}
         {stylist_row}
         {member_rows}
+        {note_row}
       </tbody>
     </table>
 
@@ -2542,12 +2553,29 @@ with tab3:
                                 f'{tier_lbl} · {u("mem_disc_hint").format(mem_disc_pct)}</div>',
                                 unsafe_allow_html=True)
 
+                # Stylist override at checkout
+                _bk_sty_default = sel_bk.get("stylist", "") or ""
+                _sty_opts_bk = [u("any_stylist")] + (st.session_state.stylists or [])
+                _sty_idx_bk  = (_sty_opts_bk.index(_bk_sty_default)
+                                if _bk_sty_default in _sty_opts_bk else 0)
+                pay_stylist_sel = st.selectbox(
+                    u("stylist"), _sty_opts_bk,
+                    index=_sty_idx_bk, key="pay_stylist_sel"
+                )
+                pay_stylist_val = "" if pay_stylist_sel == u("any_stylist") else pay_stylist_sel
+
                 a1, a2 = st.columns(2)
                 with a1:
                     default_disc = mem_disc_pct
                     disc_pct = st.number_input(u("disc_label"), 0, 100, default_disc, 5, key="disc_pct")
                 with a2:
                     extra = st.number_input(u("extra_label"), 0.0, 9999.0, 0.0, 5.0, key="extra_chg")
+
+                pay_note = st.text_input(
+                    "📝 " + _t("备注","Remark","Catatan"),
+                    placeholder=_t("例：客人要求加护发","e.g. Extra treatment requested","Cth: Rawatan tambahan"),
+                    key="pay_note"
+                )
 
                 final = round(orig * (1 - disc_pct / 100) + extra, 2)
                 adj_note = ""
@@ -2561,10 +2589,11 @@ with tab3:
                 pts_earn = int(final)
                 pts_note = f"<div style='font-size:0.74rem;color:#3498db;margin-top:4px;'>+{pts_earn} pts</div>" if pay_mem else ""
 
+                _sty_display = pay_stylist_val or u('any_stylist')
                 st.markdown(f"""
                 <div class="checkout-box" style="margin:0.8rem 0;">
                   <div class="checkout-customer">{sel_bk['name']}</div>
-                  <div class="checkout-svc">{sel_bk.get('stylist','') or u('any_stylist')} · {sel_bk['service']} · {sel_bk['time']}</div>
+                  <div class="checkout-svc">✂️ {_sty_display} · {sel_bk['service']} · {sel_bk['time']}</div>
                   {adj_note}
                   <div class="checkout-price">RM {final:.2f}</div>
                   {pts_note}
@@ -2579,9 +2608,12 @@ with tab3:
                     for b in st.session_state.bookings:
                         if (b["name"] == sel_bk["name"] and b["date"] == sel_bk["date"]
                                 and b["time"] == sel_bk["time"]):
-                            b.update({"paid": True, "method": chosen_key, "final": final})
+                            b.update({"paid": True, "method": chosen_key, "final": final,
+                                      "stylist": pay_stylist_val, "note": pay_note.strip()})
                             if _USE_DB and b.get("id"):
-                                try: db_update_booking(b["id"], {"paid": True, "method": chosen_key, "final": final})
+                                try: db_update_booking(b["id"], {"paid": True, "method": chosen_key,
+                                                                  "final": final, "stylist": pay_stylist_val,
+                                                                  "note": pay_note.strip()})
                                 except Exception: pass
                             break
                     _bd()["bookings"] = st.session_state.bookings
@@ -2589,7 +2621,7 @@ with tab3:
                     st.session_state.sel_receipt = {
                         "name":     sel_bk["name"],
                         "service":  sel_bk["service"],
-                        "stylist":  sel_bk.get("stylist",""),
+                        "stylist":  pay_stylist_val or sel_bk.get("stylist",""),
                         "time":     sel_bk["time"],
                         "date":     today_str,
                         "subtotal": orig,
@@ -2599,6 +2631,7 @@ with tab3:
                         "method":   chosen_key,
                         "member":   pay_mem["name"] if pay_mem else "",
                         "pts":      pts_earn if pay_mem else 0,
+                        "note":     pay_note.strip(),
                     }
                     # Add points + history to member
                     if pay_mem:
@@ -2673,13 +2706,19 @@ with tab3:
                 wi_mem_nm = wi_mem_sel.split("  (")[0]
                 wi_pay_mem = next((m for m in st.session_state.members if m["name"] == wi_mem_nm), None)
 
+            wi_note = st.text_input(
+                "📝 " + _t("备注","Remark","Catatan"),
+                placeholder=_t("例：客人要求加护发","e.g. Extra treatment requested","Cth: Rawatan tambahan"),
+                key="wi_note"
+            )
+
             wi_pts_earn = int(wi_amt)
             wi_pts_note = f"<div style='font-size:0.74rem;color:#3498db;'>+{wi_pts_earn} pts</div>" if wi_pay_mem else ""
 
             st.markdown(f"""
             <div class="checkout-box" style="margin:0.8rem 0;">
               <div class="checkout-customer">{wi_name or "—"}</div>
-              <div class="checkout-svc">{(" · ".join(filter(None,[wi_stylist_val, wi_svc]))) or "—"}</div>
+              <div class="checkout-svc">✂️ {(" · ".join(filter(None,[wi_stylist_val, wi_svc]))) or "—"}</div>
               <div class="checkout-price">RM {wi_amt:.2f}</div>
               {wi_pts_note}
             </div>
@@ -2696,6 +2735,7 @@ with tab3:
                     new_wi = {"name": wi_name.strip(), "phone": wi_phone.strip(),
                               "service": wi_svc or "—",
                               "stylist": wi_stylist_val,
+                              "note": wi_note.strip(),
                               "date": today_str, "final": wi_amt, "method": wi_key}
                     st.session_state.walkins.append(new_wi)
                     _bd()["walkins"] = st.session_state.walkins
@@ -2722,6 +2762,7 @@ with tab3:
                         "method":   wi_key,
                         "member":   wi_pay_mem["name"] if wi_pay_mem else "",
                         "pts":      wi_pts_earn if wi_pay_mem else 0,
+                        "note":     wi_note.strip(),
                     }
                     if wi_pay_mem:
                         for m in st.session_state.members:
