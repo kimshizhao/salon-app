@@ -1959,7 +1959,42 @@ with st.sidebar:
         "<hr style='border:none;border-top:1px solid #1a1a1a;margin:12px 0 8px 0;'>",
         unsafe_allow_html=True,
     )
-    # Branch + user info at bottom
+
+    # ── Booking link ─────────────────────────────────────────────────────
+    try:
+        _sb_host  = st.context.headers.get("host", "")
+        _sb_proto = "https" if (_sb_host and "localhost" not in _sb_host) else "http"
+        _sb_base  = f"{_sb_proto}://{_sb_host}" if _sb_host else ""
+    except Exception:
+        _sb_base = st.session_state.get("app_base_url_saved", "")
+
+    _sb_branch = st.session_state.get("cur_branch", "")
+    if _sb_base and _sb_branch:
+        _sb_link = f"{_sb_base.rstrip('/')}/booking?salon={_sb_branch}"
+        _sb_bname = st.session_state.get("branches", {}).get(_sb_branch, _sb_branch)
+        st.markdown(
+            f"<div style='font-size:0.68rem;color:#555;letter-spacing:1px;margin-bottom:4px;'>🔗 预约链接</div>"
+            f"<div style='background:#0a0a0a;border:1px solid #c9a84c33;border-radius:6px;"
+            f"padding:7px 9px;margin-bottom:6px;'>"
+            f"<div style='color:#c9a84c;font-size:0.7rem;font-weight:600;margin-bottom:3px;"
+            f"white-space:nowrap;overflow:hidden;text-overflow:ellipsis;' title='{_sb_bname}'>{_sb_bname}</div>"
+            f"<div style='color:#555;font-size:0.63rem;word-break:break-all;line-height:1.4;'>{_sb_link}</div>"
+            f"</div>",
+            unsafe_allow_html=True,
+        )
+        st.markdown(
+            f"<button onclick=\"navigator.clipboard.writeText('{_sb_link}').then(()=>{{this.innerHTML='✅ 已复制!';this.style.color='#2ecc71';setTimeout(()=>{{this.innerHTML='📋 复制预约链接';this.style.color='#c9a84c'}},2000)}})\" "
+            f"style='width:100%;background:#0d0d0d;color:#c9a84c;border:1px solid #c9a84c44;"
+            f"border-radius:6px;padding:7px 0;cursor:pointer;font-size:0.74rem;font-weight:600;"
+            f"letter-spacing:1px;transition:all .2s;margin-bottom:8px;'>📋 复制预约链接</button>",
+            unsafe_allow_html=True,
+        )
+        st.markdown(
+            "<hr style='border:none;border-top:1px solid #111;margin:4px 0 8px 0;'>",
+            unsafe_allow_html=True,
+        )
+
+    # ── User info ─────────────────────────────────────────────────────────
     _uname = st.session_state.get("user_name") or st.session_state.get("username","")
     _role_lbl = ROLE_LABEL_ZH.get(st.session_state.get("role",""), st.session_state.get("role",""))
     st.markdown(
