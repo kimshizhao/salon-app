@@ -143,12 +143,26 @@ st.markdown("""
   }
   #MainMenu, footer, header { visibility:hidden; }
 
-  /* ── Sidebar styling ─────────────────────────────────────── */
+  /* ── Sidebar: always visible, never collapsible ────────── */
   [data-testid="stSidebar"] {
     background:linear-gradient(180deg,#0c0c11 0%,#08080c 100%) !important;
     border-right:1px solid rgba(201,168,76,0.15) !important;
     min-width:175px !important;
     max-width:200px !important;
+    display:flex !important;
+    visibility:visible !important;
+    transform:none !important;
+  }
+  /* Force expanded even if Streamlit wants to collapse it */
+  [data-testid="stSidebar"][aria-expanded="false"] {
+    margin-left:0 !important;
+    min-width:175px !important;
+    display:flex !important;
+  }
+  /* Hide the collapse/expand arrow button */
+  button[data-testid="collapsedControl"],
+  [data-testid="collapsedControl"] {
+    display:none !important;
   }
   [data-testid="stSidebarContent"] { padding:0.5rem 0.6rem !important; }
   [data-testid="stSidebarContent"] button[kind="secondary"] {
@@ -1958,6 +1972,23 @@ with st.sidebar:
     )
 
 _active = st.session_state.active_tab
+
+# Force sidebar to stay expanded via JS (in case CSS alone isn't enough)
+st.markdown("""
+<script>
+(function(){
+  function ensureSidebarOpen(){
+    var sb = window.parent.document.querySelector('[data-testid="stSidebar"]');
+    if(sb && sb.getAttribute('aria-expanded') === 'false'){
+      var btn = window.parent.document.querySelector('button[data-testid="collapsedControl"]');
+      if(btn) btn.click();
+    }
+  }
+  setTimeout(ensureSidebarOpen, 200);
+  setTimeout(ensureSidebarOpen, 800);
+})();
+</script>
+""", unsafe_allow_html=True)
 
 # ═════════════════════════════════════════════════════════════════════════════
 # TAB 1 — BOOKINGS  (no pricing shown)
