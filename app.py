@@ -1404,8 +1404,8 @@ if _USE_DB and _auto_refresh_count > 0:
 hdr_l, hdr_m, hdr_r = st.columns([2, 3, 2])
 with hdr_l:
     st.markdown("<div style='height:10px'></div>", unsafe_allow_html=True)
-    # Branch selector (owner sees all branches)
-    if _can("view_all") and len(st.session_state.branches) > 1:
+    # Branch selector — only platform admin can switch between salons
+    if _can("super_admin") and len(st.session_state.branches) > 1:
         branch_opts  = list(st.session_state.branches.keys())
         branch_names = [st.session_state.branches[b] for b in branch_opts]
         cur_idx      = branch_opts.index(st.session_state.cur_branch) if st.session_state.cur_branch in branch_opts else 0
