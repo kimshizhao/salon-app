@@ -4683,7 +4683,11 @@ if _can("admin"):
 
         _base = app_base.strip() or _auto_base
         if _base:
-            for bid, bname in st.session_state.branches.items():
+            # Admin sees all branches; others only see their own branch
+            _my_br = st.session_state.get("cur_branch", "")
+            _link_branches = st.session_state.branches.items() if _can("super_admin") \
+                             else [(b, n) for b, n in st.session_state.branches.items() if b == _my_br]
+            for bid, bname in _link_branches:
                 link = f"{_base.rstrip('/')}/booking?salon={bid}"
                 st.markdown(
                     f'<div style="display:flex;align-items:center;justify-content:space-between;'
