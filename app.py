@@ -94,18 +94,73 @@ st.markdown(
 st.markdown("""
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Raleway:wght@300;400;600&display=swap');
-  html, body, [class*="css"] { font-family:'Raleway',sans-serif; background:#0a0a0a; color:#f0ece0; }
-  .stApp { background-color:#0a0a0a; }
+  /* ── Premium system shell: layered depth ───────────────────────────────── */
+  html {
+    font-family:'Raleway',sans-serif;
+    color:#f0ece0;
+    background-color:#060608 !important;
+  }
+  body { background:#060608 !important; }
+  html, body, [class*="css"] {
+    font-family:'Raleway',sans-serif;
+    color:#f0ece0;
+  }
+  .stApp {
+    background-color:#060608;
+    background-image:
+      radial-gradient(ellipse 100% 80% at 50% -15%, rgba(201,168,76,0.14), transparent 55%),
+      radial-gradient(ellipse 70% 50% at 110% 5%, rgba(201,168,76,0.06), transparent 50%),
+      radial-gradient(ellipse 70% 50% at -10% 95%, rgba(245,225,154,0.05), transparent 50%),
+      linear-gradient(168deg,
+        #0c0c11 0%,
+        #08080c 38%,
+        #0a0910 72%,
+        #060607 100%);
+    background-attachment: fixed;
+  }
+  section[data-testid="stMain"], section.main {
+    background-image:
+      repeating-linear-gradient(90deg, transparent 0px, transparent 63px,
+        rgba(201,168,76,0.028) 63px, rgba(201,168,76,0.028) 64px),
+      repeating-linear-gradient(0deg, transparent 0px, transparent 63px,
+        rgba(201,168,76,0.028) 63px, rgba(201,168,76,0.028) 64px),
+      radial-gradient(ellipse 120% 100% at 50% 0%, rgba(0,0,0,0), rgba(0,0,0,0.25) 100%);
+    background-attachment: fixed;
+    position: relative;
+  }
+  .block-container {
+    padding:1.5rem 2rem 2rem !important;
+    max-width:960px !important;
+    width:100% !important;
+    margin:0 auto !important;
+  }
   #MainMenu, footer, header { visibility:hidden; }
-  .block-container { padding:1.5rem 2rem 2rem; max-width:960px !important; width:100% !important; }
 
-  .hero { text-align:center; padding:2.2rem 1rem 1.2rem; border-bottom:1px solid #c9a84c44; margin-bottom:1.6rem; }
+  .hero {
+    text-align:center;
+    padding:2.2rem 1rem 1.2rem;
+    margin-bottom:1.6rem;
+    border-radius:14px;
+    border:1px solid rgba(201,168,76,0.18);
+    background:linear-gradient(145deg, rgba(16,14,18,0.92) 0%, rgba(8,8,12,0.55) 100%);
+    box-shadow:
+      inset 0 1px 0 rgba(245,225,154,0.06),
+      0 4px 32px rgba(0,0,0,0.45),
+      0 0 0 1px rgba(255,255,255,0.02);
+    backdrop-filter:saturate(120%) blur(10px);
+    -webkit-backdrop-filter:saturate(120%) blur(10px);
+  }
   .hero-title { font-family:'Playfair Display',serif; font-size:2.8rem; font-weight:700; letter-spacing:8px;
     background:linear-gradient(135deg,#c9a84c,#f5e19a,#c9a84c);
     -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; margin:0; }
   .hero-sub { font-size:0.78rem; letter-spacing:4px; color:#888; margin-top:0.3rem; text-transform:uppercase; }
 
-  .stTabs [data-baseweb="tab-list"] { gap:4px; background:#111; border-radius:8px; padding:6px; border:1px solid #c9a84c33; }
+  .stTabs [data-baseweb="tab-list"] { gap:4px;
+    background:rgba(14,13,17,0.85); border-radius:10px; padding:6px;
+    border:1px solid rgba(201,168,76,0.22);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,0.04), 0 8px 24px rgba(0,0,0,0.35);
+    backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);
+  }
   .stTabs [data-baseweb="tab"] { font-family:'Raleway',sans-serif; font-weight:600; letter-spacing:2px; font-size:0.76rem;
     text-transform:uppercase; color:#888 !important; background:transparent; border:none; border-radius:6px;
     padding:9px 18px; transition:all .25s; }
@@ -113,13 +168,26 @@ st.markdown("""
   .stTabs [data-baseweb="tab-highlight"] { background:transparent !important; }
   .stTabs [data-baseweb="tab-border"] { display:none; }
 
-  .card { background:#111; border:1px solid #c9a84c33; border-radius:12px; padding:1.5rem 1.8rem; margin-bottom:1.2rem; }
+  .card {
+    background:linear-gradient(155deg, rgba(18,16,22,0.92) 0%, rgba(10,10,14,0.78) 100%);
+    border:1px solid rgba(201,168,76,0.2);
+    border-radius:13px;
+    padding:1.5rem 1.8rem;
+    margin-bottom:1.2rem;
+    box-shadow:
+      inset 0 1px 0 rgba(245,225,154,0.05),
+      0 4px 28px rgba(0,0,0,0.42);
+    backdrop-filter:saturate(115%) blur(8px);
+    -webkit-backdrop-filter:saturate(115%) blur(8px);
+  }
   .card-title { font-family:'Playfair Display',serif; font-size:1.15rem; color:#c9a84c; margin-bottom:0.8rem; letter-spacing:1px; }
 
   .stTextInput>div>div>input, .stTextArea>div>div>textarea, .stSelectbox>div>div,
   .stDateInput>div>div>input, .stNumberInput>div>div>input {
-    background-color:#1a1a1a !important; border:1px solid #c9a84c55 !important;
-    border-radius:8px !important; color:#f0ece0 !important; font-family:'Raleway',sans-serif !important; }
+    background-color:rgba(16,15,18,0.92) !important; border:1px solid rgba(201,168,76,0.35) !important;
+    border-radius:8px !important; color:#f0ece0 !important; font-family:'Raleway',sans-serif !important;
+    backdrop-filter:saturate(110%) blur(4px); -webkit-backdrop-filter:saturate(110%) blur(4px);
+  }
   .stTextInput>div>div>input:focus, .stTextArea>div>div>textarea:focus {
     border-color:#c9a84c !important; box-shadow:0 0 0 2px #c9a84c22 !important; }
   label, .stMarkdown p { color:#ccb97a !important; font-size:0.85rem; letter-spacing:1px; }
@@ -138,22 +206,32 @@ st.markdown("""
     padding:0.9rem 1.2rem; margin-bottom:1rem; color:#a8f5c8; }
 
   /* Stat boxes */
-  .stat-box { background:#111; border:1px solid #c9a84c33; border-radius:12px;
-    padding:1rem 1.2rem; text-align:center; }
+  .stat-box {
+    background:linear-gradient(160deg, rgba(16,14,18,0.9) 0%, rgba(8,9,12,0.75) 100%);
+    border:1px solid rgba(201,168,76,0.18);
+    border-radius:12px;
+    padding:1rem 1.2rem; text-align:center;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,0.04), 0 6px 20px rgba(0,0,0,0.35);
+    backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px);
+  }
   .stat-val { font-family:'Playfair Display',serif; font-size:1.6rem; color:#c9a84c; font-weight:700; }
   .stat-lbl { font-size:0.68rem; letter-spacing:2px; color:#666; text-transform:uppercase; margin-top:2px; }
 
   /* Checkout */
-  .checkout-box { background:linear-gradient(135deg,#1a1500,#0f0f0f); border:1px solid #c9a84c55;
-    border-radius:14px; padding:1.4rem 1.6rem; }
+  .checkout-box { background:linear-gradient(145deg, rgba(26,21,14,0.95), rgba(8,10,14,0.88));
+    border:1px solid rgba(201,168,76,0.28); border-radius:14px; padding:1.4rem 1.6rem;
+    box-shadow:0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(245,225,154,0.06); }
   .checkout-price { font-family:'Playfair Display',serif; font-size:2.8rem; color:#c9a84c;
     font-weight:700; text-align:center; margin:0.5rem 0; }
   .checkout-customer { font-size:1.05rem; color:#f0ece0; text-align:center; letter-spacing:2px; }
   .checkout-svc { font-size:0.78rem; color:#888; text-align:center; margin-top:2px; letter-spacing:1px; }
 
   /* Stylist schedule card */
-  .sched-card { background:#111; border:1px solid #c9a84c33; border-radius:12px;
-    padding:1.2rem 1.4rem; margin-bottom:0.8rem; }
+  .sched-card {
+    background:linear-gradient(160deg, rgba(16,14,18,0.9) 0%, rgba(8,9,13,0.82) 100%);
+    border:1px solid rgba(201,168,76,0.18); border-radius:12px;
+    padding:1.2rem 1.4rem; margin-bottom:0.8rem;
+    box-shadow:0 4px 20px rgba(0,0,0,0.35); }
   .sched-avatar { width:44px; height:44px; border-radius:50%; display:flex; align-items:center;
     justify-content:center; font-size:1.1rem; font-weight:700; flex-shrink:0; }
   .sched-name { font-family:'Playfair Display',serif; font-size:1rem; color:#c9a84c; letter-spacing:1px; }
@@ -170,9 +248,14 @@ st.markdown("""
     margin:4px; font-size:0.82rem; color:#f0ece0; }
 
   /* Inventory */
-  .inv-card { background:#111; border:1px solid #c9a84c33; border-radius:12px; padding:1.1rem;
-    text-align:center; transition:all .2s; margin-bottom:4px; }
-  .inv-card:hover { border-color:#c9a84c99; transform:translateY(-2px); }
+  .inv-card {
+    background:linear-gradient(175deg, rgba(16,15,18,0.92) 0%, rgba(8,9,11,0.8) 100%);
+    border:1px solid rgba(201,168,76,0.16); border-radius:12px; padding:1.1rem;
+    text-align:center; transition:border-color .2s, transform .2s, box-shadow .2s;
+    margin-bottom:4px;
+    box-shadow:0 4px 18px rgba(0,0,0,0.32); }
+  .inv-card:hover { border-color:rgba(201,168,76,0.45); transform:translateY(-2px);
+    box-shadow:0 8px 26px rgba(0,0,0,0.45); }
   .inv-name { font-family:'Playfair Display',serif; font-size:0.88rem; color:#c9a84c; min-height:2.2rem; }
   .inv-qty { font-size:2rem; font-weight:700; color:#f0ece0; margin:0.2rem 0; }
   .inv-unit { font-size:0.7rem; letter-spacing:2px; color:#666; text-transform:uppercase; }

@@ -43,12 +43,38 @@ except Exception:
 st.markdown("""
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Raleway:wght@300;400;600&display=swap');
-  html,body,[class*="css"]{ font-family:'Raleway',sans-serif; background:#0a0a0a; color:#f0ece0; }
-  .stApp { background:#0a0a0a; }
+  html { background-color:#060608 !important; }
+  body { background:#060608 !important; }
+  html,body,[class*="css"]{ font-family:'Raleway',sans-serif; color:#f0ece0; }
+  .stApp {
+    background-color:#060608;
+    background-image:
+      radial-gradient(ellipse 100% 80% at 50% -12%, rgba(201,168,76,0.12), transparent 55%),
+      radial-gradient(ellipse 85% 60% at 108% 0%, rgba(201,168,76,0.05), transparent 48%),
+      linear-gradient(168deg,#0c0c11,#08080d 45%,#0a0910,#060607);
+    background-attachment:fixed;
+  }
+  section[data-testid="stMain"], section.main {
+    background-image:
+      repeating-linear-gradient(90deg, transparent 0, transparent 48px,
+        rgba(201,168,76,0.025) 48px, rgba(201,168,76,0.025) 49px),
+      repeating-linear-gradient(0deg, transparent 0, transparent 48px,
+        rgba(201,168,76,0.025) 48px, rgba(201,168,76,0.025) 49px),
+      radial-gradient(ellipse 100% 100% at 50% 0%, transparent, rgba(0,0,0,0.2));
+    background-attachment:fixed;
+  }
   #MainMenu, footer, header, [data-testid="stSidebarNav"] { visibility:hidden; display:none; }
   .block-container { padding:1.2rem 1.4rem 2rem; max-width:600px !important; }
 
-  .hero { text-align:center; padding:2rem 1rem 1.2rem; border-bottom:1px solid #c9a84c44; margin-bottom:1.6rem; }
+  .hero {
+    text-align:center; padding:2rem 1rem 1.2rem;
+    margin-bottom:1.6rem; border-radius:14px;
+    border:1px solid rgba(201,168,76,0.18);
+    background:linear-gradient(145deg, rgba(16,14,18,0.92), rgba(8,8,12,0.55));
+    box-shadow:inset 0 1px 0 rgba(245,225,154,0.06), 0 4px 28px rgba(0,0,0,0.42);
+    backdrop-filter:saturate(120%) blur(10px);
+    -webkit-backdrop-filter:saturate(120%) blur(10px);
+  }
   .hero-title { font-family:'Playfair Display',serif; font-size:2.4rem; font-weight:700; letter-spacing:6px;
     background:linear-gradient(135deg,#c9a84c,#f5e19a,#c9a84c);
     -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; margin:0; }
@@ -57,7 +83,7 @@ st.markdown("""
 
   .step-label { font-family:'Playfair Display',serif; font-size:1rem; color:#c9a84c;
     letter-spacing:2px; margin:1.4rem 0 0.5rem; }
-  .svc-card { background:#111; border:1px solid #c9a84c33; border-radius:12px;
+  .svc-card { background:rgba(14,13,17,0.88); border:1px solid rgba(201,168,76,0.2); border-radius:12px;
     padding:0.9rem 1.2rem; margin-bottom:0.5rem; cursor:pointer; transition:all .2s; display:flex;
     justify-content:space-between; align-items:center; }
   .svc-card:hover { border-color:#c9a84c99; }
@@ -66,7 +92,7 @@ st.markdown("""
   .svc-price { font-family:'Playfair Display',serif; font-size:1.1rem; color:#c9a84c; }
 
   .slot-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-bottom:1rem; }
-  .slot { background:#111; border:1px solid #c9a84c33; border-radius:8px;
+  .slot { background:rgba(12,11,14,0.9); border:1px solid rgba(201,168,76,0.18); border-radius:8px;
     padding:8px 0; text-align:center; font-size:0.82rem; color:#ccc;
     cursor:pointer; transition:all .2s; }
   .slot:hover { border-color:#c9a84c99; }
@@ -74,8 +100,9 @@ st.markdown("""
   .slot.selected { background:linear-gradient(135deg,#c9a84c,#a07830); color:#0a0a0a;
     font-weight:700; border-color:#c9a84c; }
 
-  .confirm-box { background:linear-gradient(135deg,#1a1500,#0f0f0f);
-    border:1px solid #c9a84c55; border-radius:14px; padding:1.4rem 1.6rem; margin:1rem 0; }
+  .confirm-box { background:linear-gradient(145deg, rgba(26,21,14,0.92), rgba(10,11,14,0.85));
+    border:1px solid rgba(201,168,76,0.26); border-radius:14px; padding:1.4rem 1.6rem; margin:1rem 0;
+    box-shadow:inset 0 1px 0 rgba(245,225,154,0.05), 0 6px 28px rgba(0,0,0,0.38); }
   .confirm-row { display:flex; justify-content:space-between; padding:0.4rem 0;
     border-bottom:1px solid #c9a84c11; font-size:0.88rem; }
   .confirm-label { color:#888; }
