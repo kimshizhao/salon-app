@@ -80,8 +80,8 @@ def _can(action: str) -> bool:
 st.set_page_config(
     page_title="IQSALON",
     page_icon="✂️",
-    layout="centered",
-    initial_sidebar_state="collapsed",
+    layout="wide",
+    initial_sidebar_state="expanded",
 )
 
 # Auto-refresh every 60s to pick up new online bookings
@@ -137,11 +137,39 @@ st.markdown("""
   }
   .block-container {
     padding:1.5rem 2rem 2rem !important;
-    max-width:960px !important;
+    max-width:1100px !important;
     width:100% !important;
     margin:0 auto !important;
   }
   #MainMenu, footer, header { visibility:hidden; }
+
+  /* ── Sidebar styling ─────────────────────────────────────── */
+  [data-testid="stSidebar"] {
+    background:linear-gradient(180deg,#0c0c11 0%,#08080c 100%) !important;
+    border-right:1px solid rgba(201,168,76,0.15) !important;
+    min-width:175px !important;
+    max-width:200px !important;
+  }
+  [data-testid="stSidebarContent"] { padding:0.5rem 0.6rem !important; }
+  [data-testid="stSidebarContent"] button[kind="secondary"] {
+    background:transparent !important;
+    border:1px solid transparent !important;
+    border-radius:8px !important;
+    color:#888 !important;
+    font-family:'Raleway',sans-serif !important;
+    font-size:0.82rem !important;
+    font-weight:600 !important;
+    letter-spacing:1px !important;
+    padding:9px 12px !important;
+    text-align:left !important;
+    transition:all .2s !important;
+    width:100% !important;
+  }
+  [data-testid="stSidebarContent"] button[kind="secondary"]:hover {
+    background:rgba(201,168,76,0.08) !important;
+    border-color:rgba(201,168,76,0.25) !important;
+    color:#c9a84c !important;
+  }
 
   .hero {
     text-align:center;
@@ -162,18 +190,9 @@ st.markdown("""
     -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; margin:0; }
   .hero-sub { font-size:0.78rem; letter-spacing:4px; color:#888; margin-top:0.3rem; text-transform:uppercase; }
 
-  .stTabs [data-baseweb="tab-list"] { gap:4px;
-    background:rgba(14,13,17,0.85); border-radius:10px; padding:6px;
-    border:1px solid rgba(201,168,76,0.22);
-    box-shadow:inset 0 1px 0 rgba(255,255,255,0.04), 0 8px 24px rgba(0,0,0,0.35);
-    backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);
-  }
-  .stTabs [data-baseweb="tab"] { font-family:'Raleway',sans-serif; font-weight:600; letter-spacing:2px; font-size:0.76rem;
-    text-transform:uppercase; color:#888 !important; background:transparent; border:none; border-radius:6px;
-    padding:9px 18px; transition:all .25s; }
-  .stTabs [aria-selected="true"] { background:linear-gradient(135deg,#c9a84c,#a07830) !important; color:#0a0a0a !important; }
-  .stTabs [data-baseweb="tab-highlight"] { background:transparent !important; }
-  .stTabs [data-baseweb="tab-border"] { display:none; }
+  /* active sidebar nav item — injected per-item via session state */
+  .nav-active button { background:rgba(201,168,76,0.15) !important;
+    border:1px solid rgba(201,168,76,0.4) !important; color:#c9a84c !important; }
 
   .card {
     background:linear-gradient(155deg, rgba(18,16,22,0.92) 0%, rgba(10,10,14,0.78) 100%);
@@ -1267,6 +1286,7 @@ HIDDEN_BK_COLS = ["price", "paid", "method", "final"]
 # LOGIN PAGE
 # ══════════════════════════════════════════════════════════════════════════════
 if not st.session_state.logged_in:
+    st.markdown("<style>[data-testid='stSidebar']{display:none!important;}</style>", unsafe_allow_html=True)
     st.markdown(f"""
     <div style="max-width:420px;margin:6vh auto;padding:2.5rem 2.8rem;
     background:#111;border:1px solid #c9a84c44;border-radius:16px;text-align:center;">
@@ -1872,29 +1892,77 @@ def _render_sty_panel(df_sty):
     st.markdown('</div>', unsafe_allow_html=True)
 
 
-# Build tab list
-_tabs_labels = [u("tab1"), u("tab2"), u("tab3"), u("tab4"), u("tab5"), u("tab6")]
+# ── Sidebar navigation ────────────────────────────────────────────────────
+_NAV_ITEMS = [
+    ("tab1",         "✂",  _t("预约管理","Bookings","Tempahan")),
+    ("tab2",         "💇", _t("发型师","Stylists","Jurugaya")),
+    ("tab3",         "💳", _t("收费","Payment","Bayaran")),
+    ("tab4",         "📦", _t("库存","Inventory","Inventori")),
+    ("tab5",         "📊", _t("结算","Settlement","Penyelesaian")),
+    ("tab6",         "👥", _t("会员","Members","Ahli")),
+]
 if _can("admin"):
-    _tabs_labels.append(u("tab_svc"))
+    _NAV_ITEMS.append(("tab_svc",  "💈", _t("服务","Services","Servis")))
 if _can("analytics"):
-    _tabs_labels.append("  📊  " + _t("业绩","Analytics","Analitik") + "  ")
+    _NAV_ITEMS.append(("tab_analytics", "📈", _t("业绩","Analytics","Analitik")))
 if _can("admin"):
-    _tabs_labels.append("  ⚙️  " + _t("管理后台","Admin","Pentadbir") + "  ")
+    _NAV_ITEMS.append(("tab_admin","⚙️", _t("管理后台","Admin","Pentadbir")))
 
-_tabs = st.tabs(_tabs_labels)
-tab1, tab2, tab3, tab4, tab5, tab6 = _tabs[:6]
-_tab_offset = 6
-if _can("admin"):
-    tab_svc = _tabs[_tab_offset]; _tab_offset += 1
-if _can("analytics"):
-    tab_analytics = _tabs[_tab_offset]; _tab_offset += 1
-if _can("admin"):
-    tab_admin = _tabs[_tab_offset]
+_valid_tabs = [x[0] for x in _NAV_ITEMS]
+if "active_tab" not in st.session_state or st.session_state.active_tab not in _valid_tabs:
+    st.session_state.active_tab = "tab1"
+
+with st.sidebar:
+    st.markdown(
+        "<div style='padding:12px 0 18px 0;text-align:center;'>"
+        "<div style='font-size:1.4rem;font-weight:800;color:#c9a84c;letter-spacing:2px;'>✦ IQSALON</div>"
+        "<div style='font-size:0.65rem;color:#555;letter-spacing:3px;margin-top:2px;'>SMART MANAGEMENT</div>"
+        "</div>",
+        unsafe_allow_html=True,
+    )
+    st.markdown(
+        "<hr style='border:none;border-top:1px solid #1a1a1a;margin:0 0 10px 0;'>",
+        unsafe_allow_html=True,
+    )
+    # Inject one CSS rule that highlights the active button by its nth position
+    _active_idx = next((i for i, (t,_,_l) in enumerate(_NAV_ITEMS) if t == st.session_state.active_tab), 0)
+    st.markdown(
+        f"<style>[data-testid='stSidebarContent'] [data-testid='stButton']:nth-child({_active_idx + 4}) button"
+        f" {{background:rgba(201,168,76,0.15)!important;border:1px solid rgba(201,168,76,0.45)!important;"
+        f"color:#c9a84c!important;}}</style>",
+        unsafe_allow_html=True,
+    )
+    for _tid, _icon, _label in _NAV_ITEMS:
+        if st.button(
+            f"{_icon}  {_label}",
+            key=f"nav_{_tid}",
+            use_container_width=True,
+        ):
+            st.session_state.active_tab = _tid
+            st.rerun()
+
+    st.markdown(
+        "<hr style='border:none;border-top:1px solid #1a1a1a;margin:12px 0 8px 0;'>",
+        unsafe_allow_html=True,
+    )
+    # Branch + user info at bottom
+    _uname = st.session_state.get("user_name") or st.session_state.get("username","")
+    _role_lbl = ROLE_LABEL_ZH.get(st.session_state.get("role",""), st.session_state.get("role",""))
+    st.markdown(
+        f"<div style='font-size:0.72rem;color:#555;padding:4px 2px;'>"
+        f"<div style='color:#777;'>👤 {_uname}</div>"
+        f"<div style='margin-top:2px;'>{ROLE_ICON_MAP.get(st.session_state.get('role',''),'')}"
+        f" {_role_lbl}</div>"
+        f"</div>",
+        unsafe_allow_html=True,
+    )
+
+_active = st.session_state.active_tab
 
 # ═════════════════════════════════════════════════════════════════════════════
 # TAB 1 — BOOKINGS  (no pricing shown)
 # ═════════════════════════════════════════════════════════════════════════════
-with tab1:
+if _active == "tab1":
     # ── Manual refresh + last updated ────────────────────────────────────────
     import datetime as _dt
     _ref_col, _time_col = st.columns([1, 3])
@@ -2168,7 +2236,7 @@ with tab1:
 # ═════════════════════════════════════════════════════════════════════════════
 # TAB 2 — STYLISTS
 # ═════════════════════════════════════════════════════════════════════════════
-with tab2:
+if _active == "tab2":
     st.markdown(f'<p class="card-title" style="margin-bottom:1rem;">{u("sty_title")}</p>',
                 unsafe_allow_html=True)
 
@@ -2422,7 +2490,7 @@ with tab2:
 # ═════════════════════════════════════════════════════════════════════════════
 # TAB 3 — PAYMENT
 # ═════════════════════════════════════════════════════════════════════════════
-with tab3:
+if _active == "tab3":
     st.markdown(f'<p class="card-title" style="margin-bottom:1.2rem;">{u("pay_title")}</p>',
                 unsafe_allow_html=True)
 
@@ -3025,7 +3093,7 @@ with tab3:
 # ═════════════════════════════════════════════════════════════════════════════
 # TAB 4 — INVENTORY
 # ═════════════════════════════════════════════════════════════════════════════
-with tab4:
+if _active == "tab4":
     st.markdown(f'<p class="card-title" style="margin-bottom:1rem;">{u("inv_title")}</p>',
                 unsafe_allow_html=True)
 
@@ -3124,7 +3192,7 @@ with tab4:
 # ═════════════════════════════════════════════════════════════════════════════
 # TAB 5 — SETTLEMENT & EXCEL EXPORT
 # ═════════════════════════════════════════════════════════════════════════════
-with tab5:
+if _active == "tab5":
     if not _can("settlement"):
         st.info("⛔ " + _t("您没有权限查看结算报告","No permission to view reports","Tiada kebenaran untuk melihat laporan"))
     else:
@@ -3764,7 +3832,7 @@ with tab5:
     # ═════════════════════════════════════════════════════════════════════════════
     # TAB 6 — MEMBERS
     # ═════════════════════════════════════════════════════════════════════════════
-with tab6:
+if _active == "tab6":
     st.markdown(f'<p class="card-title" style="font-size:1.3rem;">{u("mem_title")}</p>', unsafe_allow_html=True)
 
     # ── Overview stats ─────────────────────────────────────────────────────
@@ -4040,8 +4108,7 @@ with tab6:
 # ═════════════════════════════════════════════════════════════════════════════
 # TAB — SERVICES MANAGEMENT
 # ═════════════════════════════════════════════════════════════════════════════
-if _can("admin"):
-    with tab_svc:
+if _can("admin") and _active == "tab_svc":
         _is_zh = st.session_state.lang == "zh"
         st.markdown(
             f'<p class="card-title" style="font-size:1.2rem;margin-bottom:0.5rem;">'
@@ -4181,8 +4248,7 @@ if _can("admin"):
 # ═════════════════════════════════════════════════════════════════════════════
 # ANALYTICS TAB — Owner + Manager
 # ═════════════════════════════════════════════════════════════════════════════
-if _can("analytics"):
-    with tab_analytics:
+if _can("analytics") and _active == "tab_analytics":
         import plotly.express as px
         import plotly.graph_objects as go
         from datetime import datetime as _dt_now, timedelta as _td
@@ -4402,8 +4468,7 @@ if _can("analytics"):
 # ═════════════════════════════════════════════════════════════════════════════
 # ADMIN TAB — Owner only
 # ═════════════════════════════════════════════════════════════════════════════
-if _can("admin"):
-    with tab_admin:
+if _can("admin") and _active == "tab_admin":
         is_zh = st.session_state.lang == "zh"
         is_platform_admin = _can("super_admin")
 
