@@ -4264,17 +4264,16 @@ if _can("admin"):
                         unsafe_allow_html=True)
             total_salons  = len(st.session_state.branches)
             total_accts   = len(st.session_state.accounts)
-            owner_accts   = len([a for a in st.session_state.accounts.values() if a["role"] == "owner"])
             active_subs   = len([i for i in st.session_state.get("salon_info",{}).values()
                                  if i.get("plan") == "active"])
             trial_subs    = len([i for i in st.session_state.get("salon_info",{}).values()
                                  if i.get("plan","trial") == "trial"])
             po1,po2,po3,po4 = st.columns(4)
             for col, val, lbl in [
-                (po1, total_salons,  "🏠 " + ("分店总数" if is_zh else "Total Branches")),
-                (po2, owner_accts,   "👑 " + ("发廊老板" if is_zh else "Owners")),
-                (po3, active_subs,   "✅ " + ("已订阅" if is_zh else "Active Subs")),
-                (po4, trial_subs,    "⏳ " + ("试用中" if is_zh else "On Trial")),
+                (po1, total_salons,  "🏠 " + ("发廊总数" if is_zh else "Total Salons")),
+                (po2, total_accts,   "👤 " + ("账号总数" if is_zh else "Total Accounts")),
+                (po3, active_subs,   "✅ " + ("已订阅发廊" if is_zh else "Active Subs")),
+                (po4, trial_subs,    "⏳ " + ("试用中发廊" if is_zh else "On Trial")),
             ]:
                 col.markdown(
                     f'<div class="stat-box"><div class="stat-val">{val}</div>'
