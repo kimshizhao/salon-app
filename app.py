@@ -12,6 +12,7 @@ try:
         db_add_booking, db_save_all_bookings, db_update_booking, db_get_bookings,
         db_add_walkin, db_delete_walkin, db_save_all_inventory,
         db_add_member, db_update_member, db_add_member_history, db_delete_member,
+        db_get_services, db_set_services,
         db_set_stylists, db_add_account, db_delete_account, db_update_password,
         db_add_salon, db_delete_salon,
         db_confirm_booking, db_cancel_booking,
@@ -1113,7 +1114,12 @@ def u(key):
         return UI["en"][key]
     return UI["zh"].get(key, key)
 
-def svc_map(): return SERVICES[st.session_state.lang]
+def svc_map():
+    """Return {service_name: price} for the current branch. Uses custom services if configured."""
+    custom = st.session_state.get("services", [])
+    if custom:
+        return {s["name"]: s["price"] for s in custom}
+    return SERVICES[st.session_state.lang]
 def bar_color(r): return "#2ecc71" if r > 0.6 else ("#e67e22" if r > 0.3 else "#e74c3c")
 
 def _t(zh: str, en: str, ms: str = None) -> str:
@@ -1181,6 +1187,7 @@ def _init_branch(bid: str):
     if bid not in bd:
         bd[bid] = {
             "stylists":    ["Kim", "Lily", "Jason"],
+            "services":    [],
             "bookings":    [],
             "walkins":     [],
             "members":     [],
@@ -1206,6 +1213,7 @@ def _sync_ss():
     """Sync top-level session state aliases to current branch."""
     bd = _bd()
     st.session_state.stylists    = bd["stylists"]
+    st.session_state.services    = bd.setdefault("services", [])
     st.session_state.bookings    = bd["bookings"]
     st.session_state.walkins     = bd["walkins"]
     st.session_state.members     = bd["members"]
@@ -4429,6 +4437,118 @@ if _can("admin"):
                     + "</div>", unsafe_allow_html=True)
 
             st.markdown('</div>', unsafe_allow_html=True)
+
+        # ── Service Management ──────────────────────────────────────────────
+        st.markdown('<div class="card" style="margin-bottom:1rem;border-color:#3498db55">', unsafe_allow_html=True)
+        st.markdown(f'<p class="card-title">✂️ {"服务项目管理" if is_zh else "Service Management"}</p>',
+                    unsafe_allow_html=True)
+        st.markdown(
+            f'<p style="color:#888;font-size:0.8rem;margin-bottom:1rem;">'
+            f'{"在这里设置收费和预约时显示的服务项目及价格。若留空则使用系统默认服务。" if is_zh else "Define the services and prices shown during booking and payment. Leave empty to use the system defaults."}'
+            f'</p>', unsafe_allow_html=True)
+
+        _cur_svcs = list(st.session_state.get("services", []))
+
+        # ── Add new service ─────────────────────────────────────────────────
+        with st.expander("➕ " + ("新增服务项目" if is_zh else "Add New Service"), expanded=False):
+            ns_c1, ns_c2, ns_c3 = st.columns([3, 1.5, 1])
+            with ns_c1:
+                ns_name = st.text_input(
+                    "服务名称 / Service Name", key="ns_name",
+                    placeholder="剪发 / Haircut")
+            with ns_c2:
+                ns_price = st.number_input(
+                    "价格 RM / Price RM", min_value=0.0, step=5.0,
+                    key="ns_price", value=50.0)
+            with ns_c3:
+                st.markdown("<div style='height:28px'></div>", unsafe_allow_html=True)
+                if st.button("➕ " + ("添加" if is_zh else "Add"), key="ns_add_btn"):
+                    _nm = ns_name.strip()
+                    if not _nm:
+                        st.warning("请输入服务名称" if is_zh else "Please enter a service name")
+                    elif any(s["name"] == _nm for s in _cur_svcs):
+                        st.warning("已存在相同名称的服务" if is_zh else "A service with this name already exists")
+                    else:
+                        _cur_svcs.append({"name": _nm, "price": float(ns_price)})
+                        st.session_state.services = _cur_svcs
+                        _bd()["services"] = _cur_svcs
+                        if _USE_DB:
+                            try: db_set_services(st.session_state.cur_branch, _cur_svcs)
+                            except Exception: pass
+                        st.success(f"✅ {'已添加：' if is_zh else 'Added: '}{_nm}")
+                        st.rerun()
+
+        # ── Existing services list ───────────────────────────────────────────
+        if _cur_svcs:
+            st.markdown(f'<p style="color:#888;font-size:0.78rem;letter-spacing:1px;margin:8px 0 4px;">'
+                        f'{"现有服务（点击编辑价格 · ✕ 删除）" if is_zh else "CURRENT SERVICES (edit price · ✕ to delete)"}'
+                        f'</p>', unsafe_allow_html=True)
+            for _si, _sv in enumerate(_cur_svcs):
+                _sc1, _sc2, _sc3 = st.columns([3, 1.8, 0.6])
+                with _sc1:
+                    _new_nm = st.text_input(
+                        "名称" if is_zh else "Name", value=_sv["name"],
+                        key=f"svc_nm_{_si}", label_visibility="collapsed")
+                with _sc2:
+                    _new_pr = st.number_input(
+                        "RM", value=float(_sv["price"]), min_value=0.0, step=5.0,
+                        key=f"svc_pr_{_si}", label_visibility="collapsed",
+                        format="%.2f")
+                with _sc3:
+                    st.markdown("<div style='height:4px'></div>", unsafe_allow_html=True)
+                    if st.button("✕", key=f"svc_del_{_si}", help="删除" if is_zh else "Delete"):
+                        _cur_svcs.pop(_si)
+                        st.session_state.services = _cur_svcs
+                        _bd()["services"] = _cur_svcs
+                        if _USE_DB:
+                            try: db_set_services(st.session_state.cur_branch, _cur_svcs)
+                            except Exception: pass
+                        st.rerun()
+                # Update name/price on change
+                if _new_nm.strip() and (_new_nm.strip() != _sv["name"] or _new_pr != _sv["price"]):
+                    _cur_svcs[_si] = {"name": _new_nm.strip(), "price": float(_new_pr)}
+
+            if st.button("💾 " + ("保存服务列表" if is_zh else "Save Services"),
+                         key="save_svcs_btn", type="primary"):
+                st.session_state.services = _cur_svcs
+                _bd()["services"] = _cur_svcs
+                if _USE_DB:
+                    try:
+                        db_set_services(st.session_state.cur_branch, _cur_svcs)
+                        st.success("✅ " + ("服务项目已保存！" if is_zh else "Services saved!"))
+                    except Exception as e:
+                        st.error(str(e))
+                else:
+                    st.success("✅ " + ("已保存（本地）" if is_zh else "Saved (local)"))
+        else:
+            st.info(("尚未设置自定义服务，当前使用系统默认服务项目。" if is_zh
+                     else "No custom services set — system default services are in use."))
+            # Show defaults for reference
+            _def_svcs = SERVICES["zh"]
+            st.markdown(
+                "<div style='background:#0a0a0a;border:1px solid #1a1a1a;border-radius:6px;"
+                "padding:8px 12px;margin-top:6px;'>",
+                unsafe_allow_html=True)
+            for _dn, _dp in _def_svcs.items():
+                st.markdown(
+                    f"<div style='display:flex;justify-content:space-between;padding:3px 0;"
+                    f"border-bottom:1px solid #111;'>"
+                    f"<span style='color:#888;font-size:0.82rem;'>{_dn}</span>"
+                    f"<span style='color:#c9a84c;font-size:0.82rem;'>RM {_dp:.2f}</span>"
+                    f"</div>", unsafe_allow_html=True)
+            st.markdown("</div>", unsafe_allow_html=True)
+
+            if st.button("📋 " + ("以默认服务为基础开始编辑" if is_zh else "Start from default services"),
+                         key="load_defaults_btn"):
+                _loaded = [{"name": n, "price": float(p)} for n, p in _def_svcs.items()]
+                st.session_state.services = _loaded
+                _bd()["services"] = _loaded
+                if _USE_DB:
+                    try: db_set_services(st.session_state.cur_branch, _loaded)
+                    except Exception: pass
+                st.rerun()
+
+        st.markdown('</div>', unsafe_allow_html=True)
 
         if is_platform_admin:
             # ── Subscription Management ────────────────────────────────────────

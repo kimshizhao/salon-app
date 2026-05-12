@@ -160,6 +160,28 @@ def db_update_salon_profile(salon_id: str, profile: dict):
 
 
 # ═════════════════════════════════════════════════════════════════════════════
+# SERVICES
+# ═════════════════════════════════════════════════════════════════════════════
+
+def db_get_services(salon_id: str):
+    """Return list of {name, price} dicts for the salon, ordered by sort_order."""
+    res = _sb().table("services").select("name,price,sort_order") \
+               .eq("salon_id", salon_id).order("sort_order").execute()
+    return [{"name": r["name"], "price": float(r.get("price") or 0)} for r in (res.data or [])]
+
+
+def db_set_services(salon_id: str, services: list):
+    """Replace service list for a salon. services = [{name, price}, ...]"""
+    _sb().table("services").delete().eq("salon_id", salon_id).execute()
+    if services:
+        _sb().table("services").insert([
+            {"salon_id": salon_id, "name": s["name"], "price": float(s.get("price", 0)),
+             "sort_order": i}
+            for i, s in enumerate(services)
+        ]).execute()
+
+
+# ═════════════════════════════════════════════════════════════════════════════
 # STYLISTS
 # ═════════════════════════════════════════════════════════════════════════════
 
@@ -369,6 +391,7 @@ def db_load_salon(salon_id: str) -> dict:
     """Load all data for a salon into a dict."""
     return {
         "stylists":    db_get_stylists(salon_id),
+        "services":    db_get_services(salon_id),
         "bookings":    db_get_bookings(salon_id),
         "walkins":     db_get_walkins(salon_id),
         "inventory":   db_get_inventory(salon_id),
