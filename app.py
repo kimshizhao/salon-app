@@ -4433,6 +4433,32 @@ if _can("admin"):
                             except Exception as e:
                                 st.error(str(e))
 
+        # ── Add new subscribing salon ──────────────────────────────────────
+        st.markdown(f'<p style="color:#c9a84c;font-size:0.82rem;letter-spacing:1px;margin-top:0.8rem">{"＋ 新增订阅店家" if is_zh else "＋ Add New Salon"}</p>',
+                    unsafe_allow_html=True)
+        sub_nb_c1, sub_nb_c2, sub_nb_c3 = st.columns([1, 2, 1])
+        with sub_nb_c1:
+            sub_new_bid   = st.text_input("ID", placeholder="S001", key="sub_new_bid")
+        with sub_nb_c2:
+            sub_new_bname = st.text_input("名称 / Name", placeholder="Beauty Salon KL", key="sub_new_bname")
+        with sub_nb_c3:
+            st.markdown("<div style='height:1.6rem'></div>", unsafe_allow_html=True)
+            if st.button("＋ " + ("新增" if is_zh else "Add"), key="sub_add_salon_btn"):
+                if sub_new_bid.strip() and sub_new_bname.strip():
+                    _sbid  = sub_new_bid.strip()
+                    _sbname = sub_new_bname.strip()
+                    st.session_state.branches[_sbid] = _sbname
+                    _init_branch(_sbid)
+                    if _USE_DB:
+                        try:
+                            db_add_salon(_sbid, _sbname)
+                        except Exception as _e:
+                            st.error(str(_e))
+                    st.success(f"✅ {_sbname} " + ("已新增" if is_zh else "added"))
+                    st.rerun()
+                else:
+                    st.warning("请填写 ID 和名称 / Please fill in ID and Name")
+
         st.markdown('</div>', unsafe_allow_html=True)
 
         # ── Online Booking Links ───────────────────────────────────────────
