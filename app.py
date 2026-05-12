@@ -4429,172 +4429,112 @@ if _can("admin"):
         st.markdown(f'<p class="card-title">💳 {"订阅管理" if is_zh else "Subscription Management"}</p>',
                     unsafe_allow_html=True)
 
-        PLAN_COLORS = {"trial":"#e67e22","active":"#2ecc71","expired":"#e74c3c","owner":"#c9a84c"}
-        PLAN_LABELS = {"trial":"试用中","active":"已订阅","expired":"已到期","owner":"系统拥有者"}
+        # ─────────────────────────────────────────────────────────────────
+        # Unified hierarchy: each company expander contains
+        #   订阅设置 → 分店设置 → 账号管理
+        # ─────────────────────────────────────────────────────────────────
+        _PC = {"trial":"#e67e22","active":"#2ecc71","expired":"#e74c3c"}
+        _PL = {"trial": ("试用中" if is_zh else "Trial"),
+               "active":("已订阅" if is_zh else "Active"),
+               "expired":("已到期" if is_zh else "Expired")}
 
-        for bid, bname in st.session_state.branches.items():
-            info  = st.session_state.get("salon_info", {}).get(bid, {})
-            plan  = info.get("plan", "trial")
-            tend  = info.get("trial_ends","—")
-            pend  = info.get("plan_ends","—")
-            color = PLAN_COLORS.get(plan, "#888")
-            label = PLAN_LABELS.get(plan, plan)
+        for bid, bname in list(st.session_state.branches.items()):
+            info      = st.session_state.get("salon_info", {}).get(bid, {})
+            plan      = info.get("plan", "trial")
+            tend      = info.get("trial_ends","—")
+            pend      = info.get("plan_ends","—")
+            plan_clr  = _PC.get(plan, "#888")
+            plan_lbl  = _PL.get(plan, plan)
+            n_bk      = len(st.session_state.get("branch_data",{}).get(bid,{}).get("bookings",[]))
+            n_members = len(st.session_state.get("branch_data",{}).get(bid,{}).get("members",[]))
+            branch_accts = [u for u, a in st.session_state.accounts.items()
+                            if a.get("branch") == bid]
+            n_accts   = len(branch_accts)
 
-            with st.expander(f"🏠 {bname} ({bid})  ·  "
-                             f"[{label}]  {'到期：'+str(pend) if plan=='active' else '试用至：'+str(tend)}", expanded=False):
-                sub_c1, sub_c2 = st.columns(2)
-
-                with sub_c1:
-                    st.markdown(f'<span style="color:{color};font-weight:700">{label}</span>', unsafe_allow_html=True)
-                    new_stripe = st.text_input("Stripe Payment Link", value=info.get("stripe_link",""),
-                                               key=f"stripe_{bid}", placeholder="https://buy.stripe.com/...")
+            with st.expander(
+                f"🏠 **{bname}**  `{bid}`"
+                f"  ·  [{plan_lbl}]"
+                f"  ·  {n_accts} {'账号' if is_zh else 'accts'}"
+                f"  ·  {n_bk} {'预约' if is_zh else 'bk'}",
+                expanded=False
+            ):
+                # ── 1. 订阅设置 ──────────────────────────────────────────
+                st.markdown(
+                    f'<div style="color:{plan_clr};font-size:0.75rem;font-weight:700;'
+                    f'letter-spacing:2px;text-transform:uppercase;margin-bottom:6px">'
+                    f'💳 {"订阅设置" if is_zh else "Subscription"}'
+                    f'  <span style="background:{plan_clr}22;border:1px solid {plan_clr}55;'
+                    f'border-radius:20px;padding:2px 10px">{plan_lbl}</span></div>',
+                    unsafe_allow_html=True)
+                sc1, sc2 = st.columns(2)
+                with sc1:
+                    new_stripe        = st.text_input("Stripe Link", value=info.get("stripe_link",""),
+                                                       key=f"stripe_{bid}", placeholder="https://buy.stripe.com/...")
                     new_contact_name  = st.text_input("联系人 / Contact", value=info.get("contact_name",""), key=f"cn_{bid}")
-                    new_contact_phone = st.text_input("电话 / Phone",    value=info.get("contact_phone",""), key=f"cp_{bid}")
-                    new_contact_email = st.text_input("Email",            value=info.get("contact_email",""), key=f"ce_{bid}")
-
-                with sub_c2:
-                    st.markdown(f"**{'启用试用' if is_zh else 'Trial'}**")
-                    trial_days = st.number_input("试用天数", value=30, min_value=1, max_value=365, key=f"td_{bid}")
-                    if st.button("🔄 " + ("重置试用期" if is_zh else "Reset Trial"), key=f"trial_btn_{bid}"):
+                    new_contact_phone = st.text_input("电话 / Phone",     value=info.get("contact_phone",""), key=f"cp_{bid}")
+                    new_contact_email = st.text_input("Email",             value=info.get("contact_email",""), key=f"ce_{bid}")
+                with sc2:
+                    trial_days    = st.number_input("试用天数 / Trial days", value=30, min_value=1, max_value=365, key=f"td_{bid}")
+                    if st.button("🔄 " + ("重置试用" if is_zh else "Reset Trial"), key=f"trial_btn_{bid}"):
                         if _USE_DB:
-                            try:
-                                db_activate_trial(bid, int(trial_days))
-                                st.success("✅ 试用期已重置")
-                            except Exception as e:
-                                st.error(str(e))
-
-                    st.markdown(f"**{'启用订阅' if is_zh else 'Activate Plan'}**")
-                    plan_end_date = st.date_input("订阅到期日", key=f"ped_{bid}",
+                            try: db_activate_trial(bid, int(trial_days)); st.success("✅")
+                            except Exception as e: st.error(str(e))
+                    plan_end_date = st.date_input("订阅到期日 / Plan ends", key=f"ped_{bid}",
                                                    value=_sub_dt.date.today() + _sub_dt.timedelta(days=30))
                     if st.button("✅ " + ("启用订阅" if is_zh else "Activate"), key=f"act_btn_{bid}"):
                         if _USE_DB:
                             try:
                                 db_update_salon_subscription(bid, "active", str(plan_end_date), new_stripe)
                                 db_update_salon_contact(bid, new_contact_name, new_contact_phone, new_contact_email)
-                                # Reload salon info
                                 fresh = db_get_salon_info(bid)
                                 st.session_state.setdefault("salon_info", {})[bid] = fresh
-                                st.success(f"✅ 已启用至 {plan_end_date}")
+                                st.success(f"✅ {plan_end_date}")
                                 st.rerun()
-                            except Exception as e:
-                                st.error(str(e))
+                            except Exception as e: st.error(str(e))
 
-                # Delete salon
-                if len(st.session_state.branches) > 1:
-                    st.markdown("---")
-                    if st.button("🗑 " + ("删除此店家" if is_zh else "Delete Salon"), key=f"sub_del_{bid}",
-                                 help="⚠️ " + ("将删除此店家所有数据" if is_zh else "This will delete all salon data")):
-                        del st.session_state.branches[bid]
-                        st.session_state.get("salon_info", {}).pop(bid, None)
-                        if _USE_DB:
-                            try: db_delete_salon(bid)
-                            except Exception: pass
-                        if st.session_state.cur_branch == bid:
-                            st.session_state.cur_branch = next(iter(st.session_state.branches))
-                        st.rerun()
+                st.markdown("<hr style='margin:10px 0;border-color:#1a1a1a'>", unsafe_allow_html=True)
 
-        # ── Add new subscribing salon ──────────────────────────────────────
-        st.markdown(f'<p style="color:#c9a84c;font-size:0.82rem;letter-spacing:1px;margin-top:0.8rem">{"＋ 新增订阅店家" if is_zh else "＋ Add New Salon"}</p>',
+                # ── 2. 分店设置 ──────────────────────────────────────────
+                st.markdown(
+                    f'<div style="color:#c9a84c;font-size:0.75rem;font-weight:700;'
+                    f'letter-spacing:2px;text-transform:uppercase;margin-bottom:6px">'
+                    f'🏠 {"分店设置" if is_zh else "Branch Settings"}</div>',
                     unsafe_allow_html=True)
-        sub_nb_c1, sub_nb_c2, sub_nb_c3 = st.columns([1, 2, 1])
-        with sub_nb_c1:
-            sub_new_bid   = st.text_input("ID", placeholder="S001", key="sub_new_bid")
-        with sub_nb_c2:
-            sub_new_bname = st.text_input("名称 / Name", placeholder="Beauty Salon KL", key="sub_new_bname")
-        with sub_nb_c3:
-            st.markdown("<div style='height:1.6rem'></div>", unsafe_allow_html=True)
-            if st.button("＋ " + ("新增" if is_zh else "Add"), key="sub_add_salon_btn"):
-                if sub_new_bid.strip() and sub_new_bname.strip():
-                    _sbid  = sub_new_bid.strip()
-                    _sbname = sub_new_bname.strip()
-                    st.session_state.branches[_sbid] = _sbname
-                    _init_branch(_sbid)
-                    if _USE_DB:
-                        try:
-                            db_add_salon(_sbid, _sbname)
-                        except Exception as _e:
-                            st.error(str(_e))
-                    st.success(f"✅ {_sbname} " + ("已新增" if is_zh else "added"))
-                    st.rerun()
-                else:
-                    st.warning("请填写 ID 和名称 / Please fill in ID and Name")
-
-        st.markdown('</div>', unsafe_allow_html=True)
-
-        # ════════════════════════════════════════════════════════════════════
-        # BRANCH MANAGEMENT  (nested under Subscription)
-        # ════════════════════════════════════════════════════════════════════
-        st.markdown('<div class="card" style="margin-bottom:1rem">', unsafe_allow_html=True)
-        st.markdown(f'<p class="card-title">🏠 {"分店管理" if is_zh else "Branch Management"}</p>',
-                    unsafe_allow_html=True)
-
-        for bid, bname in list(st.session_state.branches.items()):
-            info      = st.session_state.get("salon_info", {}).get(bid, {})
-            plan      = info.get("plan", "trial")
-            tend      = info.get("trial_ends", "—")
-            pend      = info.get("plan_ends",  "—")
-            PLAN_CLR  = {"trial":"#e67e22","active":"#2ecc71","expired":"#e74c3c"}
-            PLAN_LBL  = {"trial":"试用中" if is_zh else "Trial",
-                         "active":"已订阅" if is_zh else "Active",
-                         "expired":"已到期" if is_zh else "Expired"}
-            plan_clr  = PLAN_CLR.get(plan, "#888")
-            plan_lbl  = PLAN_LBL.get(plan, plan)
-            branch_accts = [u for u, a in st.session_state.accounts.items()
-                            if a.get("branch") in (bid, "all")]
-            n_accts   = len(branch_accts)
-            n_bk      = len(st.session_state.get("branch_data",{}).get(bid,{}).get("bookings",[]))
-            n_members = len(st.session_state.get("branch_data",{}).get(bid,{}).get("members",[]))
-
-            with st.expander(
-                f"🏠 **{bname}**  `{bid}`  ·  "
-                f"[{plan_lbl}]  ·  {n_accts} {'账号' if is_zh else 'accounts'}",
-                expanded=False
-            ):
-                # ── Branch stats & name ──────────────────────────────────
                 st.markdown(f"""
-                <div style="display:flex;gap:12px;margin-bottom:10px;flex-wrap:wrap">
-                  <div class="stat-box" style="flex:1;min-width:70px">
-                    <div class="stat-val" style="font-size:1.1rem">{n_bk}</div>
+                <div style="display:flex;gap:10px;margin-bottom:10px;flex-wrap:wrap">
+                  <div class="stat-box" style="flex:1;min-width:65px">
+                    <div class="stat-val" style="font-size:1rem">{n_bk}</div>
                     <div class="stat-lbl">{"预约" if is_zh else "Bookings"}</div>
                   </div>
-                  <div class="stat-box" style="flex:1;min-width:70px">
-                    <div class="stat-val" style="font-size:1.1rem">{n_members}</div>
+                  <div class="stat-box" style="flex:1;min-width:65px">
+                    <div class="stat-val" style="font-size:1rem">{n_members}</div>
                     <div class="stat-lbl">{"会员" if is_zh else "Members"}</div>
                   </div>
-                  <div class="stat-box" style="flex:1;min-width:70px">
-                    <div class="stat-val" style="font-size:1.1rem">{n_accts}</div>
+                  <div class="stat-box" style="flex:1;min-width:65px">
+                    <div class="stat-val" style="font-size:1rem">{n_accts}</div>
                     <div class="stat-lbl">{"账号" if is_zh else "Accounts"}</div>
                   </div>
-                </div>
-                <div style="font-size:0.78rem;color:#888;margin-bottom:8px">
-                  {"订阅" if is_zh else "Sub"}:
-                  <span style="color:{plan_clr};font-weight:700">{plan_lbl}</span>
-                  {"  试用至 "+str(tend) if plan=="trial" else "  到期 "+str(pend) if plan=="active" else ""}
-                </div>
-                """, unsafe_allow_html=True)
-
-                bname_c, bdel_c = st.columns([3, 1])
-                with bname_c:
-                    new_name_val = st.text_input(
-                        "✏️ " + ("分店名称" if is_zh else "Branch Name"),
-                        value=bname, key=f"edit_bname2_{bid}"
-                    )
-                    if st.button("💾 " + ("保存名称" if is_zh else "Save Name"), key=f"save_bname2_{bid}"):
-                        if new_name_val.strip():
-                            st.session_state.branches[bid] = new_name_val.strip()
+                </div>""", unsafe_allow_html=True)
+                bn_c1, bn_c2 = st.columns([3, 1])
+                with bn_c1:
+                    new_bname_val = st.text_input("✏️ " + ("分店名称" if is_zh else "Branch Name"),
+                                                   value=bname, key=f"edit_bname_{bid}")
+                    if st.button("💾 " + ("保存" if is_zh else "Save"), key=f"save_bname_{bid}"):
+                        if new_bname_val.strip():
+                            st.session_state.branches[bid] = new_bname_val.strip()
                             if _USE_DB:
                                 try:
-                                    from db import get_supabase as _get_sb2
-                                    _get_sb2().table("salons").update({"name": new_name_val.strip()}).eq("id", bid).execute()
+                                    from db import get_supabase as _gsb
+                                    _gsb().table("salons").update({"name": new_bname_val.strip()}).eq("id", bid).execute()
                                 except Exception: pass
-                            st.success("✅ " + ("已保存" if is_zh else "Saved"))
-                            st.rerun()
-                with bdel_c:
-                    st.markdown("<div style='height:1.8rem'></div>", unsafe_allow_html=True)
+                            st.success("✅"); st.rerun()
+                with bn_c2:
+                    st.markdown("<div style='height:2rem'></div>", unsafe_allow_html=True)
                     if len(st.session_state.branches) > 1:
-                        if st.button("🗑 " + ("删除分店" if is_zh else "Delete"), key=f"del_branch2_{bid}",
-                                     help="⚠️ This will delete all branch data"):
+                        if st.button("🗑 " + ("删除" if is_zh else "Del"), key=f"del_branch_{bid}",
+                                     help="⚠️ Delete all data"):
                             del st.session_state.branches[bid]
+                            st.session_state.get("salon_info",{}).pop(bid, None)
                             if _USE_DB:
                                 try: db_delete_salon(bid)
                                 except Exception: pass
@@ -4602,120 +4542,116 @@ if _can("admin"):
                                 st.session_state.cur_branch = next(iter(st.session_state.branches))
                             st.rerun()
 
-                # ── Accounts in this branch ──────────────────────────────
-                st.markdown(f'<div style="color:#c9a84c;font-size:0.8rem;font-weight:700;'
-                            f'letter-spacing:1px;margin:10px 0 6px">👤 {"账号列表" if is_zh else "Accounts"}</div>',
-                            unsafe_allow_html=True)
+                st.markdown("<hr style='margin:10px 0;border-color:#1a1a1a'>", unsafe_allow_html=True)
+
+                # ── 3. 账号管理 ──────────────────────────────────────────
+                st.markdown(
+                    f'<div style="color:#3498db;font-size:0.75rem;font-weight:700;'
+                    f'letter-spacing:2px;text-transform:uppercase;margin-bottom:6px">'
+                    f'👤 {"账号管理" if is_zh else "Accounts"}</div>',
+                    unsafe_allow_html=True)
+
                 if branch_accts:
                     for ua in branch_accts:
-                        _a2  = st.session_state.accounts[ua]
-                        _rc2 = {"admin":"#e74c3c","owner":"#c9a84c","manager":"#3498db","staff":"#2ecc71"}.get(_a2["role"],"#888")
-                        _ri2 = ROLE_ICON_MAP.get(_a2["role"],"👤")
-                        _rl2 = (ROLE_LABEL_ZH if is_zh else ROLE_LABEL_EN).get(_a2["role"], _a2["role"])
-                        _is_me2 = (ua == st.session_state.username)
-                        ac1, ac2, ac3 = st.columns([3, 2, 1])
-                        with ac1:
+                        _a = st.session_state.accounts[ua]
+                        _rc = {"admin":"#e74c3c","owner":"#c9a84c","manager":"#3498db","staff":"#2ecc71"}.get(_a["role"],"#888")
+                        _ri = ROLE_ICON_MAP.get(_a["role"],"👤")
+                        _rl = (ROLE_LABEL_ZH if is_zh else ROLE_LABEL_EN).get(_a["role"], _a["role"])
+                        _isme = (ua == st.session_state.username)
+                        aw1, aw2, aw3 = st.columns([3, 2, 1])
+                        with aw1:
                             st.markdown(
-                                f'<div style="padding:6px 0;font-size:0.84rem">'
-                                f'{_ri2} <b>{ua}</b>  <span style="color:#888;font-size:0.75rem">{_a2.get("name","")}</span><br>'
-                                f'<span style="color:{_rc2};font-size:0.72rem">{_rl2}</span>'
-                                f'{"  🔵" if _is_me2 else ""}'
-                                f'</div>', unsafe_allow_html=True)
-                        with ac2:
-                            _new_pw_b  = st.text_input("", type="password", placeholder="新密码 / New pw (6+)",
-                                                        key=f"bpw_{bid}_{ua}", label_visibility="collapsed")
-                            if st.button("🔑", key=f"brpw_{bid}_{ua}", help="重置密码 / Reset password"):
-                                if len(_new_pw_b) >= 6:
-                                    st.session_state.accounts[ua]["hash"] = _hash(_new_pw_b)
+                                f'<div style="padding:5px 0;font-size:0.83rem">'
+                                f'{_ri} <b>{ua}</b>  <span style="color:#888;font-size:0.74rem">{_a.get("name","")}</span><br>'
+                                f'<span style="color:{_rc};font-size:0.71rem">{_rl}</span>'
+                                f'{"  🔵" if _isme else ""}</div>',
+                                unsafe_allow_html=True)
+                        with aw2:
+                            _pw_in = st.text_input("", type="password", placeholder="新密码 6+",
+                                                    key=f"pw_{bid}_{ua}", label_visibility="collapsed")
+                            if st.button("🔑", key=f"rpw_{bid}_{ua}", help="Reset password"):
+                                if len(_pw_in) >= 6:
+                                    st.session_state.accounts[ua]["hash"] = _hash(_pw_in)
                                     if _USE_DB:
-                                        try: db_update_password(ua, _hash(_new_pw_b))
+                                        try: db_update_password(ua, _hash(_pw_in))
                                         except Exception: pass
                                     st.success("✅")
                                 else:
                                     st.error("6+")
-                        with ac3:
-                            if not _is_me2:
-                                if st.button("🗑", key=f"bdel_acct_{bid}_{ua}",
-                                             help="删除账号 / Delete account"):
+                        with aw3:
+                            if not _isme:
+                                if st.button("🗑", key=f"del_{bid}_{ua}", help="Delete account"):
                                     del st.session_state.accounts[ua]
                                     if _USE_DB:
                                         try: db_delete_account(ua)
                                         except Exception: pass
                                     st.rerun()
                 else:
-                    st.markdown(f'<div style="color:#555;font-size:0.8rem;padding:6px 0">'
-                                f'{"暂无账号" if is_zh else "No accounts yet"}</div>', unsafe_allow_html=True)
+                    st.caption("— " + ("暂无账号" if is_zh else "No accounts yet") + " —")
 
-                # ── Add Account for this branch ──────────────────────────
                 if plan != "expired":
-                    st.markdown(f'<div style="color:#3498db;font-size:0.78rem;font-weight:700;'
-                                f'letter-spacing:1px;margin:10px 0 6px">＋ {"新增账号" if is_zh else "Add Account"}</div>',
-                                unsafe_allow_html=True)
-                    na_c1, na_c2, na_c3 = st.columns(3)
-                    with na_c1:
-                        _na_u = st.text_input("Username", placeholder="staff01", key=f"na_u_{bid}")
-                        _na_n = st.text_input("显示名称", placeholder="Kim", key=f"na_n_{bid}")
-                    with na_c2:
-                        _na_p  = st.text_input("密码 / Password", type="password",
-                                               placeholder="Min 6 chars", key=f"na_p_{bid}")
-                        _na_p2 = st.text_input("确认密码 / Confirm", type="password",
-                                               key=f"na_p2_{bid}")
-                    with na_c3:
-                        if _can("super_admin"):
-                            _na_role_opts = ["owner","manager","staff"]
-                        elif st.session_state.role == "owner":
-                            _na_role_opts = ["manager","staff"]
-                        else:
-                            _na_role_opts = ["staff"]
-                        _na_role = st.selectbox(
-                            "角色 / Role", _na_role_opts, key=f"na_r_{bid}",
-                            format_func=lambda r: f"{ROLE_ICON_MAP[r]} {(ROLE_LABEL_ZH if is_zh else ROLE_LABEL_EN)[r]}"
-                        )
-                        st.markdown("<div style='height:0.4rem'></div>", unsafe_allow_html=True)
-                        if st.button("＋ " + ("新增" if is_zh else "Add"), key=f"add_acct_b_{bid}",
+                    st.markdown(f'<div style="color:#3498db;font-size:0.73rem;margin:8px 0 4px">'
+                                f'＋ {"新增账号" if is_zh else "Add Account"}</div>', unsafe_allow_html=True)
+                    aa1, aa2, aa3 = st.columns(3)
+                    with aa1:
+                        _au = st.text_input("Username", placeholder="staff01", key=f"au_{bid}")
+                        _an = st.text_input("显示名称", placeholder="Kim",     key=f"an_{bid}")
+                    with aa2:
+                        _ap  = st.text_input("密码", type="password", placeholder="6+", key=f"ap_{bid}")
+                        _ap2 = st.text_input("确认", type="password",                   key=f"ap2_{bid}")
+                    with aa3:
+                        _ro = (["owner","manager","staff"] if _can("super_admin")
+                               else ["manager","staff"] if st.session_state.role == "owner"
+                               else ["staff"])
+                        _ar = st.selectbox("角色", _ro, key=f"ar_{bid}",
+                                           format_func=lambda r: f"{ROLE_ICON_MAP[r]} {(ROLE_LABEL_ZH if is_zh else ROLE_LABEL_EN)[r]}")
+                        st.markdown("<div style='height:0.3rem'></div>", unsafe_allow_html=True)
+                        if st.button("＋ " + ("新增" if is_zh else "Add"), key=f"add_acct_{bid}",
                                      use_container_width=True):
-                            if not _na_u.strip():
-                                st.warning("⚠ " + ("请填写用户名" if is_zh else "Enter username"))
-                            elif len(_na_p) < 6:
-                                st.warning("⚠ " + ("密码至少6位" if is_zh else "Password 6+ chars"))
-                            elif _na_p != _na_p2:
-                                st.error("❌ " + ("密码不一致" if is_zh else "Passwords don't match"))
-                            elif _na_u.strip() in st.session_state.accounts:
-                                st.error("⚠ " + ("用户名已存在" if is_zh else "Username exists"))
+                            if not _au.strip():
+                                st.warning("请填用户名")
+                            elif len(_ap) < 6:
+                                st.warning("密码6+位")
+                            elif _ap != _ap2:
+                                st.error("密码不一致")
+                            elif _au.strip() in st.session_state.accounts:
+                                st.error("用户名已存在")
                             else:
-                                _new_acct = {"hash": _hash(_na_p), "role": _na_role,
-                                             "branch": bid, "name": _na_n.strip() or _na_u.strip()}
-                                st.session_state.accounts[_na_u.strip()] = _new_acct
+                                st.session_state.accounts[_au.strip()] = {
+                                    "hash": _hash(_ap), "role": _ar,
+                                    "branch": bid, "name": _an.strip() or _au.strip()}
                                 if _USE_DB:
-                                    try:
-                                        db_add_account(_na_u.strip(), _hash(_na_p), _na_role, bid,
-                                                       _na_n.strip() or _na_u.strip())
+                                    try: db_add_account(_au.strip(), _hash(_ap), _ar, bid,
+                                                        _an.strip() or _au.strip())
                                     except Exception: pass
-                                _rl = (ROLE_LABEL_ZH if is_zh else ROLE_LABEL_EN)[_na_role]
-                                st.success(f"✅ {_na_u.strip()} ({_rl})")
+                                st.success(f"✅ {_au.strip()}")
                                 st.rerun()
                 else:
-                    st.warning("⚠️ " + ("订阅已到期，无法新增账号" if is_zh else "Subscription expired — cannot add accounts"))
+                    st.warning("⚠️ " + ("订阅已到期，无法新增账号" if is_zh else "Subscription expired"))
 
-        # Add new branch
-        st.markdown(f'<p style="color:#c9a84c;font-size:0.82rem;letter-spacing:1px;margin-top:0.8rem">{"＋ 新增分店" if is_zh else "＋ Add Branch"}</p>',
+        # ── Add new company/salon ─────────────────────────────────────────
+        st.markdown(f'<p style="color:#c9a84c;font-size:0.82rem;letter-spacing:1px;margin-top:1rem">'
+                    f'{"＋ 新增公司 / 发廊" if is_zh else "＋ Add New Company / Salon"}</p>',
                     unsafe_allow_html=True)
-        nb2_c1, nb2_c2, nb2_c3 = st.columns([1, 2, 1])
-        with nb2_c1:
-            new_bid2   = st.text_input("ID", placeholder="B002", key="new_bid2")
-        with nb2_c2:
-            new_bname2 = st.text_input("名称 / Name", placeholder="Signature Kim — PJ", key="new_bname2")
-        with nb2_c3:
+        snc1, snc2, snc3 = st.columns([1, 2, 1])
+        with snc1:
+            _snew_id   = st.text_input("ID", placeholder="S001", key="snew_id")
+        with snc2:
+            _snew_name = st.text_input("名称 / Name", placeholder="Beauty Salon KL", key="snew_name")
+        with snc3:
             st.markdown("<div style='height:1.6rem'></div>", unsafe_allow_html=True)
-            if st.button("＋ " + ("新增" if is_zh else "Add"), key="add_branch_btn2"):
-                if new_bid2.strip() and new_bname2.strip():
-                    st.session_state.branches[new_bid2.strip()] = new_bname2.strip()
-                    _init_branch(new_bid2.strip())
+            if st.button("＋ " + ("新增" if is_zh else "Add"), key="add_salon_btn"):
+                if _snew_id.strip() and _snew_name.strip():
+                    st.session_state.branches[_snew_id.strip()] = _snew_name.strip()
+                    _init_branch(_snew_id.strip())
                     if _USE_DB:
-                        try: db_add_salon(new_bid2.strip(), new_bname2.strip())
+                        try: db_add_salon(_snew_id.strip(), _snew_name.strip())
                         except Exception: pass
-                    st.success(f"✅ {new_bname2.strip()}")
+                    st.success(f"✅ {_snew_name.strip()}")
                     st.rerun()
+                else:
+                    st.warning("请填写 ID 和名称")
+
         st.markdown('</div>', unsafe_allow_html=True)
 
         # ── Online Booking Links ───────────────────────────────────────────
@@ -4765,156 +4701,8 @@ if _can("admin"):
             st.info("正在检测 App URL… 如未自动填入，请手动输入 / Detecting URL… enter manually if not auto-filled")
         st.markdown('</div>', unsafe_allow_html=True)
 
-        ROLE_COLOR = {"admin":"#e74c3c","owner":"#c9a84c","manager":"#3498db","staff":"#2ecc71"}
-        ROLE_ICON  = ROLE_ICON_MAP
-        ROLE_LABEL = {k: (ROLE_LABEL_ZH[k] if is_zh else ROLE_LABEL_EN[k]) for k in ROLE_LABEL_ZH}
-
-        # ════════════════════════════════════════════════════════════════════
-        # ACCOUNT MANAGEMENT  (hierarchical: Owner → Branch Manager → Staff)
-        # ════════════════════════════════════════════════════════════════════
-        st.markdown('<div class="card" style="margin-bottom:1rem">', unsafe_allow_html=True)
-        st.markdown(f'<p class="card-title">👤 {"账号管理" if is_zh else "Account Management"}</p>',
-                    unsafe_allow_html=True)
-
-        # Helper: render one editable account row
-        def _render_acct_row(uname, acct):
-            r_clr  = ROLE_COLOR.get(acct["role"],"#888")
-            r_ico  = ROLE_ICON.get(acct["role"],"👤")
-            r_lbl  = ROLE_LABEL.get(acct["role"], acct["role"])
-            is_me  = (uname == st.session_state.username)
-            with st.expander(
-                f"{r_ico} **{uname}**  ·  {acct.get('name','')}  "
-                f"[{r_lbl}]" + (" 🔵" if is_me else ""),
-                expanded=False
-            ):
-                ea_c1, ea_c2 = st.columns(2)
-                with ea_c1:
-                    st.markdown(f'<div style="display:inline-block;padding:3px 10px;border-radius:20px;'
-                                f'background:{r_clr}22;border:1px solid {r_clr}55;'
-                                f'color:{r_clr};font-size:0.75rem;font-weight:700;margin-bottom:8px">'
-                                f'{r_ico} {r_lbl}</div>', unsafe_allow_html=True)
-                    new_disp = st.text_input("显示名称 / Display Name",
-                                             value=acct.get("name",""), key=f"dn_{uname}")
-                    # Role choices depend on who is editing
-                    if _can("super_admin"):
-                        _role_opts = ["admin","owner","manager","staff"]
-                    elif st.session_state.role == "owner":
-                        _role_opts = ["owner","manager","staff"]
-                    else:  # manager can only set staff
-                        _role_opts = ["staff"]
-                    _role_idx = _role_opts.index(acct["role"]) if acct["role"] in _role_opts else 0
-                    new_role = st.selectbox("角色 / Role", _role_opts, index=_role_idx,
-                                            key=f"role_{uname}",
-                                            format_func=lambda r: f"{ROLE_ICON_MAP[r]} {(ROLE_LABEL_ZH if is_zh else ROLE_LABEL_EN)[r]}")
-                    # Branch assignment
-                    bl = list(st.session_state.branches.keys())
-                    bn = [st.session_state.branches[b] for b in bl]
-                    all_opts_c = ["all"] + bl
-                    all_disp_c = [("全部分店" if is_zh else "All Branches")] + bn
-                    cur_br = acct.get("branch","")
-                    br_idx = all_opts_c.index(cur_br) if cur_br in all_opts_c else 1
-                    new_br = st.selectbox("分店 / Branch", all_opts_c, index=br_idx,
-                                          key=f"br_{uname}",
-                                          format_func=lambda b: all_disp_c[all_opts_c.index(b)])
-                with ea_c2:
-                    st.markdown(f'<div style="color:#888;font-size:0.78rem;margin-bottom:6px">'
-                                f'{"重置密码" if is_zh else "Reset Password"}</div>', unsafe_allow_html=True)
-                    new_pw  = st.text_input("新密码 / New Password", type="password", key=f"npw_{uname}", placeholder="6+ chars")
-                    new_pw2 = st.text_input("确认 / Confirm",        type="password", key=f"npw2_{uname}")
-                    if st.button("🔑 " + ("重置密码" if is_zh else "Reset"), key=f"rpw_{uname}"):
-                        if len(new_pw) < 6:
-                            st.error("❌ " + ("密码至少6位" if is_zh else "Min 6 chars"))
-                        elif new_pw != new_pw2:
-                            st.error("❌ " + ("密码不一致" if is_zh else "Passwords don't match"))
-                        else:
-                            st.session_state.accounts[uname]["hash"] = _hash(new_pw)
-                            if _USE_DB:
-                                try: db_update_password(uname, _hash(new_pw))
-                                except Exception: pass
-                            st.success("✅ " + ("密码已重置" if is_zh else "Password reset"))
-                save_col, del_col = st.columns([2, 1])
-                with save_col:
-                    if st.button("💾 " + ("保存更改" if is_zh else "Save"), key=f"save_acct_{uname}"):
-                        st.session_state.accounts[uname]["name"]   = new_disp.strip() or uname
-                        st.session_state.accounts[uname]["role"]   = new_role
-                        st.session_state.accounts[uname]["branch"] = new_br
-                        if _USE_DB:
-                            try:
-                                db_delete_account(uname)
-                                db_add_account(uname, st.session_state.accounts[uname]["hash"],
-                                               new_role, new_br if new_br != "all" else None,
-                                               new_disp.strip() or uname)
-                            except Exception: pass
-                        st.success("✅ " + ("已保存" if is_zh else "Saved"))
-                        st.rerun()
-                with del_col:
-                    if not is_me:
-                        if st.button("🗑 " + ("删除" if is_zh else "Delete"), key=f"del_acct_{uname}"):
-                            del st.session_state.accounts[uname]
-                            if _USE_DB:
-                                try: db_delete_account(uname)
-                                except Exception: pass
-                            st.rerun()
-
-        # ── Subscription gate info ────────────────────────────────────────
-        _expired_branches = {bid for bid, info in st.session_state.get("salon_info",{}).items()
-                             if info.get("plan","trial") == "expired"}
-        if _expired_branches:
-            _exp_names = ", ".join(st.session_state.branches.get(b,b) for b in _expired_branches)
-            st.warning(("⚠️ 以下分店订阅已到期，无法设置账号：" if is_zh else
-                        "⚠️ The following branches have expired subscriptions — account management disabled: ")
-                       + _exp_names)
-
-        # ── Hierarchy display ──────────────────────────────────────────────
-        # Tier 1: Company Owners (branch = "all")
-        owners = {u: a for u, a in st.session_state.accounts.items() if a.get("role") == "owner"}
-        if owners:
-            st.markdown(f'<div style="color:#c9a84c;font-size:0.8rem;letter-spacing:2px;font-weight:700;'
-                        f'margin:8px 0 4px;text-transform:uppercase">👑 {"公司老板（订阅）" if is_zh else "Company Owner (Subscription)"}</div>',
-                        unsafe_allow_html=True)
-            for u, a in owners.items():
-                _render_acct_row(u, a)
-
-        # Tier 2 & 3: per branch — Branch Manager then Staff
-        for bid, bname in st.session_state.branches.items():
-            branch_mgrs   = {u: a for u, a in st.session_state.accounts.items()
-                             if a.get("role") == "manager" and a.get("branch") == bid}
-            branch_staff  = {u: a for u, a in st.session_state.accounts.items()
-                             if a.get("role") == "staff"   and a.get("branch") == bid}
-            if not branch_mgrs and not branch_staff:
-                continue
-            st.markdown(
-                f'<div style="background:#0d0d0d;border-left:3px solid #3498db;border-radius:0 6px 6px 0;'
-                f'padding:6px 12px;margin:10px 0 4px;font-size:0.8rem;font-weight:700;color:#3498db">'
-                f'🏠 {bname} <span style="color:#555;font-size:0.72rem">({bid})</span></div>',
-                unsafe_allow_html=True)
-            if branch_mgrs:
-                st.markdown(f'<div style="color:#3498db;font-size:0.72rem;letter-spacing:1px;margin:4px 0 2px 12px">'
-                            f'💼 {"分店经理" if is_zh else "Branch Manager"}</div>', unsafe_allow_html=True)
-                for u, a in branch_mgrs.items():
-                    _render_acct_row(u, a)
-            if branch_staff:
-                st.markdown(f'<div style="color:#2ecc71;font-size:0.72rem;letter-spacing:1px;margin:4px 0 2px 12px">'
-                            f'✂️ {"员工" if is_zh else "Staff"}</div>', unsafe_allow_html=True)
-                for u, a in branch_staff.items():
-                    _render_acct_row(u, a)
-
-        # Admin accounts (platform only)
-        if _can("super_admin"):
-            admins = {u: a for u, a in st.session_state.accounts.items() if a.get("role") == "admin"}
-            if admins:
-                st.markdown(f'<div style="color:#e74c3c;font-size:0.8rem;letter-spacing:2px;font-weight:700;'
-                            f'margin:10px 0 4px;text-transform:uppercase">🔴 {"平台管理员" if is_zh else "Platform Admins"}</div>',
-                            unsafe_allow_html=True)
-                for u, a in admins.items():
-                    _render_acct_row(u, a)
-
-        st.markdown(f'<div style="color:#555;font-size:0.78rem;padding:8px 0">'
-                    f'{"💡 在上方「分店管理」中展开各分店，可直接新增账号" if is_zh else "💡 Open any branch in Branch Management above to add accounts"}'
-                    f'</div>', unsafe_allow_html=True)
-
         # ── Change own password ────────────────────────────────────────────
-        st.markdown("---")
+        st.markdown('<div class="card" style="margin-bottom:1rem">', unsafe_allow_html=True)
         with st.expander("🔑 " + ("修改自己的密码" if is_zh else "Change My Password")):
             cp_old  = st.text_input("旧密码 / Old Password", type="password", key="cp_old")
             cp_new  = st.text_input("新密码 / New Password", type="password", key="cp_new")
@@ -4933,5 +4721,4 @@ if _can("admin"):
                         try: db_update_password(st.session_state.username, _hash(cp_new))
                         except Exception: pass
                     st.success("✦ " + ("密码已更新" if is_zh else "Password updated"))
-
-            st.markdown('</div>', unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True)
