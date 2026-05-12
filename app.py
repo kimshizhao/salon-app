@@ -57,15 +57,21 @@ _DEFAULT_BRANCHES = {
 # Role hierarchy: admin > owner > manager > staff
 ROLE_HIERARCHY = {"admin": 4, "owner": 3, "manager": 2, "staff": 1}
 
+# Human-readable role labels used throughout the UI
+ROLE_LABEL_ZH = {"admin": "平台管理员", "owner": "公司老板", "manager": "分店经理", "staff": "员工"}
+ROLE_LABEL_EN = {"admin": "Platform Admin", "owner": "Company Owner", "manager": "Branch Manager", "staff": "Staff"}
+ROLE_ICON_MAP  = {"admin": "🔴", "owner": "👑", "manager": "💼", "staff": "✂️"}
+
 def _can(action: str) -> bool:
     """Check if current user has permission for an action."""
     role = st.session_state.get("role", "staff")
     perms = {
         "admin":   {"settlement","member_delete","inventory_edit","super_admin","admin",
-                    "view_all","payment","booking","analytics","manage_owners"},
+                    "view_all","payment","booking","analytics","manage_owners","manage_staff"},
         "owner":   {"settlement","member_delete","inventory_edit","admin",
-                    "view_all","payment","booking","analytics"},
-        "manager": {"settlement","member_delete","inventory_edit","payment","booking","analytics"},
+                    "view_all","payment","booking","analytics","manage_staff"},
+        # Branch manager: full branch ops + can manage staff in own branch
+        "manager": {"settlement","member_delete","inventory_edit","payment","booking","analytics","manage_staff"},
         "staff":   {"payment","booking"},
     }
     return action in perms.get(role, set())
@@ -1416,7 +1422,7 @@ with hdr_l:
 
 with hdr_r:
     st.markdown("<div style='height:10px'></div>", unsafe_allow_html=True)
-    role_icon = {"admin":"🔴","owner":"👑","manager":"💼","staff":"✂️"}.get(st.session_state.role,"👤")
+    role_icon = ROLE_ICON_MAP.get(st.session_state.role,"👤")
     # Override button style for narrow header buttons
     st.markdown("""<style>
     div[data-testid="stHorizontalBlock"] .stButton>button {
@@ -4242,7 +4248,7 @@ if _can("admin"):
         # Title with role badge
         role_badge_clr = "#e74c3c" if is_platform_admin else "#c9a84c"
         role_badge_txt = ("🔴 平台管理员" if is_zh else "🔴 Platform Admin") if is_platform_admin \
-                         else ("👑 老板" if is_zh else "👑 Owner")
+                         else ("👑 公司老板" if is_zh else "👑 Company Owner")
         st.markdown(
             f'<p class="card-title" style="font-size:1.3rem;">⚙️ {"系统管理" if is_zh else "Admin Panel"}'
             f' <span style="background:{role_badge_clr}22;border:1px solid {role_badge_clr}55;'
@@ -4564,11 +4570,8 @@ if _can("admin"):
         st.markdown('</div>', unsafe_allow_html=True)
 
         ROLE_COLOR = {"admin":"#e74c3c","owner":"#c9a84c","manager":"#3498db","staff":"#2ecc71"}
-        ROLE_ICON  = {"admin":"🔴","owner":"👑","manager":"💼","staff":"✂️"}
-        ROLE_LABEL = {"admin":   ("平台管理员" if is_zh else "Platform Admin"),
-                      "owner":   ("老板" if is_zh else "Owner"),
-                      "manager": ("经理" if is_zh else "Manager"),
-                      "staff":   ("员工" if is_zh else "Staff")}
+        ROLE_ICON  = ROLE_ICON_MAP
+        ROLE_LABEL = {k: (ROLE_LABEL_ZH[k] if is_zh else ROLE_LABEL_EN[k]) for k in ROLE_LABEL_ZH}
 
         # ════════════════════════════════════════════════════════════════════
         # BRANCH MANAGEMENT
@@ -4696,68 +4699,57 @@ if _can("admin"):
         st.markdown('</div>', unsafe_allow_html=True)
 
         # ════════════════════════════════════════════════════════════════════
-        # ACCOUNT MANAGEMENT
+        # ACCOUNT MANAGEMENT  (hierarchical: Owner → Branch Manager → Staff)
         # ════════════════════════════════════════════════════════════════════
         st.markdown('<div class="card" style="margin-bottom:1rem">', unsafe_allow_html=True)
         st.markdown(f'<p class="card-title">👤 {"账号管理" if is_zh else "Account Management"}</p>',
                     unsafe_allow_html=True)
 
-        # Filter by branch
-        filter_opts = ["全部 / All"] + [f"{bid} · {nm}" for bid, nm in st.session_state.branches.items()]
-        acct_filter = st.selectbox("🔍 " + ("筛选分店" if is_zh else "Filter by Branch"),
-                                   filter_opts, key="acct_filter")
-        filter_bid  = None if acct_filter == "全部 / All" else acct_filter.split(" · ")[0]
-
-        for uname, acct in list(st.session_state.accounts.items()):
-            if filter_bid and acct.get("branch") not in (filter_bid, "all"):
-                continue
-            r_clr    = ROLE_COLOR.get(acct["role"],"#888")
-            r_ico    = ROLE_ICON.get(acct["role"],"👤")
-            r_lbl    = ROLE_LABEL.get(acct["role"], acct["role"])
-            b_lbl    = ("全部分店" if is_zh else "All Branches") if acct.get("branch") == "all" \
-                       else st.session_state.branches.get(acct.get("branch",""), acct.get("branch",""))
-            is_me    = (uname == st.session_state.username)
-
+        # Helper: render one editable account row
+        def _render_acct_row(uname, acct):
+            r_clr  = ROLE_COLOR.get(acct["role"],"#888")
+            r_ico  = ROLE_ICON.get(acct["role"],"👤")
+            r_lbl  = ROLE_LABEL.get(acct["role"], acct["role"])
+            is_me  = (uname == st.session_state.username)
             with st.expander(
-                f"{r_ico} **{uname}**  ·  {acct.get('name','')}  ·  "
-                f"[{r_lbl}]  ·  {b_lbl}" + (" 🔵 (你)" if is_me else ""),
+                f"{r_ico} **{uname}**  ·  {acct.get('name','')}  "
+                f"[{r_lbl}]" + (" 🔵" if is_me else ""),
                 expanded=False
             ):
                 ea_c1, ea_c2 = st.columns(2)
                 with ea_c1:
-                    st.markdown(f'<div style="display:inline-block;padding:4px 12px;border-radius:20px;'
+                    st.markdown(f'<div style="display:inline-block;padding:3px 10px;border-radius:20px;'
                                 f'background:{r_clr}22;border:1px solid {r_clr}55;'
-                                f'color:{r_clr};font-size:0.78rem;font-weight:700;margin-bottom:10px">'
+                                f'color:{r_clr};font-size:0.75rem;font-weight:700;margin-bottom:8px">'
                                 f'{r_ico} {r_lbl}</div>', unsafe_allow_html=True)
-
-                    # Edit display name
                     new_disp = st.text_input("显示名称 / Display Name",
                                              value=acct.get("name",""), key=f"dn_{uname}")
-                    # Edit role
-                    role_opts = ["staff","manager","owner"]
-                    new_role  = st.selectbox("角色 / Role", role_opts,
-                                             index=role_opts.index(acct["role"]) if acct["role"] in role_opts else 0,
-                                             key=f"role_{uname}",
-                                             format_func=lambda r: f"{ROLE_ICON[r]} {ROLE_LABEL[r]}")
-                    # Edit branch
-                    bl        = list(st.session_state.branches.keys())
-                    bn        = [st.session_state.branches[b] for b in bl]
-                    all_opt   = ["all"]
-                    all_disp  = [("全部 / All" if is_zh else "All Branches")]
-                    cur_br    = acct.get("branch","")
-                    all_opts_combined = all_opt + bl
-                    all_disp_combined = all_disp + bn
-                    br_idx    = all_opts_combined.index(cur_br) if cur_br in all_opts_combined else 1
-                    new_br    = st.selectbox("分店 / Branch", all_opts_combined, index=br_idx,
-                                             key=f"br_{uname}",
-                                             format_func=lambda b: all_disp_combined[all_opts_combined.index(b)])
-
+                    # Role choices depend on who is editing
+                    if _can("super_admin"):
+                        _role_opts = ["admin","owner","manager","staff"]
+                    elif st.session_state.role == "owner":
+                        _role_opts = ["owner","manager","staff"]
+                    else:  # manager can only set staff
+                        _role_opts = ["staff"]
+                    _role_idx = _role_opts.index(acct["role"]) if acct["role"] in _role_opts else 0
+                    new_role = st.selectbox("角色 / Role", _role_opts, index=_role_idx,
+                                            key=f"role_{uname}",
+                                            format_func=lambda r: f"{ROLE_ICON_MAP[r]} {(ROLE_LABEL_ZH if is_zh else ROLE_LABEL_EN)[r]}")
+                    # Branch assignment
+                    bl = list(st.session_state.branches.keys())
+                    bn = [st.session_state.branches[b] for b in bl]
+                    all_opts_c = ["all"] + bl
+                    all_disp_c = [("全部分店" if is_zh else "All Branches")] + bn
+                    cur_br = acct.get("branch","")
+                    br_idx = all_opts_c.index(cur_br) if cur_br in all_opts_c else 1
+                    new_br = st.selectbox("分店 / Branch", all_opts_c, index=br_idx,
+                                          key=f"br_{uname}",
+                                          format_func=lambda b: all_disp_c[all_opts_c.index(b)])
                 with ea_c2:
-                    st.markdown(f'<div style="color:#888;font-size:0.8rem;margin-bottom:8px">'
+                    st.markdown(f'<div style="color:#888;font-size:0.78rem;margin-bottom:6px">'
                                 f'{"重置密码" if is_zh else "Reset Password"}</div>', unsafe_allow_html=True)
-                    new_pw    = st.text_input("新密码 / New Password", type="password", key=f"npw_{uname}",
-                                              placeholder="6+ chars")
-                    new_pw2   = st.text_input("确认 / Confirm", type="password", key=f"npw2_{uname}")
+                    new_pw  = st.text_input("新密码 / New Password", type="password", key=f"npw_{uname}", placeholder="6+ chars")
+                    new_pw2 = st.text_input("确认 / Confirm",        type="password", key=f"npw2_{uname}")
                     if st.button("🔑 " + ("重置密码" if is_zh else "Reset"), key=f"rpw_{uname}"):
                         if len(new_pw) < 6:
                             st.error("❌ " + ("密码至少6位" if is_zh else "Min 6 chars"))
@@ -4769,10 +4761,9 @@ if _can("admin"):
                                 try: db_update_password(uname, _hash(new_pw))
                                 except Exception: pass
                             st.success("✅ " + ("密码已重置" if is_zh else "Password reset"))
-
                 save_col, del_col = st.columns([2, 1])
                 with save_col:
-                    if st.button("💾 " + ("保存更改" if is_zh else "Save Changes"), key=f"save_acct_{uname}"):
+                    if st.button("💾 " + ("保存更改" if is_zh else "Save"), key=f"save_acct_{uname}"):
                         st.session_state.accounts[uname]["name"]   = new_disp.strip() or uname
                         st.session_state.accounts[uname]["role"]   = new_role
                         st.session_state.accounts[uname]["branch"] = new_br
@@ -4787,12 +4778,56 @@ if _can("admin"):
                         st.rerun()
                 with del_col:
                     if not is_me:
-                        if st.button("🗑 " + ("刪除" if is_zh else "Delete"), key=f"del_acct_{uname}"):
+                        if st.button("🗑 " + ("删除" if is_zh else "Delete"), key=f"del_acct_{uname}"):
                             del st.session_state.accounts[uname]
                             if _USE_DB:
                                 try: db_delete_account(uname)
                                 except Exception: pass
                             st.rerun()
+
+        # ── Hierarchy display ──────────────────────────────────────────────
+        # Tier 1: Company Owners (branch = "all")
+        owners = {u: a for u, a in st.session_state.accounts.items() if a.get("role") == "owner"}
+        if owners:
+            st.markdown(f'<div style="color:#c9a84c;font-size:0.8rem;letter-spacing:2px;font-weight:700;'
+                        f'margin:8px 0 4px;text-transform:uppercase">👑 {"公司老板（订阅）" if is_zh else "Company Owner (Subscription)"}</div>',
+                        unsafe_allow_html=True)
+            for u, a in owners.items():
+                _render_acct_row(u, a)
+
+        # Tier 2 & 3: per branch — Branch Manager then Staff
+        for bid, bname in st.session_state.branches.items():
+            branch_mgrs   = {u: a for u, a in st.session_state.accounts.items()
+                             if a.get("role") == "manager" and a.get("branch") == bid}
+            branch_staff  = {u: a for u, a in st.session_state.accounts.items()
+                             if a.get("role") == "staff"   and a.get("branch") == bid}
+            if not branch_mgrs and not branch_staff:
+                continue
+            st.markdown(
+                f'<div style="background:#0d0d0d;border-left:3px solid #3498db;border-radius:0 6px 6px 0;'
+                f'padding:6px 12px;margin:10px 0 4px;font-size:0.8rem;font-weight:700;color:#3498db">'
+                f'🏠 {bname} <span style="color:#555;font-size:0.72rem">({bid})</span></div>',
+                unsafe_allow_html=True)
+            if branch_mgrs:
+                st.markdown(f'<div style="color:#3498db;font-size:0.72rem;letter-spacing:1px;margin:4px 0 2px 12px">'
+                            f'💼 {"分店经理" if is_zh else "Branch Manager"}</div>', unsafe_allow_html=True)
+                for u, a in branch_mgrs.items():
+                    _render_acct_row(u, a)
+            if branch_staff:
+                st.markdown(f'<div style="color:#2ecc71;font-size:0.72rem;letter-spacing:1px;margin:4px 0 2px 12px">'
+                            f'✂️ {"员工" if is_zh else "Staff"}</div>', unsafe_allow_html=True)
+                for u, a in branch_staff.items():
+                    _render_acct_row(u, a)
+
+        # Admin accounts (platform only)
+        if _can("super_admin"):
+            admins = {u: a for u, a in st.session_state.accounts.items() if a.get("role") == "admin"}
+            if admins:
+                st.markdown(f'<div style="color:#e74c3c;font-size:0.8rem;letter-spacing:2px;font-weight:700;'
+                            f'margin:10px 0 4px;text-transform:uppercase">🔴 {"平台管理员" if is_zh else "Platform Admins"}</div>',
+                            unsafe_allow_html=True)
+                for u, a in admins.items():
+                    _render_acct_row(u, a)
 
         # ── Add New Account ────────────────────────────────────────────────
         st.markdown("---")
@@ -4804,29 +4839,50 @@ if _can("admin"):
             na_name = st.text_input("显示名称 / Display Name", placeholder="Kim", key="na_name")
             na_pass = st.text_input("密码 / Password", type="password", key="na_pass", placeholder="Min 6 chars")
         with na2:
-            # Admin can create any role; owner cannot create admin
-            role_choices = (["admin","owner","manager","staff"]
-                            if _can("super_admin") else ["owner","manager","staff"])
+            # Role choices based on who is creating
+            if _can("super_admin"):
+                role_choices = ["admin","owner","manager","staff"]
+            elif st.session_state.role == "owner":
+                role_choices = ["owner","manager","staff"]
+            else:  # manager can only add staff
+                role_choices = ["staff"]
             na_role = st.selectbox("角色 / Role", role_choices, key="na_role",
-                                   format_func=lambda r: f"{ROLE_ICON[r]} {ROLE_LABEL[r]}")
+                                   format_func=lambda r: f"{ROLE_ICON_MAP[r]} {(ROLE_LABEL_ZH if is_zh else ROLE_LABEL_EN)[r]}")
+
+            # Branch: owner defaults to "all"; manager defaults to own branch; staff needs branch
+            _my_branch = st.session_state.get("cur_branch","")
             branch_list = list(st.session_state.branches.keys())
             branch_disp = [st.session_state.branches[b] for b in branch_list]
-            na_branch_opts = branch_list + ["all"]
-            na_branch_disp = branch_disp + [("全部 / All" if is_zh else "All Branches")]
-            na_branch_sel  = st.selectbox("分店 / Branch", na_branch_opts, key="na_branch_sel",
-                                          format_func=lambda b: na_branch_disp[na_branch_opts.index(b)])
-            role_desc = {
-                "admin":   "🔴 平台管理员：最高权限，管理所有发廊、订阅、账号" if is_zh else "🔴 Platform Admin: Full control over all salons, subscriptions & accounts",
-                "owner":   "👑 老板：管理自己的分店、账号、订阅" if is_zh else "👑 Owner: Manage own branches, accounts & subscription",
-                "manager": "💼 经理：管理自己分店的全部功能" if is_zh else "💼 Manager: Full access to own branch functions",
-                "staff":   "✂️ 员工：只能使用预约和收费功能" if is_zh else "✂️ Staff: Bookings and payment only",
+            if na_role == "owner":
+                na_branch_opts = ["all"] + branch_list
+                na_branch_disp = [("全部分店" if is_zh else "All Branches")] + branch_disp
+                _na_br_def = 0
+            else:
+                na_branch_opts = branch_list + ["all"]
+                na_branch_disp = branch_disp + [("全部分店" if is_zh else "All Branches")]
+                _na_br_def = na_branch_opts.index(_my_branch) if _my_branch in na_branch_opts else 0
+            na_branch_sel = st.selectbox("分店 / Branch", na_branch_opts, index=_na_br_def,
+                                         key="na_branch_sel",
+                                         format_func=lambda b: na_branch_disp[na_branch_opts.index(b)])
+
+            # Role description card
+            _rdesc = {
+                "admin":   ("🔴 平台管理员：最高权限，管理所有发廊、订阅、账号"
+                            if is_zh else "🔴 Platform Admin: Full control over all salons"),
+                "owner":   ("👑 公司老板（订阅）：管理旗下所有分店、账号和订阅"
+                            if is_zh else "👑 Company Owner (Subscription): Manages all own branches & accounts"),
+                "manager": ("💼 分店经理：管理指定分店的全部功能，可新增员工账号"
+                            if is_zh else "💼 Branch Manager: Full access to own branch, can add staff"),
+                "staff":   ("✂️ 员工：仅限预约和收费功能"
+                            if is_zh else "✂️ Staff: Bookings and payment only"),
             }
-            st.markdown(f"""
-            <div style="background:#1a1a1a;border-radius:8px;padding:8px 12px;margin-top:6px;font-size:0.78rem;color:#888;border-left:3px solid {ROLE_COLOR.get(na_role,'#888')}">
-              <b style="color:{ROLE_COLOR.get(na_role,'#888')}">{ROLE_LABEL.get(na_role,'')}</b><br>
-              {role_desc.get(na_role,'')}
-            </div>
-            """, unsafe_allow_html=True)
+            _rc = ROLE_COLOR.get(na_role,"#888")
+            st.markdown(
+                f'<div style="background:#1a1a1a;border-radius:8px;padding:8px 12px;margin-top:6px;'
+                f'font-size:0.78rem;color:#888;border-left:3px solid {_rc}">'
+                f'<b style="color:{_rc}">{(ROLE_LABEL_ZH if is_zh else ROLE_LABEL_EN).get(na_role,"")}</b><br>'
+                f'{_rdesc.get(na_role,"")}</div>',
+                unsafe_allow_html=True)
 
         if st.button("＋ " + ("新增账号" if is_zh else "Add Account"), key="add_acct_btn",
                      use_container_width=True):
@@ -4847,8 +4903,8 @@ if _can("admin"):
                                            na_branch_sel if na_branch_sel != "all" else None,
                                            na_name.strip() or na_user.strip())
                         except Exception: pass
-                    st.success(f"✅ {na_user.strip()} ({ROLE_LABEL[na_role]}) — " +
-                               (st.session_state.branches.get(na_branch_sel,"All")))
+                    _rl = (ROLE_LABEL_ZH if is_zh else ROLE_LABEL_EN)[na_role]
+                    st.success(f"✅ {na_user.strip()} ({_rl})")
                     st.rerun()
             elif len(na_pass) < 6:
                 st.warning("⚠ " + ("密码至少6位" if is_zh else "Password must be 6+ chars"))
