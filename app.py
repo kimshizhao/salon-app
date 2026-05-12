@@ -2171,6 +2171,8 @@ with tab2:
                 st.warning("已存在 / Already exists")
             else:
                 st.session_state.stylists.append(new_sty.strip())
+                try: db_set_stylists(st.session_state.cur_branch, st.session_state.stylists)
+                except Exception: pass
                 st.success(u("sty_added").format(new_sty.strip()))
                 st.rerun()
         st.markdown('</div>', unsafe_allow_html=True)
@@ -2198,6 +2200,8 @@ with tab2:
             with r2:
                 if st.button("✕", key=f"rm_sty_{idx}", help=u("sty_remove")):
                     st.session_state.stylists.pop(idx)
+                    try: db_set_stylists(st.session_state.cur_branch, st.session_state.stylists)
+                    except Exception: pass
                     st.rerun()
         st.markdown('</div>', unsafe_allow_html=True)
 
@@ -4010,6 +4014,8 @@ with tab6:
                 st.markdown("<div style='height:6px'></div>", unsafe_allow_html=True)
                 if st.button(f"🗑 {u('mem_delete')} — {sel_mem['name']}", key=f"del_mem_{sel_id}"):
                     mem_name_del = sel_mem["name"]
+                    try: db_delete_member(sel_id)
+                    except Exception: pass
                     st.session_state.members = [m for m in st.session_state.members if m["id"] != sel_id]
                     _bd()["members"] = st.session_state.members
                     st.session_state.sel_member_id = None
