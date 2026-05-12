@@ -4503,18 +4503,21 @@ if _can("admin"):
         if _base:
             for bid, bname in st.session_state.branches.items():
                 link = f"{_base.rstrip('/')}/booking?salon={bid}"
-                lk_col, cp_col = st.columns([5, 1])
-                with lk_col:
-                    st.markdown(
-                        f'<div style="padding:8px 0;border-bottom:1px solid #1a1a1a">'
-                        f'<span style="color:#c9a84c;font-weight:600">{bname}</span>'
-                        f' <span style="color:#555;font-size:0.75rem">({bid})</span><br>'
-                        f'<span style="font-size:0.78rem;color:#aaa">{link}</span>'
-                        f'</div>',
-                        unsafe_allow_html=True
-                    )
-                with cp_col:
-                    st.code(link, language=None)
+                st.markdown(
+                    f'<div style="display:flex;align-items:center;justify-content:space-between;'
+                    f'padding:10px 12px;border-bottom:1px solid #1a1a1a;gap:12px">'
+                    f'<div style="flex:1;min-width:0">'
+                    f'<span style="color:#c9a84c;font-weight:600">{bname}</span>'
+                    f' <span style="color:#555;font-size:0.75rem">({bid})</span><br>'
+                    f'<span style="font-size:0.78rem;color:#aaa;word-break:break-all">{link}</span>'
+                    f'</div>'
+                    f'<button onclick="navigator.clipboard.writeText(\'{link}\').then(()=>{{this.innerText=\'✅\';setTimeout(()=>this.innerText=\'📋 复制\',1500)}})" '
+                    f'style="flex-shrink:0;background:#1a1a1a;color:#c9a84c;border:1px solid #c9a84c;'
+                    f'border-radius:6px;padding:5px 12px;cursor:pointer;font-size:0.78rem;white-space:nowrap">'
+                    f'📋 {"复制" if is_zh else "Copy"}</button>'
+                    f'</div>',
+                    unsafe_allow_html=True
+                )
         else:
             st.info("正在检测 App URL… 如未自动填入，请手动输入 / Detecting URL… enter manually if not auto-filled")
         st.markdown('</div>', unsafe_allow_html=True)
