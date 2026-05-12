@@ -4479,23 +4479,44 @@ if _can("admin"):
         st.markdown('<div class="card" style="margin-bottom:1rem">', unsafe_allow_html=True)
         st.markdown(f'<p class="card-title">🔗 {"客户预约链接" if is_zh else "Customer Booking Links"}</p>',
                     unsafe_allow_html=True)
+
+        # Auto-detect current app base URL from request headers
+        try:
+            _host = st.context.headers.get("host", "")
+            _proto = "https" if ("streamlit.app" in _host or "localhost" not in _host) else "http"
+            _auto_base = f"{_proto}://{_host}" if _host else ""
+        except Exception:
+            _auto_base = ""
+
         app_base = st.text_input(
-            "App URL (from Streamlit Cloud)",
+            "App URL",
+            value=st.session_state.get("app_base_url_saved", _auto_base),
             placeholder="https://your-app-name.streamlit.app",
             key="app_base_url",
-            help="Fill in your Streamlit Cloud app URL to generate booking links"
+            help="自动检测当前 URL，也可手动修改 / Auto-detected, can be edited manually"
         )
+        # Save manually edited value
         if app_base.strip():
+            st.session_state["app_base_url_saved"] = app_base.strip()
+
+        _base = app_base.strip() or _auto_base
+        if _base:
             for bid, bname in st.session_state.branches.items():
-                link = f"{app_base.rstrip('/')}/booking?salon={bid}"
-                st.markdown(
-                    f"**{bname}** (`{bid}`)  \n"
-                    f"[{link}]({link})",
-                    unsafe_allow_html=False
-                )
-                st.code(link, language=None)
+                link = f"{_base.rstrip('/')}/booking?salon={bid}"
+                lk_col, cp_col = st.columns([5, 1])
+                with lk_col:
+                    st.markdown(
+                        f'<div style="padding:8px 0;border-bottom:1px solid #1a1a1a">'
+                        f'<span style="color:#c9a84c;font-weight:600">{bname}</span>'
+                        f' <span style="color:#555;font-size:0.75rem">({bid})</span><br>'
+                        f'<span style="font-size:0.78rem;color:#aaa">{link}</span>'
+                        f'</div>',
+                        unsafe_allow_html=True
+                    )
+                with cp_col:
+                    st.code(link, language=None)
         else:
-            st.info("填入上方的 App URL 就能生成每间分店的客户预约链接 / Enter your App URL above to generate booking links")
+            st.info("正在检测 App URL… 如未自动填入，请手动输入 / Detecting URL… enter manually if not auto-filled")
         st.markdown('</div>', unsafe_allow_html=True)
 
         ROLE_COLOR = {"admin":"#e74c3c","owner":"#c9a84c","manager":"#3498db","staff":"#2ecc71"}
