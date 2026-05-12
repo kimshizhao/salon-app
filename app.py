@@ -4283,7 +4283,7 @@ if _can("admin"):
             st.markdown('</div>', unsafe_allow_html=True)
 
         # ── Salon Profile ──────────────────────────────────────────────────
-        if not is_platform_admin:
+        if True:  # admin + owner
             # Show profile editor for the current owner's own salon
             cur_bid  = st.session_state.cur_branch
             cur_info = st.session_state.get("salon_info", {}).get(cur_bid, {})
@@ -4655,52 +4655,54 @@ if _can("admin"):
 
             st.markdown('</div>', unsafe_allow_html=True)
 
-            # ── Online Booking Links ───────────────────────────────────────────
-            st.markdown('<div class="card" style="margin-bottom:1rem">', unsafe_allow_html=True)
-            st.markdown(f'<p class="card-title">🔗 {"客户预约链接" if is_zh else "Customer Booking Links"}</p>',
-                        unsafe_allow_html=True)
 
-            # Auto-detect current app base URL from request headers
-            try:
-                _host = st.context.headers.get("host", "")
-                _proto = "https" if ("streamlit.app" in _host or "localhost" not in _host) else "http"
-                _auto_base = f"{_proto}://{_host}" if _host else ""
-            except Exception:
-                _auto_base = ""
 
-            app_base = st.text_input(
-                "App URL",
-                value=st.session_state.get("app_base_url_saved", _auto_base),
-                placeholder="https://your-app-name.streamlit.app",
-                key="app_base_url",
-                help="自动检测当前 URL，也可手动修改 / Auto-detected, can be edited manually"
-            )
-            # Save manually edited value
-            if app_base.strip():
-                st.session_state["app_base_url_saved"] = app_base.strip()
+        # ── Online Booking Links ───────────────────────────────────────────
+        st.markdown('<div class="card" style="margin-bottom:1rem">', unsafe_allow_html=True)
+        st.markdown(f'<p class="card-title">🔗 {"客户预约链接" if is_zh else "Customer Booking Links"}</p>',
+                    unsafe_allow_html=True)
 
-            _base = app_base.strip() or _auto_base
-            if _base:
-                for bid, bname in st.session_state.branches.items():
-                    link = f"{_base.rstrip('/')}/booking?salon={bid}"
-                    st.markdown(
-                        f'<div style="display:flex;align-items:center;justify-content:space-between;'
-                        f'padding:10px 12px;border-bottom:1px solid #1a1a1a;gap:12px">'
-                        f'<div style="flex:1;min-width:0">'
-                        f'<span style="color:#c9a84c;font-weight:600">{bname}</span>'
-                        f' <span style="color:#555;font-size:0.75rem">({bid})</span><br>'
-                        f'<span style="font-size:0.78rem;color:#aaa;word-break:break-all">{link}</span>'
-                        f'</div>'
-                        f'<button onclick="navigator.clipboard.writeText(\'{link}\').then(()=>{{this.innerText=\'✅\';setTimeout(()=>this.innerText=\'📋 复制\',1500)}})" '
-                        f'style="flex-shrink:0;background:#1a1a1a;color:#c9a84c;border:1px solid #c9a84c;'
-                        f'border-radius:6px;padding:5px 12px;cursor:pointer;font-size:0.78rem;white-space:nowrap">'
-                        f'📋 {"复制" if is_zh else "Copy"}</button>'
-                        f'</div>',
-                        unsafe_allow_html=True
-                    )
-            else:
-                st.info("正在检测 App URL… 如未自动填入，请手动输入 / Detecting URL… enter manually if not auto-filled")
-            st.markdown('</div>', unsafe_allow_html=True)
+        # Auto-detect current app base URL from request headers
+        try:
+            _host = st.context.headers.get("host", "")
+            _proto = "https" if ("streamlit.app" in _host or "localhost" not in _host) else "http"
+            _auto_base = f"{_proto}://{_host}" if _host else ""
+        except Exception:
+            _auto_base = ""
+
+        app_base = st.text_input(
+            "App URL",
+            value=st.session_state.get("app_base_url_saved", _auto_base),
+            placeholder="https://your-app-name.streamlit.app",
+            key="app_base_url",
+            help="自动检测当前 URL，也可手动修改 / Auto-detected, can be edited manually"
+        )
+        # Save manually edited value
+        if app_base.strip():
+            st.session_state["app_base_url_saved"] = app_base.strip()
+
+        _base = app_base.strip() or _auto_base
+        if _base:
+            for bid, bname in st.session_state.branches.items():
+                link = f"{_base.rstrip('/')}/booking?salon={bid}"
+                st.markdown(
+                    f'<div style="display:flex;align-items:center;justify-content:space-between;'
+                    f'padding:10px 12px;border-bottom:1px solid #1a1a1a;gap:12px">'
+                    f'<div style="flex:1;min-width:0">'
+                    f'<span style="color:#c9a84c;font-weight:600">{bname}</span>'
+                    f' <span style="color:#555;font-size:0.75rem">({bid})</span><br>'
+                    f'<span style="font-size:0.78rem;color:#aaa;word-break:break-all">{link}</span>'
+                    f'</div>'
+                    f'<button onclick="navigator.clipboard.writeText(\'{link}\').then(()=>{{this.innerText=\'✅\';setTimeout(()=>this.innerText=\'📋 复制\',1500)}})" '
+                    f'style="flex-shrink:0;background:#1a1a1a;color:#c9a84c;border:1px solid #c9a84c;'
+                    f'border-radius:6px;padding:5px 12px;cursor:pointer;font-size:0.78rem;white-space:nowrap">'
+                    f'📋 {"复制" if is_zh else "Copy"}</button>'
+                    f'</div>',
+                    unsafe_allow_html=True
+                )
+        else:
+            st.info("正在检测 App URL… 如未自动填入，请手动输入 / Detecting URL… enter manually if not auto-filled")
+        st.markdown('</div>', unsafe_allow_html=True)
 
         # ── Change own password ────────────────────────────────────────────
         st.markdown('<div class="card" style="margin-bottom:1rem">', unsafe_allow_html=True)
