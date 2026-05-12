@@ -140,8 +140,8 @@ SERVICES_EN = {
     "Perm": 250, "Keratin Treatment": 350, "Scalp SPA": 100,
 }
 SERVICES_ZH = {
-    "剪髮": 50, "染髮": 180, "頭皮護理": 120,
-    "燙髮": 250, "角蛋白護理": 350, "頭皮SPA": 100,
+    "剪发": 50, "染发": 180, "头皮护理": 120,
+    "烫发": 250, "角蛋白护理": 350, "头皮SPA": 100,
 }
 TIME_SLOTS = [
     "10:00", "10:30", "11:00", "11:30", "12:00", "12:30",
@@ -162,32 +162,32 @@ L = st.session_state.bk_lang
 
 T = {
     "zh": {
-        "sub": "MANAGEMENT SYSTEM", "book_title": "線上預約",
-        "step_svc": "① 選擇服務", "step_stylist": "② 選擇髮型師",
-        "step_date": "③ 選擇日期", "step_time": "④ 選擇時間",
-        "step_info": "⑤ 填寫資料",
+        "sub": "MANAGEMENT SYSTEM", "book_title": "线上预约",
+        "step_svc": "① 选择服务", "step_stylist": "② 选择发型师",
+        "step_date": "③ 选择日期", "step_time": "④ 选择时间",
+        "step_info": "⑤ 填写资料",
         "any_stylist": "不指定 (Any Stylist)",
-        "your_name": "您的姓名", "your_phone": "手機號碼",
-        "step_confirm": "⑥ 確認預約",
-        "service": "服務", "stylist": "髮型師",
-        "date": "日期", "time": "時間",
-        "name": "姓名", "phone": "電話",
-        "price_est": "預估費用",
-        "submit_btn": "確認預約",
-        "success_title": "預約成功！",
-        "success_msg": "我們已收到您的預約申請\n髮廊將盡快與您確認時間\n請保持電話暢通",
-        "new_booking": "再次預約",
-        "taken": "已訂",
-        "invalid": "無效的預約連結",
-        "invalid_msg": "請聯繫髮廊獲取正確的預約連結。",
-        "name_req": "請填寫您的姓名",
-        "phone_req": "請填寫手機號碼",
-        "svc_req": "請選擇服務",
-        "time_req": "請選擇時間",
+        "your_name": "您的姓名", "your_phone": "手机号码",
+        "step_confirm": "⑥ 确认预约",
+        "service": "服务", "stylist": "发型师",
+        "date": "日期", "time": "时间",
+        "name": "姓名", "phone": "电话",
+        "price_est": "预估费用",
+        "submit_btn": "确认预约",
+        "success_title": "预约成功！",
+        "success_msg": "我们已收到您的预约申请\n发廊将尽快与您确认时间\n请保持电话畅通",
+        "new_booking": "再次预约",
+        "taken": "已订",
+        "invalid": "无效的预约链接",
+        "invalid_msg": "请联系发廊获取正确的预约链接。",
+        "name_req": "请填写您的姓名",
+        "phone_req": "请填写手机号码",
+        "svc_req": "请选择服务",
+        "time_req": "请选择时间",
         "lang_toggle": "English",
-        "from": "來自",
-        "pending_note": "預約待確認，我們會盡快聯絡您",
-        "your_email": "電子郵件（選填）",
+        "from": "来自",
+        "pending_note": "预约待确认，我们会尽快联系您",
+        "your_email": "电子邮件（选填）",
         "email_ph": "例如：name@gmail.com",
     },
     "en": {
@@ -213,7 +213,7 @@ T = {
         "phone_req": "Please enter your phone number",
         "svc_req": "Please select a service",
         "time_req": "Please select a time slot",
-        "lang_toggle": "中文",
+        "lang_toggle": "简体",
         "from": "From",
         "pending_note": "Booking pending — we will contact you to confirm",
         "your_email": "Email Address (optional)",
@@ -380,12 +380,12 @@ if available_slots:
     current_idx = available_slots.index(st.session_state.bk_time) \
                   if st.session_state.bk_time in available_slots else 0
     picked_time = st.selectbox(
-        "選擇時間 / Select Time", available_slots, index=current_idx,
+        "选择时间 / Select Time", available_slots, index=current_idx,
         key="time_sel"
     )
     st.session_state.bk_time = picked_time
 else:
-    st.warning("⚠️ 該日期已全部預約，請選擇其他日期 / All slots taken for this date")
+    st.warning("⚠️ 该日期已全部约满，请选择其他日期 / All slots taken for this date")
     st.session_state.bk_time = ""
 
 st.markdown("---")

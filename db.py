@@ -314,10 +314,10 @@ def db_save_all_inventory(salon_id: str, items: list):
 def db_seed_inventory(salon_id: str):
     default = [
         {"name": "OSiS+ Dust It",        "category": "造型品",   "qty": 14, "max": 30, "unit": "瓶"},
-        {"name": "OSiS+ Freeze",          "category": "定型噴霧", "qty": 7,  "max": 24, "unit": "瓶"},
-        {"name": "Schwarzkopf IGORA",     "category": "染髮劑",  "qty": 22, "max": 50, "unit": "管"},
-        {"name": "Fibre Clinix 蛋白護理", "category": "護髮品",  "qty": 5,  "max": 20, "unit": "瓶"},
-        {"name": "BLONDME 漂髮粉",        "category": "漂髮",    "qty": 9,  "max": 25, "unit": "盒"},
+        {"name": "OSiS+ Freeze",          "category": "定型喷雾", "qty": 7,  "max": 24, "unit": "瓶"},
+        {"name": "Schwarzkopf IGORA",     "category": "染发剂",  "qty": 22, "max": 50, "unit": "管"},
+        {"name": "Fibre Clinix 蛋白护理", "category": "护发品",  "qty": 5,  "max": 20, "unit": "瓶"},
+        {"name": "BLONDME 漂发粉",        "category": "漂发",    "qty": 9,  "max": 25, "unit": "盒"},
     ]
     for item in default:
         item["salon_id"] = salon_id

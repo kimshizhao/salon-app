@@ -112,34 +112,34 @@ def send_booking_received(
 ) -> bool:
     """Email to customer: booking request received, pending confirmation."""
     stylist_str = stylist if stylist else "Any Stylist / 不指定"
-    phone_row = f'<div class="row"><span class="label">髮廊電話 / Salon Phone</span><span class="val">{salon_phone}</span></div>' if salon_phone else ""
+    phone_row = f'<div class="row"><span class="label">发廊电话 / Salon Phone</span><span class="val">{salon_phone}</span></div>' if salon_phone else ""
     content = f"""
-    <p style="font-size:16px;color:#c9a84c;font-weight:600">親愛的 {customer_name} / Dear {customer_name},</p>
+    <p style="font-size:16px;color:#c9a84c;font-weight:600">亲爱的 {customer_name} / Dear {customer_name},</p>
     <p style="color:#aaa;font-size:14px;line-height:1.7">
-      我們已收到您的預約申請！髮廊將盡快與您確認。<br>
+      我们已收到您的预约申请！发廊将尽快与您确认。<br>
       We have received your booking request! Our team will contact you to confirm shortly.
     </p>
     <div class="box">
       <div style="text-align:center;margin-bottom:14px">
-        <span class="badge badge-pending">⏳ Pending Confirmation / 待確認</span>
+        <span class="badge badge-pending">⏳ Pending Confirmation / 待确认</span>
       </div>
-      <div class="row"><span class="label">服務 / Service</span><span class="val">{service}</span></div>
-      <div class="row"><span class="label">髮型師 / Stylist</span><span class="val">{stylist_str}</span></div>
+      <div class="row"><span class="label">服务 / Service</span><span class="val">{service}</span></div>
+      <div class="row"><span class="label">发型师 / Stylist</span><span class="val">{stylist_str}</span></div>
       <div class="row"><span class="label">日期 / Date</span><span class="val">{date}</span></div>
-      <div class="row"><span class="label">時間 / Time</span><span class="val">{time}</span></div>
+      <div class="row"><span class="label">时间 / Time</span><span class="val">{time}</span></div>
       {phone_row}
       <div class="row" style="border:none">
-        <span class="label">預估費用 / Est. Price</span>
+        <span class="label">预估费用 / Est. Price</span>
         <span class="price">RM {price}</span>
       </div>
     </div>
     <p style="color:#888;font-size:13px;line-height:1.7">
-      ⚡ 請保持電話暢通，我們將盡快聯絡您確認時間。<br>
+      ⚡ 请保持电话畅通，我们将尽快联系您确认时间。<br>
       Please keep your phone available. We will contact you to confirm.
     </p>"""
     return _send_email(
         to_email,
-        f"[{salon_name}] 預約申請已收到 / Booking Request Received",
+        f"[{salon_name}] 预约申请已收到 / Booking Request Received",
         _base_template(content, salon_name)
     )
 
@@ -151,36 +151,36 @@ def send_booking_confirmed(
 ) -> bool:
     """Email to customer: booking confirmed by salon."""
     stylist_str = stylist if stylist else "Any Stylist / 不指定"
-    phone_row = f'<div class="row"><span class="label">髮廊電話 / Phone</span><span class="val">{salon_phone}</span></div>' if salon_phone else ""
+    phone_row = f'<div class="row"><span class="label">发廊电话 / Phone</span><span class="val">{salon_phone}</span></div>' if salon_phone else ""
     addr_row  = f'<div class="row"><span class="label">地址 / Address</span><span class="val">{salon_address}</span></div>' if salon_address else ""
     content = f"""
-    <p style="font-size:16px;color:#c9a84c;font-weight:600">親愛的 {customer_name} / Dear {customer_name},</p>
+    <p style="font-size:16px;color:#c9a84c;font-weight:600">亲爱的 {customer_name} / Dear {customer_name},</p>
     <p style="color:#aaa;font-size:14px;line-height:1.7">
-      您的預約已確認！我們期待您的到來。<br>
+      您的预约已确认！我们期待您的到来。<br>
       Your appointment has been confirmed! We look forward to seeing you.
     </p>
     <div class="box">
       <div style="text-align:center;margin-bottom:14px">
-        <span class="badge badge-confirmed">✅ Confirmed / 已確認</span>
+        <span class="badge badge-confirmed">✅ Confirmed / 已确认</span>
       </div>
-      <div class="row"><span class="label">服務 / Service</span><span class="val">{service}</span></div>
-      <div class="row"><span class="label">髮型師 / Stylist</span><span class="val">{stylist_str}</span></div>
+      <div class="row"><span class="label">服务 / Service</span><span class="val">{service}</span></div>
+      <div class="row"><span class="label">发型师 / Stylist</span><span class="val">{stylist_str}</span></div>
       <div class="row"><span class="label">日期 / Date</span><span class="val">{date}</span></div>
-      <div class="row"><span class="label">時間 / Time</span><span class="val">{time}</span></div>
+      <div class="row"><span class="label">时间 / Time</span><span class="val">{time}</span></div>
       {phone_row}
       {addr_row}
       <div class="row" style="border:none">
-        <span class="label">預估費用 / Est. Price</span>
+        <span class="label">预估费用 / Est. Price</span>
         <span class="price">RM {price}</span>
       </div>
     </div>
     <p style="color:#888;font-size:13px;line-height:1.7">
-      如需更改或取消預約，請聯絡髮廊。<br>
+      如需更改或取消预约，请联系发廊。<br>
       To reschedule or cancel, please contact the salon directly.
     </p>"""
     return _send_email(
         to_email,
-        f"[{salon_name}] ✅ 預約已確認 / Appointment Confirmed",
+        f"[{salon_name}] ✅ 预约已确认 / Appointment Confirmed",
         _base_template(content, salon_name)
     )
 
@@ -193,22 +193,22 @@ def send_salon_new_booking_alert(
     """Email alert to salon owner/manager: new online booking received."""
     stylist_str = stylist if stylist else "不指定 / Any"
     content = f"""
-    <p style="font-size:16px;color:#e67e22;font-weight:600">🌐 新網上預約 / New Online Booking</p>
+    <p style="font-size:16px;color:#e67e22;font-weight:600">🌐 新网上预约 / New Online Booking</p>
     <div class="box">
-      <div class="row"><span class="label">客戶 / Client</span><span class="val">{customer_name}</span></div>
-      <div class="row"><span class="label">電話 / Phone</span><span class="val">{customer_phone}</span></div>
-      <div class="row"><span class="label">服務 / Service</span><span class="val">{service}</span></div>
-      <div class="row"><span class="label">髮型師 / Stylist</span><span class="val">{stylist_str}</span></div>
+      <div class="row"><span class="label">客户 / Client</span><span class="val">{customer_name}</span></div>
+      <div class="row"><span class="label">电话 / Phone</span><span class="val">{customer_phone}</span></div>
+      <div class="row"><span class="label">服务 / Service</span><span class="val">{service}</span></div>
+      <div class="row"><span class="label">发型师 / Stylist</span><span class="val">{stylist_str}</span></div>
       <div class="row"><span class="label">日期 / Date</span><span class="val">{date}</span></div>
-      <div class="row" style="border:none"><span class="label">時間 / Time</span><span class="val">{time}</span></div>
+      <div class="row" style="border:none"><span class="label">时间 / Time</span><span class="val">{time}</span></div>
     </div>
     <p style="color:#aaa;font-size:13px">
-      請登入管理系統確認或拒絕此預約。<br>
+      请登录管理系统确认或拒绝此预约。<br>
       Please log in to the management system to confirm or decline.
     </p>"""
     return _send_email(
         to_email,
-        f"[{salon_name}] 🌐 新網上預約 — {customer_name}",
+        f"[{salon_name}] 🌐 新网上预约 — {customer_name}",
         _base_template(content, salon_name)
     )
 
@@ -223,12 +223,12 @@ def wa_booking_confirmed_msg(
     return (
         f"✦ {salon_name} ✦\n\n"
         f"您好 {customer_name}！\n"
-        f"您的預約已確認 ✅\n\n"
-        f"📋 服務：{service}\n"
-        f"💇 髮型師：{stylist_str}\n"
+        f"您的预约已确认 ✅\n\n"
+        f"📋 服务：{service}\n"
+        f"💇 发型师：{stylist_str}\n"
         f"📅 日期：{date}\n"
-        f"⏰ 時間：{time}\n\n"
-        f"期待您的光臨！如需更改請回覆此訊息。"
+        f"⏰ 时间：{time}\n\n"
+        f"期待您的光临！如需更改请回复此消息。"
     )
 
 
@@ -238,9 +238,9 @@ def wa_booking_reminder_msg(
     return (
         f"✦ {salon_name} ✦\n\n"
         f"您好 {customer_name}！\n"
-        f"溫馨提醒：您明天的預約 ⏰\n\n"
-        f"📋 服務：{service}\n"
+        f"温馨提醒：您明天的预约 ⏰\n\n"
+        f"📋 服务：{service}\n"
         f"📅 日期：{date}\n"
-        f"⏰ 時間：{time}\n\n"
-        f"期待明天見到您！"
+        f"⏰ 时间：{time}\n\n"
+        f"期待明天见到您！"
     )

@@ -358,39 +358,45 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ── Language & Reference Data ─────────────────────────────────────────────────
+# Session key `lang=="zh"` is Simplified Chinese (简体中文).
 if "lang" not in st.session_state:
     st.session_state.lang = "zh"
 
 SERVICES = {
-    "zh": {"剪髮": 50, "染髮": 180, "頭皮護理": 120, "燙髮": 250, "角蛋白護理": 350, "頭皮SPA": 100},
+    "zh": {"剪发": 50, "染发": 180, "头皮护理": 120, "烫发": 250, "角蛋白护理": 350, "头皮SPA": 100},
     "en": {"Haircut": 50, "Hair Coloring": 180, "Scalp Treatment": 120,
            "Perm": 250, "Keratin Treatment": 350, "Scalp SPA": 100},
     "ms": {"Gunting Rambut": 50, "Warna Rambut": 180, "Rawatan Kulit Kepala": 120,
            "Kerinting": 250, "Rawatan Keratin": 350, "Spa Kulit Kepala": 100},
 }
-# Canonical service names (ZH <-> EN mapping)
-SVC_ZH_EN = {"剪髮":"Haircut","染髮":"Hair Coloring","頭皮護理":"Scalp Treatment",
-              "燙髮":"Perm","角蛋白護理":"Keratin Treatment","頭皮SPA":"Scalp SPA"}
+# Canonical service names (Simplified CN <-> EN; legacy Trad. mapped in _canonical_svc)
+SVC_ZH_EN = {"剪发":"Haircut","染发":"Hair Coloring","头皮护理":"Scalp Treatment",
+              "烫发":"Perm","角蛋白护理":"Keratin Treatment","头皮SPA":"Scalp SPA"}
 SVC_EN_ZH = {v: k for k, v in SVC_ZH_EN.items()}
-SVC_MS_ZH = {"Gunting Rambut":"剪髮","Warna Rambut":"染髮","Rawatan Kulit Kepala":"頭皮護理",
-             "Kerinting":"燙髮","Rawatan Keratin":"角蛋白護理","Spa Kulit Kepala":"頭皮SPA"}
+SVC_MS_ZH = {"Gunting Rambut":"剪发","Warna Rambut":"染发","Rawatan Kulit Kepala":"头皮护理",
+             "Kerinting":"烫发","Rawatan Keratin":"角蛋白护理","Spa Kulit Kepala":"头皮SPA"}
+SVC_LEGACY_TRADITIONAL_TO_SC = {
+    "剪髮":"剪发","染髮":"染发","頭皮護理":"头皮护理","燙髮":"烫发","角蛋白護理":"角蛋白护理","頭皮SPA":"头皮SPA",
+}
 SVC_ALL_ZH = list(SVC_ZH_EN.keys())  # canonical service name list
 
 def _canonical_svc(svc: str) -> str:
-    """Normalise a service name to ZH canonical form."""
+    """Normalise a service name to Simplified-CN canonical form (maps legacy Trad. spellings)."""
     if svc in SVC_ZH_EN:
         return svc
     if svc in SVC_EN_ZH:
         return SVC_EN_ZH[svc]
-    return SVC_MS_ZH.get(svc, svc)
-CATS  = {"zh": ["造型品","定型噴霧","染髮劑","護髮品","漂髮","頭皮護理"],
+    if svc in SVC_MS_ZH:
+        return SVC_MS_ZH[svc]
+    return SVC_LEGACY_TRADITIONAL_TO_SC.get(svc, svc)
+CATS  = {"zh": ["造型品","定型喷雾","染发剂","护发品","漂发","头皮护理"],
          "en": ["Styling","Setting Spray","Hair Color","Hair Care","Bleach","Scalp Care"],
          "ms": ["Penggayaan","Semburan Set","Pewarna Rambut","Penjagaan Rambut","Bleach","Rawatan Kulit Kepala"]}
-UNITS = {"zh": ["瓶","管","盒","罐","組"], "en": ["bottle","tube","box","can","set"],
+UNITS = {"zh": ["瓶","管","盒","罐","组"], "en": ["bottle","tube","box","can","set"],
          "ms": ["botol","tiub","kotak","tin","set"]}
 
 PAY_METHODS = {
-    "Cash":        ("Cash 現金",    "💵", "#2ecc71"),
+    "Cash":        ("Cash 现金",    "💵", "#2ecc71"),
     "Visa/Card":   ("Visa / Card",  "💳", "#3498db"),
     "Touch 'n Go": ("Touch 'n Go", "📱", "#e74c3c"),
     "DuitNow QR":  ("DuitNow QR",  "📲", "#9b59b6"),
@@ -401,242 +407,242 @@ STYLIST_COLORS = ["#c9a84c","#3498db","#e74c3c","#2ecc71","#9b59b6","#e67e22","#
 
 UI = {
     "zh": {
-        "subtitle":      "髮廊智能管理系統 · Malaysia",
+        "subtitle":      "发廊智能管理系统 · Malaysia",
         "lang_btn":      "🌐 English",
-        "tab1":          "  ✂  預約管理  ",
-        "tab2":          "  💇  髮型師  ",
-        "tab3":          "  💳  收費  ",
-        "tab4":          "  📦  庫存  ",
-        "tab5":          "  📊  結算  ",
+        "tab1":          "  ✂  预约管理  ",
+        "tab2":          "  💇  发型师  ",
+        "tab3":          "  💳  收费  ",
+        "tab4":          "  📦  库存  ",
+        "tab5":          "  📊  结算  ",
         # Booking
-        "new_booking":   "＋ 新增預約",
-        "client_name":   "客戶姓名",
-        "name_ph":       "請輸入全名",
-        "book_date":     "預約日期",
-        "book_time":     "預約時間",
-        "stylist":       "髮型師",
-        "service":       "服務項目",
-        "note":          "備註（選填）",
-        "note_ph":       "例如：過敏史、頭髮狀況…",
-        "confirm_btn":   "確認預約 →",
-        "name_warn":     "請輸入客戶姓名",
-        "online_pending": "待確認網上預約",
-        "any_stylist":    "不指定髮型師",
-        "cancel":         "拒絕",
-        "book_list":     "📅 預約名單",
-        "save_bookings": "儲存更改",
-        "bookings_saved":"✦ 預約已更新",
-        "no_bookings":   "尚無預約記錄",
+        "new_booking":   "＋ 新增预约",
+        "client_name":   "客户姓名",
+        "name_ph":       "请输入全名",
+        "book_date":     "预约日期",
+        "book_time":     "预约时间",
+        "stylist":       "发型师",
+        "service":       "服务项目",
+        "note":          "备注（选填）",
+        "note_ph":       "例如：过敏史、头发状况…",
+        "confirm_btn":   "确认预约 →",
+        "name_warn":     "请输入客户姓名",
+        "online_pending": "待确认网上预约",
+        "any_stylist":    "不指定发型师",
+        "cancel":         "拒绝",
+        "book_list":     "📅 预约名单",
+        "save_bookings": "保存更改",
+        "bookings_saved":"✦ 预约已更新",
+        "no_bookings":   "尚无预约记录",
         "col_name":      "姓名",
         "col_date":      "日期",
-        "col_time":      "時間",
-        "col_stylist":   "髮型師",
-        "col_service":   "服務",
-        "col_note":      "備註",
+        "col_time":      "时间",
+        "col_stylist":   "发型师",
+        "col_service":   "服务",
+        "col_note":      "备注",
         # Stylist
-        "sty_title":     "💇 髮型師管理",
-        "sty_roster":    "髮型師名單",
-        "sty_add":       "新增髮型師",
-        "sty_name_lbl":  "名稱",
+        "sty_title":     "💇 发型师管理",
+        "sty_roster":    "发型师名单",
+        "sty_add":       "新增发型师",
+        "sty_name_lbl":  "名称",
         "sty_name_ph":   "例如：Kim",
         "sty_add_btn":   "新增 →",
-        "sty_name_warn": "請輸入髮型師名稱",
+        "sty_name_warn": "请输入发型师名称",
         "sty_added":     "✦ 已新增 **{}**",
         "sty_removed":   "✦ 已移除 **{}**",
         "sty_schedule":  "今日排班",
-        "sty_filter":    "篩選髮型師",
+        "sty_filter":    "筛选发型师",
         "sty_all":       "全部",
-        "sty_no_bk":     "今日無預約",
-        "sty_clients":   "位客戶",
+        "sty_no_bk":     "今日无预约",
+        "sty_clients":   "位客户",
         "sty_remove":    "移除",
         "sty_view_sched":"📅 排班",
-        "sty_view_perf": "📊 業績",
-        "sty_view_comm": "💰 抽成設定",
-        "perf_title":    "📊 業績排行",
-        "perf_today_rev":"今日業績",
-        "perf_total_rev":"累計業績",
+        "sty_view_perf": "📊 业绩",
+        "sty_view_comm": "💰 提成设置",
+        "perf_title":    "📊 业绩排行",
+        "perf_today_rev":"今日业绩",
+        "perf_total_rev":"累计业绩",
         "perf_clients":  "接待人次",
-        "perf_top_svc":  "最多服務",
-        "perf_avg":      "平均客單價",
+        "perf_top_svc":  "最多服务",
+        "perf_avg":      "平均客单价",
         "perf_rank":     "排行",
-        "perf_no_data":  "尚無業績記錄（未有結帳數據）",
-        "comm_title":    "💰 抽成比例設定",
-        "comm_desc":     "為每位髮型師的每種服務設定抽成百分比（%）",
-        "comm_save":     "儲存抽成設定",
-        "comm_saved":    "✦ 抽成設定已儲存",
-        "comm_svc":      "服務",
+        "perf_no_data":  "尚无业绩记录（未有结账数据）",
+        "comm_title":    "💰 提成比例设置",
+        "comm_desc":     "为每位发型师的每种服务设定提成百分比（%）",
+        "comm_save":     "保存提成设置",
+        "comm_saved":    "✦ 提成设置已保存",
+        "comm_svc":      "服务",
         "comm_rate":     "比例 (%)",
-        "comm_no_sty":   "請先在左側新增髮型師",
-        "comm_report_title": "💰 抽成報表",
-        "comm_stylist":  "髮型師",
-        "comm_service":  "服務",
-        "comm_revenue":  "業績收入",
-        "comm_rate_col": "抽成 %",
-        "comm_amount":   "抽成金額",
-        "comm_subtotal": "小計",
-        "comm_grand":    "合計",
-        "comm_period":   "報表期間",
-        "comm_export":   "匯出抽成報表 (Excel)",
-        "comm_no_data":  "所選期間沒有已結帳記錄",
+        "comm_no_sty":   "请先在左侧新增发型师",
+        "comm_report_title": "💰 提成报表",
+        "comm_stylist":  "发型师",
+        "comm_service":  "服务",
+        "comm_revenue":  "业绩收入",
+        "comm_rate_col": "提成 %",
+        "comm_amount":   "提成金额",
+        "comm_subtotal": "小计",
+        "comm_grand":    "合计",
+        "comm_period":   "报表期间",
+        "comm_export":   "导出提成报表 (Excel)",
+        "comm_no_data":  "所选期间没有已结账记录",
         # Payment
-        "pay_title":     "💳 今日收費",
+        "pay_title":     "💳 今日收费",
         "stat_paid":     "已收款",
         "stat_pending":  "待收款",
-        "stat_total":    "今日總計",
-        "stat_count":    "今日客數",
+        "stat_total":    "今日总计",
+        "stat_count":    "今日客数",
         "pending_list":  "⏳ 待付款",
-        "no_pending":    "✦ 今日所有預約已結清",
-        "checkout_title":"結帳",
-        "select_booking":"選擇預約",
+        "no_pending":    "✦ 今日所有预约已结清",
+        "checkout_title":"结账",
+        "select_booking":"选择预约",
         "pay_method":    "付款方式",
-        "confirm_pay":   "確認收款 →",
+        "confirm_pay":   "确认收款 →",
         "pay_success":   "✦ 已收款 RM {:.2f}（{}）",
-        "history_title": "📋 今日收款記錄",
-        "breakdown_title":"付款方式分佈",
+        "history_title": "📋 今日收款记录",
+        "breakdown_title":"付款方式分布",
         "disc_label":    "折扣 Discount (%)",
-        "extra_label":   "額外收費 Extra (RM)",
-        "walkin_title":  "即場客收費",
-        "wi_svc_ph":     "剪髮 / 染髮 / 護理…",
-        "wi_amt_label":  "金額 (RM)",
+        "extra_label":   "额外收费 Extra (RM)",
+        "walkin_title":  "现场客收费",
+        "wi_svc_ph":     "剪发 / 染发 / 护理…",
+        "wi_amt_label":  "金额 (RM)",
         "wi_confirm":    "收款 →",
-        "mode_booked":   "預約客戶",
-        "mode_walkin":   "即場客 Walk-in",
+        "mode_booked":   "预约客户",
+        "mode_walkin":   "现场客 Walk-in",
         # Inventory
-        "inv_title":     "📦 產品庫存",
-        "add_product":   "＋ 新增產品",
-        "p_name":        "產品名稱",
+        "inv_title":     "📦 产品库存",
+        "add_product":   "＋ 新增产品",
+        "p_name":        "产品名称",
         "p_name_ph":     "例如：OSiS+ Dust It",
-        "p_cat":         "分類",
-        "p_qty":         "數量",
-        "p_max":         "最大庫存",
-        "p_unit":        "單位",
-        "add_btn":       "新增產品 →",
-        "name_req":      "請輸入產品名稱",
+        "p_cat":         "分类",
+        "p_qty":         "数量",
+        "p_max":         "最大库存",
+        "p_unit":        "单位",
+        "add_btn":       "新增产品 →",
+        "name_req":      "请输入产品名称",
         "add_success":   "✦ 已新增 **{}**",
-        "low_warn":      "⚠ 庫存不足警告：{}",
-        "filter":        "分類篩選",
-        "search":        "搜尋產品",
-        "search_ph":     "輸入產品名稱…",
+        "low_warn":      "⚠ 库存不足警告：{}",
+        "filter":        "分类筛选",
+        "search":        "搜索产品",
+        "search_ph":     "输入产品名称…",
         "all_cat":       "全部",
-        "edit_section":  "✏  編輯 / 刪除庫存",
-        "save_inv":      "儲存庫存更改",
-        "inv_saved":     "✦ 庫存已更新",
-        "remain":        "剩餘",
-        "col_pname":     "產品名稱",
-        "col_pcat":      "分類",
-        "col_pqty":      "數量",
-        "col_pmax":      "最大庫存",
-        "col_punit":     "單位",
+        "edit_section":  "✏  编辑 / 删除库存",
+        "save_inv":      "保存库存更改",
+        "inv_saved":     "✦ 库存已更新",
+        "remain":        "剩余",
+        "col_pname":     "产品名称",
+        "col_pcat":      "分类",
+        "col_pqty":      "数量",
+        "col_pmax":      "最大库存",
+        "col_punit":     "单位",
         # Settlement
-        "settle_title":   "📊 結算報告",
-        "settle_mode_day":  "📅 每日結算",
-        "settle_mode_mth":  "📆 每月結算",
-        "settle_mode_comm": "💰 抽成報表",
-        "settle_date":    "選擇結算日期",
-        "settle_month":   "選擇月份",
-        "settle_mth_title":"📆 每月結算報告",
-        "settle_clients": "總客數",
-        "settle_daily_bk":"每日收款明細",
+        "settle_title":   "📊 结算报告",
+        "settle_mode_day":  "📅 每日结算",
+        "settle_mode_mth":  "📆 每月结算",
+        "settle_mode_comm": "💰 提成报表",
+        "settle_date":    "选择结算日期",
+        "settle_month":   "选择月份",
+        "settle_mth_title":"📆 每月结算报告",
+        "settle_clients": "总客数",
+        "settle_daily_bk":"每日收款明细",
         "col_s_date":     "日期",
-        "col_s_clients":  "客數",
-        "settle_total":   "結算總額",
+        "col_s_clients":  "客数",
+        "settle_total":   "结算总额",
         "settle_paid":    "已收款",
         "settle_pending": "待收款",
-        "settle_walkin":  "即場客",
-        "settle_detail":  "收款明細",
-        "settle_sty":     "髮型師業績",
-        "settle_svc":     "服務統計",
-        "settle_method":  "付款方式統計",
-        "settle_no_data": "所選日期無收款記錄",
-        "settle_export":  "📥 匯出 Excel",
+        "settle_walkin":  "现场客",
+        "settle_detail":  "收款明细",
+        "settle_sty":     "发型师业绩",
+        "settle_svc":     "服务统计",
+        "settle_method":  "付款方式统计",
+        "settle_no_data": "所选日期无收款记录",
+        "settle_export":  "📥 导出 Excel",
         "settle_exporting":"正在生成…",
-        "col_s_name":     "客戶姓名",
-        "col_s_stylist":  "髮型師",
-        "col_s_svc":      "服務",
+        "col_s_name":     "客户姓名",
+        "col_s_stylist":  "发型师",
+        "col_s_svc":      "服务",
         "col_s_method":   "付款方式",
-        "col_s_amt":      "金額 (RM)",
-        "col_s_type":     "類型",
+        "col_s_amt":      "金额 (RM)",
+        "col_s_type":     "类型",
         "col_s_count":    "人次",
-        "col_s_rev":      "業績 (RM)",
+        "col_s_rev":      "业绩 (RM)",
         "col_s_avg":      "平均 (RM)",
         # Members
-        "tab6":           "  👥  會員  ",
-        "mem_title":      "👥 會員管理",
-        "mem_add":        "＋ 新增會員",
+        "tab6":           "  👥  会员  ",
+        "mem_title":      "👥 会员管理",
+        "mem_add":        "＋ 新增会员",
         "mem_name":       "姓名",
         "mem_name_ph":    "例如：Siti Aminah",
-        "mem_phone":      "電話號碼",
+        "mem_phone":      "电话号码",
         "mem_phone_ph":   "例如：012-3456789",
-        "mem_bday":       "生日（選填）",
-        "mem_notes":      "備注（頭髮狀況、過敏等）",
-        "mem_notes_ph":   "例如：對氨水過敏，頭髮細軟…",
-        "mem_add_btn":    "新增會員 →",
-        "mem_name_warn":  "請輸入會員姓名",
-        "mem_added":      "✦ 已新增會員 **{}**",
-        "mem_search":     "搜尋會員",
-        "mem_search_ph":  "輸入姓名或電話…",
-        "mem_no_result":  "找不到符合的會員",
-        "mem_no_members": "尚無會員資料",
-        "mem_select":     "點選會員查看詳情",
-        "mem_detail":     "會員詳情",
-        "mem_tier":       "等級",
-        "mem_points":     "積分",
-        "mem_spent":      "累計消費 (RM)",
-        "mem_visits":     "到訪次數",
+        "mem_bday":       "生日（选填）",
+        "mem_notes":      "备注（头发状况、过敏等）",
+        "mem_notes_ph":   "例如：对氨水过敏，头发细软…",
+        "mem_add_btn":    "新增会员 →",
+        "mem_name_warn":  "请输入会员姓名",
+        "mem_added":      "✦ 已新增会员 **{}**",
+        "mem_search":     "搜索会员",
+        "mem_search_ph":  "输入姓名或电话…",
+        "mem_no_result":  "找不到符合的会员",
+        "mem_no_members": "尚无会员资料",
+        "mem_select":     "点选会员查看详情",
+        "mem_detail":     "会员详情",
+        "mem_tier":       "等级",
+        "mem_points":     "积分",
+        "mem_spent":      "累计消费 (RM)",
+        "mem_visits":     "到访次数",
         "mem_joined":     "加入日期",
-        "mem_edit_notes": "更新備注",
-        "mem_save_notes": "儲存備注",
-        "mem_notes_saved":"✦ 備注已儲存",
-        "mem_delete":     "刪除會員",
-        "mem_deleted":    "✦ 已刪除會員 **{}**",
-        "mem_history":    "消費記錄",
-        "mem_no_history": "尚無消費記錄",
-        "mem_stats":      "會員總覽",
-        "mem_total":      "總會員數",
-        "mem_vip_count":  "VIP 會員",
-        "mem_pts_issued": "已發積分",
-        "mem_tier_up":    "✦ {} 已升級至 {}！",
-        "mem_disc_hint":  "會員折扣 {}%",
-        "mem_lookup":     "會員查詢（選填）",
-        "mem_pts_added":  "已為 {} 累加 {} 積分",
+        "mem_edit_notes": "更新备注",
+        "mem_save_notes": "保存备注",
+        "mem_notes_saved":"✦ 备注已保存",
+        "mem_delete":     "删除会员",
+        "mem_deleted":    "✦ 已删除会员 **{}**",
+        "mem_history":    "消费记录",
+        "mem_no_history": "尚无消费记录",
+        "mem_stats":      "会员总览",
+        "mem_total":      "总会员数",
+        "mem_vip_count":  "VIP 会员",
+        "mem_pts_issued": "已发积分",
+        "mem_tier_up":    "✦ {} 已升级至 {}！",
+        "mem_disc_hint":  "会员折扣 {}%",
+        "mem_lookup":     "会员查询（选填）",
+        "mem_pts_added":  "已为 {} 累加 {} 积分",
         # Member DB enhancements
-        "bk_phone":       "客戶電話",
+        "bk_phone":       "客户电话",
         "bk_phone_ph":    "例如：012-3456789",
-        "mem_on_file":    "✓ 已建檔  · {}  {}",
-        "mem_new_client": "✦ 新客戶 — 可在【會員】頁建檔",
-        "mem_auto_match": "🔗 自動匹配：{} {}",
-        "mem_bk_section": "📅 預約記錄",
-        "mem_upcoming":   "即將到來",
-        "mem_past_bk":    "過去記錄",
-        "mem_no_upcoming":"暫無即將到來的預約",
-        "mem_no_bk":      "尚無預約記錄",
-        "wi_phone":       "客戶電話（選填）",
-        "wi_quick_mem":   "＋ 將此客戶加入會員",
-        "wi_mem_created": "✦ 已建立會員檔案：**{}**",
+        "mem_on_file":    "✓ 已建档  · {}  {}",
+        "mem_new_client": "✦ 新客户 — 可在【会员】页建档",
+        "mem_auto_match": "🔗 自动匹配：{} {}",
+        "mem_bk_section": "📅 预约记录",
+        "mem_upcoming":   "即将到来",
+        "mem_past_bk":    "过去记录",
+        "mem_no_upcoming":"暂无即将到来的预约",
+        "mem_no_bk":      "尚无预约记录",
+        "wi_phone":       "客户电话（选填）",
+        "wi_quick_mem":   "＋ 将此客户加入会员",
+        "wi_mem_created": "✦ 已建立会员档案：**{}**",
         # Receipt
-        "rcpt_btn":       "🧾 收據",
-        "rcpt_title":     "收據",
-        "rcpt_print":     "🖨️ 列印收據",
-        "rcpt_email":     "📧 Email 收據",
+        "rcpt_btn":       "🧾 收据",
+        "rcpt_title":     "收据",
+        "rcpt_print":     "🖨️ 打印收据",
+        "rcpt_email":     "📧 Email 收据",
         "rcpt_email_to":  "收件人 Email",
         "rcpt_email_ph":  "例如：client@email.com",
-        "rcpt_send":      "發送 →",
-        "rcpt_sent":      "✦ 郵件已開啟，請在郵件 App 確認發送",
-        "rcpt_close":     "關閉",
-        "rcpt_service":   "服務",
-        "rcpt_stylist":   "髮型師",
-        "rcpt_subtotal":  "小計",
+        "rcpt_send":      "发送 →",
+        "rcpt_sent":      "✦ 邮件已打开，请在邮件 App 确认发送",
+        "rcpt_close":     "关闭",
+        "rcpt_service":   "服务",
+        "rcpt_stylist":   "发型师",
+        "rcpt_subtotal":  "小计",
         "rcpt_discount":  "折扣",
-        "rcpt_total":     "總計",
+        "rcpt_total":     "总计",
         "rcpt_method":    "付款方式",
-        "rcpt_member":    "會員",
-        "rcpt_pts":       "本次積分",
-        "rcpt_thanks":    "感謝您的光臨，期待再次為您服務！",
-        "rcpt_no_sel":    "請先從收款記錄中選擇一筆收據",
+        "rcpt_member":    "会员",
+        "rcpt_pts":       "本次积分",
+        "rcpt_thanks":    "感谢您的光临，期待再次为您服务！",
+        "rcpt_no_sel":    "请先从收款记录中选择一笔收据",
     },
     "en": {
         "subtitle":      "Salon Management System · Malaysia",
-        "lang_btn":      "🌐 中文",
+        "lang_btn":      "🌐 简体",
         "tab1":          "  ✂  Bookings  ",
         "tab2":          "  💇  Stylists  ",
         "tab3":          "  💳  Payment  ",
@@ -866,7 +872,7 @@ UI = {
     },
     "ms": {
         "subtitle":      "Sistem Pengurusan Salun · Malaysia",
-        "lang_btn":      "🌐 中文",
+        "lang_btn":      "🌐 简体",
         "tab1":          "  ✂  Tempahan  ",
         "tab2":          "  💇  Jurugaya  ",
         "tab3":          "  💳  Bayaran  ",
@@ -1114,7 +1120,7 @@ def _t(zh: str, en: str, ms: str = None) -> str:
 # ── Member tier system ────────────────────────────────────────────────────────
 TIERS = [
     {"key": "普通",  "en": "Regular", "ms": "Biasa",  "min_pts": 0,    "disc": 0,    "color": "#888888", "badge": "⚪"},
-    {"key": "銀卡",  "en": "Silver",  "ms": "Perak",  "min_pts": 500,  "disc": 5,    "color": "#adb5bd", "badge": "🥈"},
+    {"key": "银卡",  "en": "Silver",  "ms": "Perak",  "min_pts": 500,  "disc": 5,    "color": "#adb5bd", "badge": "🥈"},
     {"key": "金卡",  "en": "Gold",    "ms": "Emas",   "min_pts": 1500, "disc": 10,   "color": "#c9a84c", "badge": "🥇"},
     {"key": "VIP",   "en": "VIP",     "ms": "VIP",    "min_pts": 3000, "disc": 15,   "color": "#e74c3c", "badge": "💎"},
 ]
@@ -1163,6 +1169,43 @@ def _get_session_user() -> str:
     except Exception:
         return ""
 
+# ── Branch-scoped data helpers (must be defined before auto-login uses them) ───
+def _init_branch(bid: str):
+    bd = st.session_state.setdefault("branch_data", {})
+    if bid not in bd:
+        bd[bid] = {
+            "stylists":    ["Kim", "Lily", "Jason"],
+            "bookings":    [],
+            "walkins":     [],
+            "members":     [],
+            "commissions": {},
+            "inventory": [
+                {"name":"OSiS+ Dust It",        "category":"造型品",   "qty":14,"max":30,"unit":"瓶"},
+                {"name":"OSiS+ Freeze",          "category":"定型喷雾","qty":7, "max":24,"unit":"瓶"},
+                {"name":"Schwarzkopf IGORA",     "category":"染发剂",  "qty":22,"max":50,"unit":"管"},
+                {"name":"Fibre Clinix 蛋白护理", "category":"护发品",  "qty":5, "max":20,"unit":"瓶"},
+                {"name":"BLONDME 漂发粉",        "category":"漂发",    "qty":9, "max":25,"unit":"盒"},
+                {"name":"OSiS+ Session Label",   "category":"造型品",  "qty":18,"max":30,"unit":"瓶"},
+                {"name":"Chroma ID 酸性染",      "category":"染发剂",  "qty":31,"max":60,"unit":"管"},
+                {"name":"Scalp Clinix 头皮精华", "category":"头皮护理","qty":3, "max":15,"unit":"瓶"},
+            ],
+        }
+
+def _bd():
+    """Return current branch data dict."""
+    _init_branch(st.session_state.cur_branch)
+    return st.session_state.branch_data[st.session_state.cur_branch]
+
+def _sync_ss():
+    """Sync top-level session state aliases to current branch."""
+    bd = _bd()
+    st.session_state.stylists    = bd["stylists"]
+    st.session_state.bookings    = bd["bookings"]
+    st.session_state.walkins     = bd["walkins"]
+    st.session_state.members     = bd["members"]
+    st.session_state.inventory   = bd["inventory"]
+    st.session_state.commissions = bd.setdefault("commissions", {})
+
 # ── Auth session state ────────────────────────────────────────────────────────
 if "logged_in"  not in st.session_state: st.session_state.logged_in  = False
 if "username"   not in st.session_state: st.session_state.username   = ""
@@ -1197,45 +1240,6 @@ if not st.session_state.logged_in:
                 except Exception:
                     pass
 
-# ── Branch-scoped data: keyed by branch_id ────────────────────────────────────
-def _init_branch(bid: str):
-    bd = st.session_state.setdefault("branch_data", {})
-    if bid not in bd:
-        bd[bid] = {
-            "stylists":    ["Kim", "Lily", "Jason"],
-            "bookings":    [],
-            "walkins":     [],
-            "members":     [],
-            "commissions": {},
-            "inventory": [
-                {"name":"OSiS+ Dust It",        "category":"造型品",   "qty":14,"max":30,"unit":"瓶"},
-                {"name":"OSiS+ Freeze",          "category":"定型噴霧","qty":7, "max":24,"unit":"瓶"},
-                {"name":"Schwarzkopf IGORA",     "category":"染髮劑",  "qty":22,"max":50,"unit":"管"},
-                {"name":"Fibre Clinix 蛋白護理", "category":"護髮品",  "qty":5, "max":20,"unit":"瓶"},
-                {"name":"BLONDME 漂髮粉",        "category":"漂髮",    "qty":9, "max":25,"unit":"盒"},
-                {"name":"OSiS+ Session Label",   "category":"造型品",  "qty":18,"max":30,"unit":"瓶"},
-                {"name":"Chroma ID 酸性染",      "category":"染髮劑",  "qty":31,"max":60,"unit":"管"},
-                {"name":"Scalp Clinix 頭皮精華", "category":"頭皮護理","qty":3, "max":15,"unit":"瓶"},
-            ],
-        }
-
-def _bd():
-    """Return current branch data dict."""
-    _init_branch(st.session_state.cur_branch)
-    return st.session_state.branch_data[st.session_state.cur_branch]
-
-# Backwards-compat shims so existing code using st.session_state.bookings works:
-# We'll keep them as properties pointing into branch_data.
-def _sync_ss():
-    """Sync top-level session state aliases to current branch."""
-    bd = _bd()
-    st.session_state.stylists    = bd["stylists"]
-    st.session_state.bookings    = bd["bookings"]
-    st.session_state.walkins     = bd["walkins"]
-    st.session_state.members     = bd["members"]
-    st.session_state.inventory   = bd["inventory"]
-    st.session_state.commissions = bd.setdefault("commissions", {})
-
 if "sel_member_id" not in st.session_state: st.session_state.sel_member_id = None
 if "sel_receipt"   not in st.session_state: st.session_state.sel_receipt   = None
 
@@ -1261,9 +1265,9 @@ if not st.session_state.logged_in:
     with st.container():
         col = st.columns([1, 2, 1])[1]
         with col:
-            lg_user = st.text_input("👤 Username / 用戶名", key="lg_user", placeholder="username")
-            lg_pass = st.text_input("🔑 Password / 密碼",   key="lg_pass", placeholder="password", type="password")
-            if st.button("Login / 登入", key="login_btn", use_container_width=True):
+            lg_user = st.text_input("👤 Username / 用户名", key="lg_user", placeholder="username")
+            lg_pass = st.text_input("🔑 Password / 密码",   key="lg_pass", placeholder="password", type="password")
+            if st.button("Login / 登录", key="login_btn", use_container_width=True):
                 uname = lg_user.strip()
                 ph    = _hash(lg_pass)
                 acct  = None
@@ -1300,13 +1304,13 @@ if not st.session_state.logged_in:
                     _sync_ss()
                     st.rerun()
                 else:
-                    st.error("❌ 帳號或密碼錯誤 / Wrong username or password")
+                    st.error("❌ 账号或密码错误 / Wrong username or password")
     st.stop()
 
 # ── Logged in — sync data aliases ────────────────────────────────────────────
 _sync_ss()
 
-# ── Subscription status check (skip for owner — they manage the system) ───────
+# ── Subscription status check (owner + platform admin bypass; see _sub below) ──
 import datetime as _sub_dt
 
 def _get_sub_status(salon_id: str) -> dict:
@@ -1325,19 +1329,23 @@ def _get_sub_status(salon_id: str) -> dict:
         return {"ok": True, "plan": "active", "days_left": 999, "ends": None}
 
     if plan == "trial" or not plan:
-        if trial_ends:
-            end = _sub_dt.date.fromisoformat(str(trial_ends))
-            days_left = (end - today).days
-            if days_left >= 0:
-                return {"ok": True, "plan": "trial", "days_left": days_left, "ends": end}
+        if not trial_ends:
+            # No end date ⇒ treat trial as ongoing (avoid locking out DB rows missing this field).
+            return {"ok": True, "plan": "trial", "days_left": 999, "ends": None}
+        end = _sub_dt.date.fromisoformat(str(trial_ends))
+        days_left = (end - today).days
+        if days_left >= 0:
+            return {"ok": True, "plan": "trial", "days_left": days_left, "ends": end}
         return {"ok": False, "plan": "expired", "days_left": 0, "ends": None}
 
     return {"ok": False, "plan": "expired", "days_left": 0, "ends": None}
 
-_sub = _get_sub_status(st.session_state.cur_branch) if st.session_state.role != "owner" else {"ok": True, "plan": "owner", "days_left": 999, "ends": None}
+# Bypass paywall for salon owner and platform admin (admin manages billing / infra).
+_sub = _get_sub_status(st.session_state.cur_branch) if st.session_state.role not in ("owner", "admin") \
+    else {"ok": True, "plan": "owner" if st.session_state.role == "owner" else "admin", "days_left": 999, "ends": None}
 
 # ── Subscription expired page ─────────────────────────────────────────────────
-if not _sub["ok"] and st.session_state.role != "owner":
+if not _sub["ok"] and st.session_state.role not in ("owner", "admin"):
     stripe_link = st.session_state.get("salon_info", {}).get(
         st.session_state.cur_branch, {}).get("stripe_link", "")
     is_zh = st.session_state.lang == "zh"
@@ -1347,28 +1355,28 @@ if not _sub["ok"] and st.session_state.role != "owner":
       <div style="font-size:3rem;margin-bottom:1rem">🔒</div>
       <div style="font-family:'Playfair Display',serif;font-size:1.5rem;color:#e74c3c;
         letter-spacing:3px;margin-bottom:0.8rem">
-        {"訂閱已到期" if is_zh else "Subscription Expired"}
+        {"订阅已到期" if is_zh else "Subscription Expired"}
       </div>
       <div style="color:#888;font-size:0.88rem;line-height:1.8;margin-bottom:1.5rem">
-        {"您的試用期已結束，請訂閱以繼續使用所有功能。" if is_zh else
+        {"您的试用期已结束，请订阅以继续使用所有功能。" if is_zh else
          "Your trial has ended. Please subscribe to continue using all features."}
       </div>
       {'<a href="' + stripe_link + '" target="_blank" style="display:inline-block;' +
        'background:linear-gradient(135deg,#c9a84c,#a07830);color:#0a0a0a;font-weight:700;' +
        'font-size:0.9rem;letter-spacing:2px;text-transform:uppercase;padding:1rem 2.5rem;' +
        'border-radius:8px;text-decoration:none;margin-bottom:1rem">💳 ' +
-       ("立即訂閱" if is_zh else "Subscribe Now") + '</a>'
+       ("立即订阅" if is_zh else "Subscribe Now") + '</a>'
        if stripe_link else
        '<div style="background:#1a1a1a;border:1px solid #c9a84c33;border-radius:8px;' +
        'padding:1rem;color:#888;font-size:0.82rem">' +
-       ("請聯絡管理員啟用訂閱。" if is_zh else "Please contact admin to activate your subscription.") +
+       ("请联系管理员启用订阅。" if is_zh else "Please contact admin to activate your subscription.") +
        '</div>'}
       <div style="margin-top:1.5rem;color:#555;font-size:0.75rem">
-        {"或聯絡 Signature Kim 支援" if is_zh else "Or contact Signature Kim support"}
+        {"或联系 IQSALON 支持" if is_zh else "Or contact Signature Kim support"}
       </div>
     </div>
     """, unsafe_allow_html=True)
-    if st.button("🚪 " + ("登出" if is_zh else "Logout"), key="exp_logout"):
+    if st.button("🚪 " + ("退出" if is_zh else "Logout"), key="exp_logout"):
         _clear_session_token()
         for k in ["logged_in","username","role","user_name","cur_branch"]:
             if k in st.session_state: del st.session_state[k]
@@ -1417,9 +1425,9 @@ with hdr_r:
     }
     </style>""", unsafe_allow_html=True)
     _lang_cycle  = {"zh": "en", "en": "ms", "ms": "zh"}
-    _lang_labels = {"zh": "🌐 EN", "en": "🌐 BM", "ms": "🌐 中文"}
+    _lang_labels = {"zh": "🌐 EN", "en": "🌐 BM", "ms": "🌐 简体"}
     _lang_label  = _lang_labels[st.session_state.lang]
-    _logout_label = f"{role_icon} " + _t("登出", "Logout", "Log Keluar")
+    _logout_label = f"{role_icon} " + _t("退出登录", "Logout", "Log Keluar")
     rc1, rc2 = st.columns(2)
     with rc1:
         if st.button(_lang_label, key="lang_toggle"):
@@ -1435,11 +1443,11 @@ with hdr_r:
 # Build subscription badge for header
 _sub_badge = ""
 if _sub["plan"] == "trial" and _sub["days_left"] <= 7:
-    _sub_badge = f'<span style="background:#e67e22;color:#fff;font-size:0.65rem;padding:3px 10px;border-radius:20px;letter-spacing:1px;margin-left:8px">⏳ {_t("試用期剩","Trial","Percubaan")} {_sub["days_left"]} {_t("天","days","hari")}</span>'
+    _sub_badge = f'<span style="background:#e67e22;color:#fff;font-size:0.65rem;padding:3px 10px;border-radius:20px;letter-spacing:1px;margin-left:8px">⏳ {_t("试用期还剩","Trial","Percubaan")} {_sub["days_left"]} {_t("天","days","hari")}</span>'
 elif _sub["plan"] == "trial":
-    _sub_badge = f'<span style="background:#2ecc71;color:#0a0a0a;font-size:0.65rem;padding:3px 10px;border-radius:20px;letter-spacing:1px;margin-left:8px">✓ {_t("試用中","Trial","Percubaan")} {_sub["days_left"]}{_t("天","d","h")}</span>'
+    _sub_badge = f'<span style="background:#2ecc71;color:#0a0a0a;font-size:0.65rem;padding:3px 10px;border-radius:20px;letter-spacing:1px;margin-left:8px">✓ {_t("试用期","Trial","Percubaan")} {_sub["days_left"]}{_t("天","d","h")}</span>'
 elif _sub["plan"] == "active":
-    _sub_badge = f'<span style="background:#c9a84c;color:#0a0a0a;font-size:0.65rem;padding:3px 10px;border-radius:20px;letter-spacing:1px;margin-left:8px">✦ {_t("已訂閱","Subscribed","Dilanggan")}</span>'
+    _sub_badge = f'<span style="background:#c9a84c;color:#0a0a0a;font-size:0.65rem;padding:3px 10px;border-radius:20px;letter-spacing:1px;margin-left:8px">✦ {_t("已订阅","Subscribed","Dilanggan")}</span>'
 
 _salon_display = st.session_state.branches.get(st.session_state.cur_branch, "IQSALON")
 st.markdown(f"""
@@ -1506,7 +1514,7 @@ def build_receipt_html(r: dict, lang: str) -> str:
         <td class="amt">RM {subtotal:.2f}</td>
       </tr>"""
     if extra:
-        extra_lbl = "Caj Tambahan" if not is_zh else "加收費用"
+        extra_lbl = "Caj Tambahan" if not is_zh else "加收费用"
         rows_html += f"""
       <tr>
         <td class="desc">{extra_lbl}</td>
@@ -1526,10 +1534,10 @@ def build_receipt_html(r: dict, lang: str) -> str:
 
     member_rows = ""
     if member:
-        pts_lbl = f"Mata Ganjaran / 積分" if not is_zh else "積分"
+        pts_lbl = f"Mata Ganjaran / 积分" if not is_zh else "积分"
         member_rows = f"""
       <tr class="info-row">
-        <td colspan="2">{'Ahli / 會員' if not is_zh else '會員'}</td>
+        <td colspan="2">{'Ahli / 会员' if not is_zh else '会员'}</td>
         <td colspan="2" style="text-align:right;">{member}</td>
       </tr>"""
         if pts:
@@ -1541,7 +1549,7 @@ def build_receipt_html(r: dict, lang: str) -> str:
 
     stylist_row = ""
     if stylist:
-        sty_lbl = "Penata Rambut / 髮型師" if not is_zh else "髮型師"
+        sty_lbl = "Penata Rambut / 发型师" if not is_zh else "发型师"
         stylist_row = f"""
       <tr class="info-row">
         <td colspan="2">{sty_lbl}</td>
@@ -1549,11 +1557,11 @@ def build_receipt_html(r: dict, lang: str) -> str:
       </tr>"""
 
     pay_lbl   = "Kaedah Pembayaran" if not is_zh else "付款方式"
-    total_lbl = "JUMLAH / TOTAL" if not is_zh else "總計"
+    total_lbl = "JUMLAH / TOTAL" if not is_zh else "总计"
     sst_note  = "Harga adalah termasuk SST / Harga tidak termasuk SST (Dikecualikan)" \
-                if not is_zh else "價格已含/免收 SST（服務稅）"
-    thanks_my = "Terima Kasih Kerana Sudi Hadir" if not is_zh else "感謝您的光臨"
-    thanks_en = "We look forward to serving you again!" if not is_zh else "期待再次為您服務！"
+                if not is_zh else "价格已含/免收 SST（服务税）"
+    thanks_my = "Terima Kasih Kerana Sudi Hadir" if not is_zh else "感谢您的光临"
+    thanks_en = "We look forward to serving you again!" if not is_zh else "期待再次为您服务！"
 
     contact_parts = []
     if salon_address: contact_parts.append(f"📍 {salon_address}")
@@ -1565,7 +1573,7 @@ def build_receipt_html(r: dict, lang: str) -> str:
 
     footer_meta_parts = []
     if salon_ssm:   footer_meta_parts.append(f"SSM No: {salon_ssm}")
-    if salon_hours: footer_meta_parts.append(f"{'Waktu Operasi' if not is_zh else '營業時間'}: {salon_hours}")
+    if salon_hours: footer_meta_parts.append(f"{'Waktu Operasi' if not is_zh else '营业时间'}: {salon_hours}")
     footer_meta = ("<div class='footer-meta'>" + " &nbsp;·&nbsp; ".join(footer_meta_parts) + "</div>"
                    if footer_meta_parts else "")
 
@@ -1666,19 +1674,19 @@ def build_receipt_html(r: dict, lang: str) -> str:
 
     <!-- CUSTOMER -->
     <div class="customer-box">
-      <div class="customer-label">{'Pelanggan / 客戶' if not is_zh else '客戶'}</div>
+      <div class="customer-label">{'Pelanggan / 客户' if not is_zh else '客户'}</div>
       <div class="customer-name">{name}</div>
-      {'<div class="customer-time">' + ('Temujanji / 預約時間: ' if not is_zh else '預約時間: ') + time_str + '</div>' if time_str else ''}
+      {'<div class="customer-time">' + ('Temujanji / 预约时间: ' if not is_zh else '预约时间: ') + time_str + '</div>' if time_str else ''}
     </div>
 
     <!-- ITEMS TABLE -->
     <table>
       <thead>
         <tr>
-          <td class="desc">{'Perkhidmatan / 服務' if not is_zh else '服務項目'}</td>
+          <td class="desc">{'Perkhidmatan / 服务项目' if not is_zh else '服务项目'}</td>
           <td class="qty">Qty</td>
-          <td class="price">{'Harga' if not is_zh else '單價'}</td>
-          <td class="amt">{'Jumlah' if not is_zh else '金額'}</td>
+          <td class="price">{'Harga' if not is_zh else '单价'}</td>
+          <td class="amt">{'Jumlah' if not is_zh else '金额'}</td>
         </tr>
       </thead>
       <tbody>
@@ -1717,7 +1725,7 @@ def build_receipt_html(r: dict, lang: str) -> str:
   </div>
 
   <button class="print-btn" onclick="window.print()">
-    {'🖨️  Cetak Resit / 列印收據' if not is_zh else '🖨️  列印收據'}
+    {'🖨️  Cetak Resit / 打印收据' if not is_zh else '🖨️  打印收据'}
   </button>
 
 </div>
@@ -1731,13 +1739,13 @@ def _settle_build_panels(paid_list, walkin_list, total_coll, label_suffix=""):
         {u("col_s_name"):    b.get("name",""),  u("col_s_stylist"): b.get("stylist",""),
          u("col_s_svc"):     b.get("service",""), u("col_s_method"):  b.get("method",""),
          u("col_s_amt"):     b.get("final", b.get("price",0)),
-         u("col_s_type"):    _t("預約","Booking","Tempahan")}
+         u("col_s_type"):    _t("预约","Booking","Tempahan")}
         for b in paid_list
     ] + [
         {u("col_s_name"):    w.get("name",""),  u("col_s_stylist"): "—",
          u("col_s_svc"):     w.get("service",""), u("col_s_method"):  w.get("method",""),
          u("col_s_amt"):     w.get("final",0),
-         u("col_s_type"):    _t("即場客","Walk-in","Terus Masuk")}
+         u("col_s_type"):    _t("现场客","Walk-in","Terus Masuk")}
         for w in walkin_list
     ]
     df_detail = pd.DataFrame(detail_rows) if detail_rows else pd.DataFrame()
@@ -1839,9 +1847,9 @@ def _render_sty_panel(df_sty):
 # Build tab list
 _tabs_labels = [u("tab1"), u("tab2"), u("tab3"), u("tab4"), u("tab5"), u("tab6")]
 if _can("analytics"):
-    _tabs_labels.append("  📊  " + _t("業績","Analytics","Analitik") + "  ")
+    _tabs_labels.append("  📊  " + _t("业绩","Analytics","Analitik") + "  ")
 if _can("admin"):
-    _tabs_labels.append("  ⚙️  " + _t("管理","Admin","Pentadbir") + "  ")
+    _tabs_labels.append("  ⚙️  " + _t("管理后台","Admin","Pentadbir") + "  ")
 
 _tabs = st.tabs(_tabs_labels)
 tab1, tab2, tab3, tab4, tab5, tab6 = _tabs[:6]
@@ -1874,7 +1882,7 @@ with tab1:
         st.markdown(
             f'<p style="color:#555;font-size:0.75rem;margin-top:0.6rem;letter-spacing:1px;">'
             f'⏱ {_t("上次更新","Last updated","Kemaskini terakhir")}: {_now_str} '
-            f'· {_t("每60秒自動刷新","Auto-refresh every 60s","Muat semula setiap 60s")}</p>',
+            f'· {_t("每60秒自动刷新","Auto-refresh every 60s","Muat semula setiap 60s")}</p>',
             unsafe_allow_html=True
         )
 
@@ -1930,11 +1938,11 @@ with tab1:
                                     salon_phone=st.secrets.get("SALON_PHONE","") if hasattr(st,"secrets") else "",
                                 )
                                 if ok:
-                                    st.toast(f"✉️ 確認郵件已發送至 {cust_email}", icon="✅")
+                                    st.toast(f"✉️ 确认邮件已发送至 {cust_email}", icon="✅")
                                 else:
-                                    st.toast("⚠️ 郵件發送失敗，請檢查 Gmail 設定", icon="⚠️")
+                                    st.toast("⚠️ 邮件发送失败，请检查 Gmail 设置", icon="⚠️")
                             except Exception as e:
-                                st.toast(f"郵件錯誤: {e}", icon="❌")
+                                st.toast(f"邮件错误: {e}", icon="❌")
                     st.rerun()
             with c3:
                 if st.button("❌ " + u("cancel"), key=f"cx_{bk_id}"):
@@ -2005,7 +2013,8 @@ with tab1:
         with col_t:
             b_time = st.selectbox(u("book_time"), TIME_SLOTS, index=2, key="b_time")
 
-        sty_opts = st.session_state.stylists if st.session_state.stylists else ["—"]
+        _any_sty  = u("any_stylist")
+        sty_opts  = [_any_sty] + (st.session_state.stylists or [])
         b_stylist = st.selectbox(u("stylist"), sty_opts, key="b_stylist")
 
         svc_list = list(svc_map().keys())
@@ -2021,7 +2030,8 @@ with tab1:
                 new_bk = {
                     "name": b_name.strip(), "phone": b_phone.strip(),
                     "date": str(b_date), "time": b_time,
-                    "stylist": b_stylist,   "service": b_svc,    "note": b_note,
+                    "stylist": ("" if b_stylist == _any_sty else b_stylist),
+                    "service": b_svc,    "note": b_note,
                     "price": b_price, "paid": False, "method": "", "final": 0,
                 }
                 if _USE_DB:
@@ -2047,6 +2057,20 @@ with tab1:
             display_cols = ["name","date","time","stylist","service","note"]
             df_show = df_full[display_cols].sort_values(["date","time"]).reset_index(drop=True)
 
+            # Build backwards-compatible option lists for the editor dropdowns.
+            # Include legacy Traditional + all locale names so existing DB rows
+            # (which may have been saved under an older spelling) still show
+            # properly in the SelectboxColumn instead of appearing blank.
+            _editor_sty_opts = (
+                ["", u("any_stylist")] + (st.session_state.stylists or [])
+            )
+            _editor_svc_opts = list(dict.fromkeys(
+                svc_list
+                + list(SERVICES["en"].keys())
+                + list(SERVICES["ms"].keys())
+                + list(SVC_LEGACY_TRADITIONAL_TO_SC.keys())
+            ))
+
             edited = st.data_editor(
                 df_show,
                 use_container_width=True,
@@ -2059,9 +2083,9 @@ with tab1:
                     "time":    st.column_config.SelectboxColumn(u("col_time"),
                                    options=TIME_SLOTS, width="small"),
                     "stylist": st.column_config.SelectboxColumn(u("col_stylist"),
-                                   options=st.session_state.stylists or ["—"], width="small"),
+                                   options=_editor_sty_opts, width="small"),
                     "service": st.column_config.SelectboxColumn(u("col_service"),
-                                   options=svc_list, width="medium"),
+                                   options=_editor_svc_opts, width="medium"),
                     "note":    st.column_config.TextColumn(u("col_note"), width="large"),
                 },
                 key="booking_editor",
@@ -2235,7 +2259,7 @@ with tab2:
                 svc_labels = {z: (z if is_zh else SVC_ZH_EN[z]) for z in SVC_ALL_ZH}
                 rows = []
                 for sty in stylists_list:
-                    row = {"髮型師 / Stylist": sty}
+                    row = {"发型师 / Stylist": sty}
                     sty_rates = comm_data.get(sty, {})
                     for zh_svc, label in svc_labels.items():
                         row[label] = float(sty_rates.get(zh_svc, 0))
@@ -2243,7 +2267,7 @@ with tab2:
 
                 import pandas as _pd_comm
                 df_comm = _pd_comm.DataFrame(rows)
-                col_config_comm = {"髮型師 / Stylist": st.column_config.TextColumn(disabled=True, width="medium")}
+                col_config_comm = {"发型师 / Stylist": st.column_config.TextColumn(disabled=True, width="medium")}
                 for label in svc_labels.values():
                     col_config_comm[label] = st.column_config.NumberColumn(
                         label, min_value=0, max_value=100, step=1, format="%.0f%%", width="small"
@@ -2261,7 +2285,7 @@ with tab2:
                 if st.button(u("comm_save"), key="save_comm_btn", type="primary"):
                     new_rates = {}
                     for _, row in edited_comm.iterrows():
-                        sty = row["髮型師 / Stylist"]
+                        sty = row["发型师 / Stylist"]
                         new_rates[sty] = {}
                         for zh_svc, label in svc_labels.items():
                             new_rates[sty][zh_svc] = float(row.get(label, 0) or 0)
@@ -2421,7 +2445,7 @@ with tab3:
                     f"justify-content:space-between;align-items:center;'>"
                     f"<div><div style='color:#f0ece0;font-size:0.92rem;'>{bk['name']}</div>"
                     f"<div style='color:#888;font-size:0.73rem;letter-spacing:1px;'>"
-                    f"{bk.get('stylist','')} · {bk['service']} · {bk['time']}</div></div>"
+                    f"{bk.get('stylist','') or u('any_stylist')} · {bk['service']} · {bk['time']}</div></div>"
                     f"<div style='color:#c9a84c;font-weight:700;'>RM {bk.get('price',0):.2f}</div>"
                     f"</div>",
                     unsafe_allow_html=True,
@@ -2470,7 +2494,7 @@ with tab3:
                             + u("no_pending") + "</p>", unsafe_allow_html=True)
             else:
                 bk_opts = {
-                    f"{b['name']}  ·  {b.get('stylist','')}  ·  {b['service']}  ·  {b['time']}": i
+                    f"{b['name']}  ·  {b.get('stylist','') or u('any_stylist')}  ·  {b['service']}  ·  {b['time']}": i
                     for i, b in enumerate(unpaid_bk)
                 }
                 sel_label = st.selectbox(u("select_booking"), list(bk_opts.keys()),
@@ -2489,7 +2513,7 @@ with tab3:
                     elif not _bk_phone and _mm.get("name","").strip() == _bk_cname:
                         _pre_match_idx = _mi + 1
                         break
-                _non_mem_lbl = "— " + _t("非會員","Non-member","Bukan Ahli") + " —"
+                _non_mem_lbl = "— " + _t("非会员","Non-member","Bukan Ahli") + " —"
                 mem_names = [_non_mem_lbl] + \
                             [f"{m['name']}  ({m.get('phone','')})  {tier_label(tier_for_points(m.get('points',0)))}"
                              for m in st.session_state.members]
@@ -2540,7 +2564,7 @@ with tab3:
                 st.markdown(f"""
                 <div class="checkout-box" style="margin:0.8rem 0;">
                   <div class="checkout-customer">{sel_bk['name']}</div>
-                  <div class="checkout-svc">{sel_bk.get('stylist','')} · {sel_bk['service']} · {sel_bk['time']}</div>
+                  <div class="checkout-svc">{sel_bk.get('stylist','') or u('any_stylist')} · {sel_bk['service']} · {sel_bk['time']}</div>
                   {adj_note}
                   <div class="checkout-price">RM {final:.2f}</div>
                   {pts_note}
@@ -2618,7 +2642,7 @@ with tab3:
                 key="wi_stylist",
             )
             wi_stylist_val = "" if wi_stylist.startswith("—") else wi_stylist
-            wi_svc  = st.text_input(u("service"), placeholder=u("wi_svc_ph"), key="wi_svc")
+            wi_svc  = st.selectbox(u("service"), svc_list, key="wi_svc")
             wi_amt  = st.number_input(u("wi_amt_label"), 0.0, 99999.0, 50.0, 10.0, key="wi_amt")
 
             # Walk-in member lookup — auto-match by phone or name
@@ -2640,7 +2664,7 @@ with tab3:
                     f'padding:6px 12px;font-size:0.78rem;color:#2ecc71;margin-bottom:4px;">'
                     f'{u("mem_auto_match").format(_wam["name"], tier_label(_wat))}</div>',
                     unsafe_allow_html=True)
-            wi_mem_names = ["— " + _t("非會員","Non-member","Bukan Ahli") + " —"] + \
+            wi_mem_names = ["— " + _t("非会员","Non-member","Bukan Ahli") + " —"] + \
                            [f"{m['name']}  ({m.get('phone','')})" for m in st.session_state.members]
             wi_mem_sel = st.selectbox(u("mem_lookup"), wi_mem_names,
                                       index=_wi_pre_idx, key="wi_mem_sel")
@@ -2733,7 +2757,7 @@ with tab3:
                     st.markdown('<div class="card" style="border-color:#c9a84c55;">', unsafe_allow_html=True)
                     st.markdown(
                         f'<p style="color:#c9a84c;font-size:0.82rem;letter-spacing:1px;margin-bottom:8px;">'
-                        f'{_t("💡 新客戶，是否建立會員檔案？","💡 New client — create member profile?","💡 Pelanggan baru — buat profil ahli?")}'
+                        f'{_t("💡 新客户，是否建立会员档案？","💡 New client — create member profile?","💡 Pelanggan baru — buat profil ahli?")}'
                         f'<strong style="margin-left:6px;">{_qm["name"]}</strong></p>',
                         unsafe_allow_html=True)
                     _qcol1, _qcol2 = st.columns([3, 1])
@@ -2828,18 +2852,18 @@ with tab3:
                     with cols[2]:
                         void_lbl = "❌ " + ("取消" if is_zh_pay else "Void")
                         if st.button(void_lbl, key=f"void_{idx}",
-                                     help=("取消收費（限經理以上）" if is_zh_pay
+                                     help=("取消收费（限经理以上）" if is_zh_pay
                                            else "Cancel payment (manager+ only)")):
                             st.session_state[f"confirm_void_{idx}"] = True
                     # Confirm dialog
                     if st.session_state.get(f"confirm_void_{idx}"):
                         st.warning(
-                            ("⚠️ 確定要取消此收費嗎？此操作不可撤回。" if is_zh_pay
+                            ("⚠️ 确定要取消此收费吗？此操作不可撤回。" if is_zh_pay
                              else "⚠️ Confirm void this payment? This cannot be undone.")
                         )
                         cv1, cv2 = st.columns(2)
                         with cv1:
-                            if st.button("✅ " + ("確認取消" if is_zh_pay else "Confirm Void"),
+                            if st.button("✅ " + ("确认取消" if is_zh_pay else "Confirm Void"),
                                          key=f"void_yes_{idx}", type="primary"):
                                 ref = h["ref"]
                                 if h["type"] == "booking":
@@ -2867,7 +2891,7 @@ with tab3:
                                         try: db_delete_walkin(ref["id"])
                                         except Exception: pass
                                 st.session_state.pop(f"confirm_void_{idx}", None)
-                                st.success("✅ " + ("已取消收費" if is_zh_pay else "Payment voided"))
+                                st.success("✅ " + ("已取消收费" if is_zh_pay else "Payment voided"))
                                 st.rerun()
                         with cv2:
                             if st.button("↩ " + ("返回" if is_zh_pay else "Cancel"),
@@ -2902,15 +2926,15 @@ with tab3:
                 email_body = (
                     f"Signature Kim Receipt\n"
                     f"{'=' * 30}\n"
-                    f"{'客戶' if st.session_state.lang=='zh' else 'Client'}: {rcpt['name']}\n"
+                    f"{'客户' if st.session_state.lang=='zh' else 'Client'}: {rcpt['name']}\n"
                     f"{'日期' if st.session_state.lang=='zh' else 'Date'}: {rcpt['date']} {rcpt['time']}\n"
-                    f"{'服務' if st.session_state.lang=='zh' else 'Service'}: {rcpt['service']}\n"
-                    + (f"{'髮型師' if st.session_state.lang=='zh' else 'Stylist'}: {rcpt['stylist']}\n" if rcpt.get('stylist') else "")
+                    f"{'服务' if st.session_state.lang=='zh' else 'Service'}: {rcpt['service']}\n"
+                    + (f"{'发型师' if st.session_state.lang=='zh' else 'Stylist'}: {rcpt['stylist']}\n" if rcpt.get('stylist') else "")
                     + (f"{'折扣' if st.session_state.lang=='zh' else 'Discount'}: {rcpt['disc_pct']}%\n" if rcpt.get('disc_pct') else "")
-                    + f"{'總計' if st.session_state.lang=='zh' else 'Total'}: RM {rcpt['final']:.2f}\n"
+                    + f"{'总计' if st.session_state.lang=='zh' else 'Total'}: RM {rcpt['final']:.2f}\n"
                     f"{'付款方式' if st.session_state.lang=='zh' else 'Payment'}: {rcpt['method']}\n"
-                    + (f"{'積分' if st.session_state.lang=='zh' else 'Points'}: +{rcpt['pts']} pts\n" if rcpt.get('pts') else "")
-                    + f"\n{'感謝您的光臨！' if st.session_state.lang=='zh' else 'Thank you for visiting Signature Kim!'}"
+                    + (f"{'积分' if st.session_state.lang=='zh' else 'Points'}: +{rcpt['pts']} pts\n" if rcpt.get('pts') else "")
+                    + f"\n{'感谢您的光临！' if st.session_state.lang=='zh' else 'Thank you for visiting Signature Kim!'}"
                 )
                 email_to = st.text_input(u("rcpt_email_to"), placeholder=u("rcpt_email_ph"), key="rcpt_email_addr", label_visibility="collapsed")
                 import urllib.parse as _up
@@ -3036,7 +3060,7 @@ with tab4:
 # ═════════════════════════════════════════════════════════════════════════════
 with tab5:
     if not _can("settlement"):
-        st.info("⛔ " + _t("您沒有權限查看結算報告","No permission to view reports","Tiada kebenaran untuk melihat laporan"))
+        st.info("⛔ " + _t("您没有权限查看结算报告","No permission to view reports","Tiada kebenaran untuk melihat laporan"))
     else:
         st.markdown(f'<p class="card-title" style="margin-bottom:1rem;">{u("settle_title")}</p>',
                     unsafe_allow_html=True)
@@ -3097,7 +3121,7 @@ with tab5:
                         (u("col_s_name")):    b.get("name",""),
                         (u("col_s_stylist")): b.get("stylist",""),
                         (u("col_s_svc")):     b.get("service",""),
-                        _t("時間","Time","Masa"): b.get("time",""),
+                        _t("时间","Time","Masa"): b.get("time",""),
                         (u("col_s_method")):  b.get("method",""),
                         (u("col_s_amt")):     b.get("final", b.get("price",0)),
                         _t("已付款","Paid","Dibayar"): _t("是","Yes","Ya") if b.get("paid") else _t("否","No","Tidak"),
@@ -3112,7 +3136,7 @@ with tab5:
                         u("col_s_svc"):     b.get("service",""),
                         u("col_s_method"):  b.get("method",""),
                         u("col_s_amt"):     b.get("final", b.get("price",0)),
-                        u("col_s_type"):    _t("預約","Booking","Tempahan"),
+                        u("col_s_type"):    _t("预约","Booking","Tempahan"),
                     }
                     for b in day_paid
                 ] + [
@@ -3122,14 +3146,14 @@ with tab5:
                         u("col_s_svc"):     w.get("service",""),
                         u("col_s_method"):  w.get("method",""),
                         u("col_s_amt"):     w.get("final",0),
-                        u("col_s_type"):    _t("即場客","Walk-in","Terus Masuk"),
+                        u("col_s_type"):    _t("现场客","Walk-in","Terus Masuk"),
                     }
                     for w in day_walkins
                 ]
-                _k_item  = _t("項目","Item","Perkara")
-                _k_value = _t("數值","Value","Nilai")
+                _k_item  = _t("项目","Item","Perkara")
+                _k_value = _t("数值","Value","Nilai")
                 summary_data = [
-                    {_k_item: _t("結算日期","Date","Tarikh"), _k_value: settle_str},
+                    {_k_item: _t("结算日期","Date","Tarikh"), _k_value: settle_str},
                     {_k_item: u("settle_total"),   _k_value: f"RM {total_collected + total_pending:.2f}"},
                     {_k_item: u("settle_paid"),    _k_value: f"RM {total_collected:.2f}"},
                     {_k_item: u("settle_pending"), _k_value: f"RM {total_pending:.2f}"},
@@ -3139,7 +3163,7 @@ with tab5:
                 with pd.ExcelWriter(output, engine="openpyxl") as writer:
                     pd.DataFrame(summary_data).to_excel(writer, sheet_name=_t("摘要","Summary","Ringkasan"), index=False)
                     if all_bk_rows:
-                        pd.DataFrame(all_bk_rows).to_excel(writer, sheet_name=_t("全部預約","All Bookings","Semua Tempahan"), index=False)
+                        pd.DataFrame(all_bk_rows).to_excel(writer, sheet_name=_t("全部预约","All Bookings","Semua Tempahan"), index=False)
                     if paid_rows:
                         pd.DataFrame(paid_rows).to_excel(writer, sheet_name=_t("收款明細","Payments","Bayaran"), index=False)
                     for sheet in writer.sheets.values():
@@ -3168,7 +3192,7 @@ with tab5:
                     u("col_s_svc"):     b.get("service", ""),
                     u("col_s_method"):  b.get("method", ""),
                     u("col_s_amt"):     b.get("final", b.get("price", 0)),
-                    u("col_s_type"):    _t("預約","Booking","Tempahan"),
+                    u("col_s_type"):    _t("预约","Booking","Tempahan"),
                 }
                 for b in day_paid
             ] + [
@@ -3178,7 +3202,7 @@ with tab5:
                     u("col_s_svc"):     w.get("service", ""),
                     u("col_s_method"):  w.get("method", ""),
                     u("col_s_amt"):     w.get("final", 0),
-                    u("col_s_type"):    _t("即場客","Walk-in","Terus Masuk"),
+                    u("col_s_type"):    _t("现场客","Walk-in","Terus Masuk"),
                 }
                 for w in day_walkins
             ]
@@ -3258,16 +3282,16 @@ with tab5:
                     {_t("月份","Month","Bulan"): settle_mth_str},
                     {_t("已收款","Collected","Diterima"): f"RM {mth_collected:.2f}"},
                     {_t("待收款","Pending","Tertunggak"):   f"RM {mth_pending:.2f}"},
-                    {_t("即場客","Walk-ins","Terus Masuk"):  f"RM {mth_walkin_t:.2f}"},
-                    {_t("總客數","Clients","Pelanggan"):   mth_clients},
+                    {_t("现场客","Walk-ins","Terus Masuk"):  f"RM {mth_walkin_t:.2f}"},
+                    {_t("总客数","Clients","Pelanggan"):   mth_clients},
                 ]
                 out = io.BytesIO()
                 with pd.ExcelWriter(out, engine="openpyxl") as writer:
                     pd.DataFrame(summary_data).to_excel(writer, sheet_name=_t("摘要","Summary","Ringkasan"), index=False)
                     if daily_rows: pd.DataFrame(daily_rows).to_excel(writer, sheet_name=_t("每日明細","Daily","Harian"), index=False)
                     if not df_det_m.empty: df_det_m.to_excel(writer, sheet_name=_t("收款明細","Payments","Bayaran"), index=False)
-                    if not df_sty_m.empty: df_sty_m.to_excel(writer, sheet_name=_t("髮型師業績","Stylists","Jurugaya"), index=False)
-                    if not df_svc_m.empty: df_svc_m.to_excel(writer, sheet_name=_t("服務統計","Services","Perkhidmatan"), index=False)
+                    if not df_sty_m.empty: df_sty_m.to_excel(writer, sheet_name=_t("发型师业绩","Stylists","Jurugaya"), index=False)
+                    if not df_svc_m.empty: df_svc_m.to_excel(writer, sheet_name=_t("服务统计","Services","Perkhidmatan"), index=False)
                     if not df_mth_m.empty: df_mth_m.to_excel(writer, sheet_name=_t("付款方式","Methods","Kaedah"), index=False)
                     for sheet in writer.sheets.values():
                         for col_cells in sheet.columns:
@@ -3286,7 +3310,7 @@ with tab5:
                 )
 
             # ── LHDN e-Invoice (Consolidated B2C) ─────────────────────────
-            with st.expander(f"📄 {_t('生成合併 e-Invoice','Generate Consolidated e-Invoice','Jana e-Invois Disatukan')} — {settle_mth_str}"):
+            with st.expander(f"📄 {_t('生成合并 e-Invoice','Generate Consolidated e-Invoice','Jana e-Invois Disatukan')} — {settle_mth_str}"):
                 _si = st.session_state.get("salon_info", {}).get(st.session_state.cur_branch, {})
                 _tin  = _si.get("tin","")
                 _msic = _si.get("msic_code","96020")
@@ -3294,7 +3318,7 @@ with tab5:
 
                 if not _tin:
                     st.warning(_t(
-                        "⚠ 請先在【管理】頁面填寫 TIN（稅務編號）才能生成 e-Invoice",
+                        "⚠ 请先在【管理】页面填写 TIN（税务编号）才能生成 e-Invoice",
                         "⚠ Please enter your TIN (Tax ID) in the Admin tab before generating e-Invoice",
                         "⚠ Sila masukkan TIN anda dalam tab Pentadbir sebelum menjana e-Invois"
                     ))
@@ -3452,7 +3476,7 @@ with tab5:
                     st.markdown(
                         f'<div style="background:#1a1a00;border:1px solid #c9a84c33;border-radius:6px;'
                         f'padding:8px 12px;font-size:0.75rem;color:#888;margin-top:8px;">'
-                        f'📌 {_t("步驟：① 下載 JSON ② 登入 MyInvois Portal ③ 選擇「提交 e-Invoice」→「批量上傳」→ 上傳此 JSON 檔案","Steps: ① Download JSON ② Log into MyInvois Portal ③ Select Submit e-Invoice → Bulk Upload → Upload this JSON file","Langkah: ① Muat turun JSON ② Log masuk ke Portal MyInvois ③ Pilih Hantar e-Invois → Muat Naik Pukal → Muat naik fail JSON ini")}'
+                        f'📌 {_t("步骤：① 下载 JSON ② 登录 MyInvois Portal ③ 选择「提交 e-Invoice」→「批量上传」→ 上传此 JSON 文件","Steps: ① Download JSON ② Log into MyInvois Portal ③ Select Submit e-Invoice → Bulk Upload → Upload this JSON file","Langkah: ① Muat turun JSON ② Log masuk ke Portal MyInvois ③ Pilih Hantar e-Invois → Muat Naik Pukal → Muat naik fail JSON ini")}'
                         f'</div>',
                         unsafe_allow_html=True)
 
@@ -3530,11 +3554,11 @@ with tab5:
             cr1, cr2, cr3 = st.columns([1, 1, 1.5])
             with cr1:
                 comm_start = st.date_input(
-                    "開始日期" if is_zh else "From", value=dt_date.today().replace(day=1),
+                    "开始日期" if is_zh else "From", value=dt_date.today().replace(day=1),
                     key="comm_start_date")
             with cr2:
                 comm_end = st.date_input(
-                    "結束日期" if is_zh else "To", value=dt_date.today(),
+                    "结束日期" if is_zh else "To", value=dt_date.today(),
                     key="comm_end_date")
 
             comm_start_s = str(comm_start)
@@ -3597,7 +3621,7 @@ with tab5:
                     if sty_rev:
                         rows_out.append({
                             u("comm_stylist"): sty,
-                            u("comm_service"): ("── " + ("小計" if is_zh else "Subtotal")),
+                            u("comm_service"): ("── " + ("小计" if is_zh else "Subtotal")),
                             u("comm_revenue"): round(sty_rev, 2),
                             u("comm_rate_col"): "—",
                             u("comm_amount"):  round(sty_comm, 2),
@@ -3623,9 +3647,9 @@ with tab5:
                 # Summary stats
                 cs1, cs2, cs3 = st.columns(3, gap="medium")
                 for col, (lbl, val, cl) in zip([cs1, cs2, cs3], [
-                    (("總業績" if is_zh else "Total Revenue"), f"RM {grand_rev:.2f}", "#c9a84c"),
-                    (("總抽成" if is_zh else "Total Commission"), f"RM {grand_comm:.2f}", "#2ecc71"),
-                    (("報表期間" if is_zh else "Period"),
+                    (("总业绩" if is_zh else "Total Revenue"), f"RM {grand_rev:.2f}", "#c9a84c"),
+                    (("总抽成" if is_zh else "Total Commission"), f"RM {grand_comm:.2f}", "#2ecc71"),
+                    (("报表期间" if is_zh else "Period"),
                      f"{comm_start_s} → {comm_end_s}", "#3498db"),
                 ]):
                     with col:
@@ -3643,7 +3667,7 @@ with tab5:
                     svc_val = str(row.get(u("comm_service"), ""))
                     if row.get(u("comm_stylist")) == "TOTAL":
                         return ["background-color:#2c2000;color:#f5e19a;font-weight:bold"] * len(row)
-                    if "小計" in svc_val or "Subtotal" in svc_val:
+                    if "小计" in svc_val or "Subtotal" in svc_val:
                         return ["background-color:#1a1a0a;color:#c9a84c;font-style:italic"] * len(row)
                     return [""] * len(row)
 
@@ -3654,8 +3678,8 @@ with tab5:
                 def _build_comm_excel():
                     out = io.BytesIO()
                     with pd.ExcelWriter(out, engine="openpyxl") as writer:
-                        df_comm_report.to_excel(writer, sheet_name=("抽成報表" if is_zh else "Commission"), index=False)
-                        ws = writer.sheets[("抽成報表" if is_zh else "Commission")]
+                        df_comm_report.to_excel(writer, sheet_name=("抽成报表" if is_zh else "Commission"), index=False)
+                        ws = writer.sheets[("抽成报表" if is_zh else "Commission")]
                         for col_cells in ws.columns:
                             ml = max((len(str(c.value)) for c in col_cells if c.value), default=10)
                             ws.column_dimensions[col_cells[0].column_letter].width = min(ml + 4, 40)
@@ -3957,7 +3981,7 @@ if _can("analytics"):
 
         is_zh = st.session_state.lang == "zh"
 
-        st.markdown(f'<p class="card-title" style="font-size:1.3rem;">📊 {"業績分析" if is_zh else "Analytics Dashboard"}</p>',
+        st.markdown(f'<p class="card-title" style="font-size:1.3rem;">📊 {"业绩分析" if is_zh else "Analytics Dashboard"}</p>',
                     unsafe_allow_html=True)
 
         # ── Combine walkins + paid bookings into one revenue list ──────────
@@ -4003,7 +4027,7 @@ if _can("analytics"):
         # ── Period selector ────────────────────────────────────────────────
         period = st.radio(
             "", ["week","month","all"],
-            format_func=lambda x: {"week": "本週 / This Week",
+            format_func=lambda x: {"week": "本周 / This Week",
                                    "month": "本月 / This Month",
                                    "all": "全部 / All Time"}[x],
             horizontal=True, key="analytics_period"
@@ -4020,10 +4044,10 @@ if _can("analytics"):
 
         k1, k2, k3, k4 = st.columns(4)
         for col, val, lbl in [
-            (k1, f"RM {total_rev:,.0f}", "💰 " + ("總收入" if is_zh else "Revenue")),
-            (k2, str(total_txn),          "🧾 " + ("交易數" if is_zh else "Transactions")),
-            (k3, f"RM {avg_txn:,.0f}",    "📈 " + ("平均客單" if is_zh else "Avg Ticket")),
-            (k4, str(total_bk),           "📅 " + ("預約數" if is_zh else "Bookings")),
+            (k1, f"RM {total_rev:,.0f}", "💰 " + ("总收入" if is_zh else "Revenue")),
+            (k2, str(total_txn),          "🧾 " + ("交易次数" if is_zh else "Transactions")),
+            (k3, f"RM {avg_txn:,.0f}",    "📈 " + ("平均客单" if is_zh else "Avg Ticket")),
+            (k4, str(total_bk),           "📅 " + ("预约数" if is_zh else "Bookings")),
         ]:
             col.markdown(
                 f'<div class="stat-box"><div class="stat-val">{val}</div>'
@@ -4039,7 +4063,7 @@ if _can("analytics"):
             df_daily.columns = ["date", "revenue"]
             fig_trend = px.area(
                 df_daily, x="date", y="revenue",
-                title="📈 " + ("收入走勢" if is_zh else "Revenue Trend"),
+                title="📈 " + ("收入走势" if is_zh else "Revenue Trend"),
                 labels={"date": "", "revenue": "RM"},
                 color_discrete_sequence=["#c9a84c"],
             )
@@ -4053,7 +4077,7 @@ if _can("analytics"):
             fig_trend.update_traces(fillcolor="rgba(201,168,76,0.15)", line_color="#c9a84c")
             st.plotly_chart(fig_trend, use_container_width=True)
         else:
-            st.info("📊 " + ("暫無收入資料" if is_zh else "No revenue data yet"))
+            st.info("📊 " + ("暂无收入数据" if is_zh else "No revenue data yet"))
 
         # ── Service + Stylist Charts side by side ─────────────────────────
         ch1, ch2 = st.columns(2)
@@ -4064,7 +4088,7 @@ if _can("analytics"):
                 df_svc = df_svc.sort_values("amount", ascending=False)
                 fig_svc = px.pie(
                     df_svc, values="amount", names="service",
-                    title="✂️ " + ("服務收入佔比" if is_zh else "Revenue by Service"),
+                    title="✂️ " + ("服务收入占比" if is_zh else "Revenue by Service"),
                     color_discrete_sequence=px.colors.sequential.Oranges_r,
                     hole=0.4,
                 )
@@ -4087,8 +4111,8 @@ if _can("analytics"):
                 df_sty.columns = ["stylist", "bookings"]
                 fig_sty = px.bar(
                     df_sty, x="stylist", y="bookings",
-                    title="💇 " + ("髮型師預約數" if is_zh else "Bookings by Stylist"),
-                    labels={"stylist": "", "bookings": ("預約" if is_zh else "Bookings")},
+                    title="💇 " + ("发型师预约数" if is_zh else "Bookings by Stylist"),
+                    labels={"stylist": "", "bookings": ("预约" if is_zh else "Bookings")},
                     color_discrete_sequence=["#c9a84c"],
                 )
                 fig_sty.update_layout(
@@ -4137,8 +4161,8 @@ if _can("analytics"):
                 df_hr["label"] = df_hr["hour"] + ":00"
                 fig_hr = px.bar(
                     df_hr, x="label", y="count",
-                    title="⏰ " + ("預約高峰時段" if is_zh else "Peak Hours"),
-                    labels={"label": "", "count": ("預約數" if is_zh else "Bookings")},
+                    title="⏰ " + ("预约高峰时段" if is_zh else "Peak Hours"),
+                    labels={"label": "", "count": ("预约数" if is_zh else "Bookings")},
                     color_discrete_sequence=["#a07830"],
                 )
                 fig_hr.update_layout(
@@ -4155,15 +4179,15 @@ if _can("analytics"):
         # ── Top Services table ─────────────────────────────────────────────
         if not df_p.empty:
             st.markdown("---")
-            st.markdown(f'<p class="card-title">🏆 {"熱門服務排行" if is_zh else "Top Services"}</p>',
+            st.markdown(f'<p class="card-title">🏆 {"热门服务排行" if is_zh else "Top Services"}</p>',
                         unsafe_allow_html=True)
             df_top = df_p.groupby("service").agg(
                 {"amount": ["sum","count","mean"]}
             ).round(1)
-            df_top.columns = [("總收入 RM" if is_zh else "Revenue RM"),
-                               ("次數" if is_zh else "Count"),
+            df_top.columns = [("总收入 RM" if is_zh else "Revenue RM"),
+                               ("次数" if is_zh else "Count"),
                                ("平均 RM" if is_zh else "Avg RM")]
-            df_top = df_top.sort_values(("總收入 RM" if is_zh else "Revenue RM"), ascending=False)
+            df_top = df_top.sort_values(("总收入 RM" if is_zh else "Revenue RM"), ascending=False)
             st.dataframe(df_top, use_container_width=True)
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -4176,10 +4200,10 @@ if _can("admin"):
 
         # Title with role badge
         role_badge_clr = "#e74c3c" if is_platform_admin else "#c9a84c"
-        role_badge_txt = ("🔴 平台管理員" if is_zh else "🔴 Platform Admin") if is_platform_admin \
-                         else ("👑 老闆" if is_zh else "👑 Owner")
+        role_badge_txt = ("🔴 平台管理员" if is_zh else "🔴 Platform Admin") if is_platform_admin \
+                         else ("👑 老板" if is_zh else "👑 Owner")
         st.markdown(
-            f'<p class="card-title" style="font-size:1.3rem;">⚙️ {"系統管理" if is_zh else "Admin Panel"}'
+            f'<p class="card-title" style="font-size:1.3rem;">⚙️ {"系统管理" if is_zh else "Admin Panel"}'
             f' <span style="background:{role_badge_clr}22;border:1px solid {role_badge_clr}55;'
             f'color:{role_badge_clr};font-size:0.7rem;padding:3px 10px;border-radius:20px;'
             f'vertical-align:middle;letter-spacing:1px">{role_badge_txt}</span></p>',
@@ -4189,7 +4213,7 @@ if _can("admin"):
         # ── Platform Overview (admin only) ────────────────────────────────
         if is_platform_admin:
             st.markdown('<div class="card" style="margin-bottom:1rem;border-color:#e74c3c44">', unsafe_allow_html=True)
-            st.markdown(f'<p class="card-title" style="color:#e74c3c">🔴 {"平台總覽" if is_zh else "Platform Overview"}</p>',
+            st.markdown(f'<p class="card-title" style="color:#e74c3c">🔴 {"平台总览" if is_zh else "Platform Overview"}</p>',
                         unsafe_allow_html=True)
             total_salons  = len(st.session_state.branches)
             total_accts   = len(st.session_state.accounts)
@@ -4200,10 +4224,10 @@ if _can("admin"):
                                  if i.get("plan","trial") == "trial"])
             po1,po2,po3,po4 = st.columns(4)
             for col, val, lbl in [
-                (po1, total_salons,  "🏠 " + ("分店總數" if is_zh else "Total Branches")),
-                (po2, owner_accts,   "👑 " + ("髮廊老闆" if is_zh else "Owners")),
-                (po3, active_subs,   "✅ " + ("已訂閱" if is_zh else "Active Subs")),
-                (po4, trial_subs,    "⏳ " + ("試用中" if is_zh else "On Trial")),
+                (po1, total_salons,  "🏠 " + ("分店总数" if is_zh else "Total Branches")),
+                (po2, owner_accts,   "👑 " + ("发廊老板" if is_zh else "Owners")),
+                (po3, active_subs,   "✅ " + ("已订阅" if is_zh else "Active Subs")),
+                (po4, trial_subs,    "⏳ " + ("试用中" if is_zh else "On Trial")),
             ]:
                 col.markdown(
                     f'<div class="stat-box"><div class="stat-val">{val}</div>'
@@ -4218,17 +4242,17 @@ if _can("admin"):
             cur_bid  = st.session_state.cur_branch
             cur_info = st.session_state.get("salon_info", {}).get(cur_bid, {})
             st.markdown('<div class="card" style="margin-bottom:1rem;border-color:#c9a84c55">', unsafe_allow_html=True)
-            st.markdown(f'<p class="card-title">🏪 {"髮廊基本資料" if is_zh else "Salon Profile"}</p>',
+            st.markdown(f'<p class="card-title">🏪 {"发廊基本资料" if is_zh else "Salon Profile"}</p>',
                         unsafe_allow_html=True)
             st.markdown(f'<p style="color:#888;font-size:0.8rem;margin-bottom:1rem;">'
-                        f'{"以下資料將顯示在收據上，請確保填寫正確。" if is_zh else "This information appears on receipts — please keep it accurate."}'
+                        f'{"以下资料将显示在收据上，请确保填写正确。" if is_zh else "This information appears on receipts — please keep it accurate."}'
                         f'</p>', unsafe_allow_html=True)
 
             prof_c1, prof_c2 = st.columns(2)
             with prof_c1:
-                pf_cname  = st.text_input("聯絡人 / Contact Person",
+                pf_cname  = st.text_input("联系人 / Contact Person",
                                           value=cur_info.get("contact_name",""), key="pf_cname")
-                pf_phone  = st.text_input("電話 / Phone No.",
+                pf_phone  = st.text_input("电话 / Phone No.",
                                           value=cur_info.get("contact_phone",""), key="pf_phone",
                                           placeholder="011-1234 5678")
                 pf_email  = st.text_input("Email",
@@ -4247,13 +4271,13 @@ if _can("admin"):
                                             value=cur_info.get("city",""), key="pf_city",
                                             placeholder="Kuala Lumpur")
                 with ca2:
-                    pf_post = st.text_input("Poskod / 郵編",
+                    pf_post = st.text_input("Poskod / 邮编",
                                             value=cur_info.get("postcode",""), key="pf_post",
                                             placeholder="50000")
                 pf_ssm    = st.text_input("No. SSM / ROC (Pendaftaran Perniagaan)",
                                           value=cur_info.get("ssm_no",""), key="pf_ssm",
                                           placeholder="SA0123456-X")
-                pf_hours  = st.text_input("Waktu Operasi / 營業時間",
+                pf_hours  = st.text_input("Waktu Operasi / 营业时间",
                                           value=cur_info.get("operating_hours",""), key="pf_hours",
                                           placeholder="Mon–Sat: 10am – 8pm, Sun: Closed")
 
@@ -4286,19 +4310,19 @@ if _can("admin"):
                                         placeholder="96020",
                                         help="96020 = Hairdressing & Beauty Treatment")
             with ei_c3:
-                pf_state_sel = st.selectbox("Negeri / 州屬", _state_labels,
+                pf_state_sel = st.selectbox("Negeri / 州属", _state_labels,
                                             index=_state_labels.index(_cur_state_label),
                                             key="pf_state")
             pf_state_code = pf_state_sel.split(" — ")[0]
             st.markdown(
                 f'<div style="background:#0d1000;border:1px solid #2ecc7133;border-radius:6px;'
                 f'padding:6px 10px;font-size:0.75rem;color:#888;margin-top:4px;">'
-                f'💡 {"TIN 可在 MyTax 入口網站查詢：" if is_zh else "Find your TIN at: "}'
+                f'💡 {"TIN 可在 MyTax 门户网站查询：" if is_zh else "Find your TIN at: "}'
                 f'<a href="https://mytax.hasil.gov.my" target="_blank" style="color:#2ecc71;">mytax.hasil.gov.my</a>'
                 f'&nbsp;·&nbsp; MSIC 96020 = Hairdressing & Other Beauty Treatment</div>',
                 unsafe_allow_html=True)
 
-            if st.button("💾 " + ("儲存基本資料" if is_zh else "Save Profile"),
+            if st.button("💾 " + ("保存基本资料" if is_zh else "Save Profile"),
                          key="save_profile_btn", type="primary"):
                 profile_data = {
                     "contact_name":    pf_cname.strip(),
@@ -4319,20 +4343,20 @@ if _can("admin"):
                         db_update_salon_profile(cur_bid, profile_data)
                         fresh = db_get_salon_info(cur_bid)
                         st.session_state.setdefault("salon_info", {})[cur_bid] = fresh
-                        st.success("✅ " + ("基本資料已儲存！" if is_zh else "Profile saved!"))
+                        st.success("✅ " + ("基本资料已保存！" if is_zh else "Profile saved!"))
                         st.rerun()
                     except Exception as e:
                         st.error(str(e))
                 else:
                     st.session_state.setdefault("salon_info", {})[cur_bid].update(profile_data)
-                    st.success("✅ " + ("已儲存（本機）" if is_zh else "Saved (local)"))
+                    st.success("✅ " + ("已保存（本地）" if is_zh else "Saved (local)"))
 
             # Preview card
             if any([cur_info.get("address"), cur_info.get("contact_phone"),
                     cur_info.get("ssm_no"), cur_info.get("operating_hours")]):
                 st.markdown("<hr style='margin:12px 0;border-color:#1a1a1a'>", unsafe_allow_html=True)
                 st.markdown(f'<p style="color:#888;font-size:0.72rem;letter-spacing:1px;margin-bottom:6px;">'
-                            f'{"預覽（收據上顯示）" if is_zh else "PREVIEW (as shown on receipt)"}</p>',
+                            f'{"预览（收据上显示）" if is_zh else "PREVIEW (as shown on receipt)"}</p>',
                             unsafe_allow_html=True)
                 addr_full = ", ".join(filter(None, [
                     cur_info.get("address",""),
@@ -4356,11 +4380,11 @@ if _can("admin"):
 
         # ── Subscription Management ────────────────────────────────────────
         st.markdown('<div class="card" style="margin-bottom:1rem">', unsafe_allow_html=True)
-        st.markdown(f'<p class="card-title">💳 {"訂閱管理" if is_zh else "Subscription Management"}</p>',
+        st.markdown(f'<p class="card-title">💳 {"订阅管理" if is_zh else "Subscription Management"}</p>',
                     unsafe_allow_html=True)
 
         PLAN_COLORS = {"trial":"#e67e22","active":"#2ecc71","expired":"#e74c3c","owner":"#c9a84c"}
-        PLAN_LABELS = {"trial":"試用中","active":"已訂閱","expired":"已到期","owner":"系統擁有者"}
+        PLAN_LABELS = {"trial":"试用中","active":"已订阅","expired":"已到期","owner":"系统拥有者"}
 
         for bid, bname in st.session_state.branches.items():
             info  = st.session_state.get("salon_info", {}).get(bid, {})
@@ -4371,32 +4395,32 @@ if _can("admin"):
             label = PLAN_LABELS.get(plan, plan)
 
             with st.expander(f"🏠 {bname} ({bid})  ·  "
-                             f"[{label}]  {'到期：'+str(pend) if plan=='active' else '試用至：'+str(tend)}", expanded=False):
+                             f"[{label}]  {'到期：'+str(pend) if plan=='active' else '试用至：'+str(tend)}", expanded=False):
                 sub_c1, sub_c2 = st.columns(2)
 
                 with sub_c1:
                     st.markdown(f'<span style="color:{color};font-weight:700">{label}</span>', unsafe_allow_html=True)
                     new_stripe = st.text_input("Stripe Payment Link", value=info.get("stripe_link",""),
                                                key=f"stripe_{bid}", placeholder="https://buy.stripe.com/...")
-                    new_contact_name  = st.text_input("聯絡人 / Contact", value=info.get("contact_name",""), key=f"cn_{bid}")
-                    new_contact_phone = st.text_input("電話 / Phone",    value=info.get("contact_phone",""), key=f"cp_{bid}")
+                    new_contact_name  = st.text_input("联系人 / Contact", value=info.get("contact_name",""), key=f"cn_{bid}")
+                    new_contact_phone = st.text_input("电话 / Phone",    value=info.get("contact_phone",""), key=f"cp_{bid}")
                     new_contact_email = st.text_input("Email",            value=info.get("contact_email",""), key=f"ce_{bid}")
 
                 with sub_c2:
-                    st.markdown(f"**{'啟用試用' if is_zh else 'Trial'}**")
-                    trial_days = st.number_input("試用天數", value=30, min_value=1, max_value=365, key=f"td_{bid}")
-                    if st.button("🔄 " + ("重設試用期" if is_zh else "Reset Trial"), key=f"trial_btn_{bid}"):
+                    st.markdown(f"**{'启用试用' if is_zh else 'Trial'}**")
+                    trial_days = st.number_input("试用天数", value=30, min_value=1, max_value=365, key=f"td_{bid}")
+                    if st.button("🔄 " + ("重置试用期" if is_zh else "Reset Trial"), key=f"trial_btn_{bid}"):
                         if _USE_DB:
                             try:
                                 db_activate_trial(bid, int(trial_days))
-                                st.success("✅ 試用期已重設")
+                                st.success("✅ 试用期已重置")
                             except Exception as e:
                                 st.error(str(e))
 
-                    st.markdown(f"**{'啟用訂閱' if is_zh else 'Activate Plan'}**")
-                    plan_end_date = st.date_input("訂閱到期日", key=f"ped_{bid}",
+                    st.markdown(f"**{'启用订阅' if is_zh else 'Activate Plan'}**")
+                    plan_end_date = st.date_input("订阅到期日", key=f"ped_{bid}",
                                                    value=_sub_dt.date.today() + _sub_dt.timedelta(days=30))
-                    if st.button("✅ " + ("啟用訂閱" if is_zh else "Activate"), key=f"act_btn_{bid}"):
+                    if st.button("✅ " + ("启用订阅" if is_zh else "Activate"), key=f"act_btn_{bid}"):
                         if _USE_DB:
                             try:
                                 db_update_salon_subscription(bid, "active", str(plan_end_date), new_stripe)
@@ -4404,7 +4428,7 @@ if _can("admin"):
                                 # Reload salon info
                                 fresh = db_get_salon_info(bid)
                                 st.session_state.setdefault("salon_info", {})[bid] = fresh
-                                st.success(f"✅ 已啟用至 {plan_end_date}")
+                                st.success(f"✅ 已启用至 {plan_end_date}")
                                 st.rerun()
                             except Exception as e:
                                 st.error(str(e))
@@ -4413,7 +4437,7 @@ if _can("admin"):
 
         # ── Online Booking Links ───────────────────────────────────────────
         st.markdown('<div class="card" style="margin-bottom:1rem">', unsafe_allow_html=True)
-        st.markdown(f'<p class="card-title">🔗 {"客戶預約連結" if is_zh else "Customer Booking Links"}</p>',
+        st.markdown(f'<p class="card-title">🔗 {"客户预约链接" if is_zh else "Customer Booking Links"}</p>',
                     unsafe_allow_html=True)
         app_base = st.text_input(
             "App URL (from Streamlit Cloud)",
@@ -4431,15 +4455,15 @@ if _can("admin"):
                 )
                 st.code(link, language=None)
         else:
-            st.info("填入上方的 App URL 就能生成每間分店的客戶預約連結 / Enter your App URL above to generate booking links")
+            st.info("填入上方的 App URL 就能生成每间分店的客户预约链接 / Enter your App URL above to generate booking links")
         st.markdown('</div>', unsafe_allow_html=True)
 
         ROLE_COLOR = {"admin":"#e74c3c","owner":"#c9a84c","manager":"#3498db","staff":"#2ecc71"}
         ROLE_ICON  = {"admin":"🔴","owner":"👑","manager":"💼","staff":"✂️"}
-        ROLE_LABEL = {"admin":   ("平台管理員" if is_zh else "Platform Admin"),
-                      "owner":   ("老闆" if is_zh else "Owner"),
-                      "manager": ("經理" if is_zh else "Manager"),
-                      "staff":   ("員工" if is_zh else "Staff")}
+        ROLE_LABEL = {"admin":   ("平台管理员" if is_zh else "Platform Admin"),
+                      "owner":   ("老板" if is_zh else "Owner"),
+                      "manager": ("经理" if is_zh else "Manager"),
+                      "staff":   ("员工" if is_zh else "Staff")}
 
         # ════════════════════════════════════════════════════════════════════
         # BRANCH MANAGEMENT
@@ -4454,8 +4478,8 @@ if _can("admin"):
             tend      = info.get("trial_ends", "—")
             pend      = info.get("plan_ends",  "—")
             PLAN_CLR  = {"trial":"#e67e22","active":"#2ecc71","expired":"#e74c3c"}
-            PLAN_LBL  = {"trial":"試用中" if is_zh else "Trial",
-                         "active":"已訂閱" if is_zh else "Active",
+            PLAN_LBL  = {"trial":"试用中" if is_zh else "Trial",
+                         "active":"已订阅" if is_zh else "Active",
                          "expired":"已到期" if is_zh else "Expired"}
             plan_clr  = PLAN_CLR.get(plan, "#888")
             plan_lbl  = PLAN_LBL.get(plan, plan)
@@ -4468,7 +4492,7 @@ if _can("admin"):
 
             with st.expander(
                 f"🏠 **{bname}**  `{bid}`  ·  "
-                f"[{plan_lbl}]  ·  {n_accts} {'帳號' if is_zh else 'accounts'}",
+                f"[{plan_lbl}]  ·  {n_accts} {'账号' if is_zh else 'accounts'}",
                 expanded=False
             ):
                 ex_c1, ex_c2 = st.columns([1.5, 1])
@@ -4478,27 +4502,27 @@ if _can("admin"):
                     <div style="display:flex;gap:12px;margin-bottom:12px;flex-wrap:wrap">
                       <div class="stat-box" style="flex:1;min-width:80px">
                         <div class="stat-val" style="font-size:1.2rem">{n_bk}</div>
-                        <div class="stat-lbl">{"預約" if is_zh else "Bookings"}</div>
+                        <div class="stat-lbl">{"预约" if is_zh else "Bookings"}</div>
                       </div>
                       <div class="stat-box" style="flex:1;min-width:80px">
                         <div class="stat-val" style="font-size:1.2rem">{n_members}</div>
-                        <div class="stat-lbl">{"會員" if is_zh else "Members"}</div>
+                        <div class="stat-lbl">{"会员" if is_zh else "Members"}</div>
                       </div>
                       <div class="stat-box" style="flex:1;min-width:80px">
                         <div class="stat-val" style="font-size:1.2rem">{n_accts}</div>
-                        <div class="stat-lbl">{"帳號" if is_zh else "Accounts"}</div>
+                        <div class="stat-lbl">{"账号" if is_zh else "Accounts"}</div>
                       </div>
                     </div>
                     <div style="font-size:0.8rem;color:#888;margin-bottom:6px">
-                      {"訂閱狀態" if is_zh else "Subscription"}:
+                      {"订阅状态" if is_zh else "Subscription"}:
                       <span style="color:{plan_clr};font-weight:700">{plan_lbl}</span>
-                      {"· 試用至: "+str(tend) if plan=="trial" else "· 到期: "+str(pend) if plan=="active" else ""}
+                      {"· 试用至: "+str(tend) if plan=="trial" else "· 到期: "+str(pend) if plan=="active" else ""}
                     </div>
                     """, unsafe_allow_html=True)
 
                     # Edit branch name
                     new_name_val = st.text_input(
-                        "✏️ " + ("分店名稱" if is_zh else "Branch Name"),
+                        "✏️ " + ("分店名称" if is_zh else "Branch Name"),
                         value=bname, key=f"edit_bname_{bid}"
                     )
                     # Contact info from salon_info
@@ -4509,7 +4533,7 @@ if _can("admin"):
                                 f'</div>', unsafe_allow_html=True)
 
                 with ex_c2:
-                    st.markdown(f'<div style="font-size:0.8rem;color:#c9a84c;margin-bottom:6px">{"關聯帳號" if is_zh else "Linked Accounts"}</div>',
+                    st.markdown(f'<div style="font-size:0.8rem;color:#c9a84c;margin-bottom:6px">{"关联账号" if is_zh else "Linked Accounts"}</div>',
                                 unsafe_allow_html=True)
                     for ua in branch_accts:
                         a = st.session_state.accounts[ua]
@@ -4524,14 +4548,14 @@ if _can("admin"):
 
                 save_c, del_c = st.columns([2, 1])
                 with save_c:
-                    if st.button("💾 " + ("儲存名稱" if is_zh else "Save Name"), key=f"save_bname_{bid}"):
+                    if st.button("💾 " + ("保存名称" if is_zh else "Save Name"), key=f"save_bname_{bid}"):
                         if new_name_val.strip():
                             st.session_state.branches[bid] = new_name_val.strip()
                             if _USE_DB:
                                 try:
                                     from db import get_supabase as _get_sb; _get_sb().table("salons").update({"name": new_name_val.strip()}).eq("id", bid).execute()
                                 except Exception: pass
-                            st.success("✅ " + ("已儲存" if is_zh else "Saved"))
+                            st.success("✅ " + ("已保存" if is_zh else "Saved"))
                             st.rerun()
                 with del_c:
                     if len(st.session_state.branches) > 1:
@@ -4552,7 +4576,7 @@ if _can("admin"):
         with nb_c1:
             new_bid   = st.text_input("ID", placeholder="B002", key="new_bid")
         with nb_c2:
-            new_bname = st.text_input("名稱 / Name", placeholder="Signature Kim — PJ", key="new_bname")
+            new_bname = st.text_input("名称 / Name", placeholder="Signature Kim — PJ", key="new_bname")
         with nb_c3:
             st.markdown("<div style='height:1.6rem'></div>", unsafe_allow_html=True)
             if st.button("＋ " + ("新增" if is_zh else "Add"), key="add_branch_btn"):
@@ -4570,12 +4594,12 @@ if _can("admin"):
         # ACCOUNT MANAGEMENT
         # ════════════════════════════════════════════════════════════════════
         st.markdown('<div class="card" style="margin-bottom:1rem">', unsafe_allow_html=True)
-        st.markdown(f'<p class="card-title">👤 {"帳號管理" if is_zh else "Account Management"}</p>',
+        st.markdown(f'<p class="card-title">👤 {"账号管理" if is_zh else "Account Management"}</p>',
                     unsafe_allow_html=True)
 
         # Filter by branch
         filter_opts = ["全部 / All"] + [f"{bid} · {nm}" for bid, nm in st.session_state.branches.items()]
-        acct_filter = st.selectbox("🔍 " + ("篩選分店" if is_zh else "Filter by Branch"),
+        acct_filter = st.selectbox("🔍 " + ("筛选分店" if is_zh else "Filter by Branch"),
                                    filter_opts, key="acct_filter")
         filter_bid  = None if acct_filter == "全部 / All" else acct_filter.split(" · ")[0]
 
@@ -4602,7 +4626,7 @@ if _can("admin"):
                                 f'{r_ico} {r_lbl}</div>', unsafe_allow_html=True)
 
                     # Edit display name
-                    new_disp = st.text_input("顯示名稱 / Display Name",
+                    new_disp = st.text_input("显示名称 / Display Name",
                                              value=acct.get("name",""), key=f"dn_{uname}")
                     # Edit role
                     role_opts = ["staff","manager","owner"]
@@ -4625,25 +4649,25 @@ if _can("admin"):
 
                 with ea_c2:
                     st.markdown(f'<div style="color:#888;font-size:0.8rem;margin-bottom:8px">'
-                                f'{"重設密碼" if is_zh else "Reset Password"}</div>', unsafe_allow_html=True)
-                    new_pw    = st.text_input("新密碼 / New Password", type="password", key=f"npw_{uname}",
+                                f'{"重置密码" if is_zh else "Reset Password"}</div>', unsafe_allow_html=True)
+                    new_pw    = st.text_input("新密码 / New Password", type="password", key=f"npw_{uname}",
                                               placeholder="6+ chars")
-                    new_pw2   = st.text_input("確認 / Confirm", type="password", key=f"npw2_{uname}")
-                    if st.button("🔑 " + ("重設密碼" if is_zh else "Reset"), key=f"rpw_{uname}"):
+                    new_pw2   = st.text_input("确认 / Confirm", type="password", key=f"npw2_{uname}")
+                    if st.button("🔑 " + ("重置密码" if is_zh else "Reset"), key=f"rpw_{uname}"):
                         if len(new_pw) < 6:
-                            st.error("❌ " + ("密碼至少6位" if is_zh else "Min 6 chars"))
+                            st.error("❌ " + ("密码至少6位" if is_zh else "Min 6 chars"))
                         elif new_pw != new_pw2:
-                            st.error("❌ " + ("密碼不一致" if is_zh else "Passwords don't match"))
+                            st.error("❌ " + ("密码不一致" if is_zh else "Passwords don't match"))
                         else:
                             st.session_state.accounts[uname]["hash"] = _hash(new_pw)
                             if _USE_DB:
                                 try: db_update_password(uname, _hash(new_pw))
                                 except Exception: pass
-                            st.success("✅ " + ("密碼已重設" if is_zh else "Password reset"))
+                            st.success("✅ " + ("密码已重置" if is_zh else "Password reset"))
 
                 save_col, del_col = st.columns([2, 1])
                 with save_col:
-                    if st.button("💾 " + ("儲存變更" if is_zh else "Save Changes"), key=f"save_acct_{uname}"):
+                    if st.button("💾 " + ("保存更改" if is_zh else "Save Changes"), key=f"save_acct_{uname}"):
                         st.session_state.accounts[uname]["name"]   = new_disp.strip() or uname
                         st.session_state.accounts[uname]["role"]   = new_role
                         st.session_state.accounts[uname]["branch"] = new_br
@@ -4654,7 +4678,7 @@ if _can("admin"):
                                                new_role, new_br if new_br != "all" else None,
                                                new_disp.strip() or uname)
                             except Exception: pass
-                        st.success("✅ " + ("已儲存" if is_zh else "Saved"))
+                        st.success("✅ " + ("已保存" if is_zh else "Saved"))
                         st.rerun()
                 with del_col:
                     if not is_me:
@@ -4667,13 +4691,13 @@ if _can("admin"):
 
         # ── Add New Account ────────────────────────────────────────────────
         st.markdown("---")
-        st.markdown(f'<p style="color:#c9a84c;font-size:0.9rem;letter-spacing:1px;font-weight:700">＋ {"新增帳號" if is_zh else "Add New Account"}</p>',
+        st.markdown(f'<p style="color:#c9a84c;font-size:0.9rem;letter-spacing:1px;font-weight:700">＋ {"新增账号" if is_zh else "Add New Account"}</p>',
                     unsafe_allow_html=True)
         na1, na2 = st.columns(2)
         with na1:
             na_user = st.text_input("Username", placeholder="staff01", key="na_user")
-            na_name = st.text_input("顯示名稱 / Display Name", placeholder="Kim", key="na_name")
-            na_pass = st.text_input("密碼 / Password", type="password", key="na_pass", placeholder="Min 6 chars")
+            na_name = st.text_input("显示名称 / Display Name", placeholder="Kim", key="na_name")
+            na_pass = st.text_input("密码 / Password", type="password", key="na_pass", placeholder="Min 6 chars")
         with na2:
             # Admin can create any role; owner cannot create admin
             role_choices = (["admin","owner","manager","staff"]
@@ -4687,10 +4711,10 @@ if _can("admin"):
             na_branch_sel  = st.selectbox("分店 / Branch", na_branch_opts, key="na_branch_sel",
                                           format_func=lambda b: na_branch_disp[na_branch_opts.index(b)])
             role_desc = {
-                "admin":   "🔴 平台管理員：最高權限，管理所有髮廊、訂閱、帳號" if is_zh else "🔴 Platform Admin: Full control over all salons, subscriptions & accounts",
-                "owner":   "👑 老闆：管理自己的分店、帳號、訂閱" if is_zh else "👑 Owner: Manage own branches, accounts & subscription",
-                "manager": "💼 經理：管理自己分店的全部功能" if is_zh else "💼 Manager: Full access to own branch functions",
-                "staff":   "✂️ 員工：只能使用預約和收費功能" if is_zh else "✂️ Staff: Bookings and payment only",
+                "admin":   "🔴 平台管理员：最高权限，管理所有发廊、订阅、账号" if is_zh else "🔴 Platform Admin: Full control over all salons, subscriptions & accounts",
+                "owner":   "👑 老板：管理自己的分店、账号、订阅" if is_zh else "👑 Owner: Manage own branches, accounts & subscription",
+                "manager": "💼 经理：管理自己分店的全部功能" if is_zh else "💼 Manager: Full access to own branch functions",
+                "staff":   "✂️ 员工：只能使用预约和收费功能" if is_zh else "✂️ Staff: Bookings and payment only",
             }
             st.markdown(f"""
             <div style="background:#1a1a1a;border-radius:8px;padding:8px 12px;margin-top:6px;font-size:0.78rem;color:#888;border-left:3px solid {ROLE_COLOR.get(na_role,'#888')}">
@@ -4699,11 +4723,11 @@ if _can("admin"):
             </div>
             """, unsafe_allow_html=True)
 
-        if st.button("＋ " + ("新增帳號" if is_zh else "Add Account"), key="add_acct_btn",
+        if st.button("＋ " + ("新增账号" if is_zh else "Add Account"), key="add_acct_btn",
                      use_container_width=True):
             if na_user.strip() and na_pass.strip() and len(na_pass) >= 6:
                 if na_user.strip() in st.session_state.accounts:
-                    st.error("⚠ " + ("用戶名已存在" if is_zh else "Username already exists"))
+                    st.error("⚠ " + ("用户名已存在" if is_zh else "Username already exists"))
                 else:
                     new_acct = {
                         "hash":   _hash(na_pass),
@@ -4722,29 +4746,29 @@ if _can("admin"):
                                (st.session_state.branches.get(na_branch_sel,"All")))
                     st.rerun()
             elif len(na_pass) < 6:
-                st.warning("⚠ " + ("密碼至少6位" if is_zh else "Password must be 6+ chars"))
+                st.warning("⚠ " + ("密码至少6位" if is_zh else "Password must be 6+ chars"))
             else:
-                st.warning("⚠ " + ("請填寫用戶名和密碼" if is_zh else "Please fill in username and password"))
+                st.warning("⚠ " + ("请填写用户名和密码" if is_zh else "Please fill in username and password"))
 
         # ── Change own password ────────────────────────────────────────────
         st.markdown("---")
-        with st.expander("🔑 " + ("修改自己的密碼" if is_zh else "Change My Password")):
-            cp_old  = st.text_input("舊密碼 / Old Password", type="password", key="cp_old")
-            cp_new  = st.text_input("新密碼 / New Password", type="password", key="cp_new")
-            cp_new2 = st.text_input("確認 / Confirm",        type="password", key="cp_new2")
+        with st.expander("🔑 " + ("修改自己的密码" if is_zh else "Change My Password")):
+            cp_old  = st.text_input("旧密码 / Old Password", type="password", key="cp_old")
+            cp_new  = st.text_input("新密码 / New Password", type="password", key="cp_new")
+            cp_new2 = st.text_input("确认 / Confirm",        type="password", key="cp_new2")
             if st.button("Update / 更新", key="cp_btn"):
                 me = st.session_state.accounts.get(st.session_state.username)
                 if not me or me["hash"] != _hash(cp_old):
-                    st.error("❌ " + ("舊密碼不正確" if is_zh else "Old password incorrect"))
+                    st.error("❌ " + ("旧密码不正确" if is_zh else "Old password incorrect"))
                 elif cp_new != cp_new2:
-                    st.error("❌ " + ("新密碼不一致" if is_zh else "Passwords don't match"))
+                    st.error("❌ " + ("新密码不一致" if is_zh else "Passwords don't match"))
                 elif len(cp_new) < 6:
-                    st.warning("⚠ " + ("密碼至少6位" if is_zh else "Password must be 6+ chars"))
+                    st.warning("⚠ " + ("密码至少6位" if is_zh else "Password must be 6+ chars"))
                 else:
                     st.session_state.accounts[st.session_state.username]["hash"] = _hash(cp_new)
                     if _USE_DB:
                         try: db_update_password(st.session_state.username, _hash(cp_new))
                         except Exception: pass
-                    st.success("✦ " + ("密碼已更新" if is_zh else "Password updated"))
+                    st.success("✦ " + ("密码已更新" if is_zh else "Password updated"))
 
             st.markdown('</div>', unsafe_allow_html=True)
