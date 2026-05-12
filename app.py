@@ -1970,9 +1970,10 @@ with st.sidebar:
     except Exception:
         _sb_base = st.session_state.get("app_base_url_saved", "")
 
-    # Use the user's own assigned branch (not cur_branch which may be substituted)
-    _sb_branch = st.session_state.get("user_branch", st.session_state.get("cur_branch", ""))
-    # Don't show link for platform admin or accounts with no fixed branch
+    # Read the user's actual assigned branch from accounts dict (most reliable)
+    _my_acct   = st.session_state.accounts.get(st.session_state.get("username",""), {})
+    _sb_branch = _my_acct.get("branch", st.session_state.get("cur_branch",""))
+    # Don't show link for platform admin or accounts with "all" branches
     if _sb_branch == "all" or _can("super_admin"):
         _sb_branch = ""
     if _sb_base and _sb_branch:

@@ -237,7 +237,7 @@ booked_slots = {}   # {date: [time1, time2]} for chosen stylist
 if not salon_id:
     st.markdown(f"""
     <div class="hero">
-      <div class="hero-title">✦ SIGNATURE KIM ✦</div>
+      <div class="hero-title">✦ IQSALON ✦</div>
       <div class="hero-sub">{t('sub')}</div>
     </div>
     """, unsafe_allow_html=True)
@@ -250,6 +250,16 @@ if _USE_DB:
         sal_res = sb.table("salons").select("name").eq("id", salon_id).execute()
         if sal_res.data:
             salon_name = sal_res.data[0]["name"]
+        else:
+            # salon_id not found in database — show invalid link error
+            st.markdown(f"""
+            <div class="hero">
+              <div class="hero-title">✦ IQSALON ✦</div>
+              <div class="hero-sub">{t('sub')}</div>
+            </div>
+            """, unsafe_allow_html=True)
+            st.error(f"### {t('invalid')}\n{t('invalid_msg')}")
+            st.stop()
         sty_res = sb.table("stylists").select("name").eq("salon_id", salon_id).execute()
         if sty_res.data:
             stylists = [r["name"] for r in sty_res.data]
@@ -271,9 +281,8 @@ col_h, col_lang = st.columns([5, 1])
 with col_h:
     st.markdown(f"""
     <div class="hero">
-      <div class="hero-title">✦ SIGNATURE KIM ✦</div>
+      <div class="hero-title">✦ {salon_name.upper()} ✦</div>
       <div class="hero-sub">{t('sub')}</div>
-      <div class="hero-branch">{salon_name}</div>
     </div>
     """, unsafe_allow_html=True)
 with col_lang:
