@@ -1279,6 +1279,7 @@ if not st.session_state.logged_in:
             st.session_state.role      = acct["role"]
             st.session_state.user_name = acct["name"]
             branch = acct["branch"]
+            st.session_state.user_branch = branch  # original (may be "all")
             if branch == "all":
                 branch = next(iter(st.session_state.branches), "B001")
             st.session_state.cur_branch = branch
@@ -1338,6 +1339,7 @@ if not st.session_state.logged_in:
                     st.session_state.role       = acct["role"]
                     st.session_state.user_name  = acct["name"]
                     branch = acct["branch"]
+                    st.session_state.user_branch = branch  # original (may be "all")
                     if branch == "all":
                         branch = next(iter(st.session_state.branches), "B001")
                     st.session_state.cur_branch = branch
@@ -1968,7 +1970,11 @@ with st.sidebar:
     except Exception:
         _sb_base = st.session_state.get("app_base_url_saved", "")
 
-    _sb_branch = st.session_state.get("cur_branch", "")
+    # Use the user's own assigned branch (not cur_branch which may be substituted)
+    _sb_branch = st.session_state.get("user_branch", st.session_state.get("cur_branch", ""))
+    # Don't show link for platform admin or accounts with no fixed branch
+    if _sb_branch == "all" or _can("super_admin"):
+        _sb_branch = ""
     if _sb_base and _sb_branch:
         _sb_link = f"{_sb_base.rstrip('/')}/booking?salon={_sb_branch}"
         _sb_bname = st.session_state.get("branches", {}).get(_sb_branch, _sb_branch)
