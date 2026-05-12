@@ -4433,6 +4433,20 @@ if _can("admin"):
                             except Exception as e:
                                 st.error(str(e))
 
+                # Delete salon
+                if len(st.session_state.branches) > 1:
+                    st.markdown("---")
+                    if st.button("🗑 " + ("删除此店家" if is_zh else "Delete Salon"), key=f"sub_del_{bid}",
+                                 help="⚠️ " + ("将删除此店家所有数据" if is_zh else "This will delete all salon data")):
+                        del st.session_state.branches[bid]
+                        st.session_state.get("salon_info", {}).pop(bid, None)
+                        if _USE_DB:
+                            try: db_delete_salon(bid)
+                            except Exception: pass
+                        if st.session_state.cur_branch == bid:
+                            st.session_state.cur_branch = next(iter(st.session_state.branches))
+                        st.rerun()
+
         # ── Add new subscribing salon ──────────────────────────────────────
         st.markdown(f'<p style="color:#c9a84c;font-size:0.82rem;letter-spacing:1px;margin-top:0.8rem">{"＋ 新增订阅店家" if is_zh else "＋ Add New Salon"}</p>',
                     unsafe_allow_html=True)
