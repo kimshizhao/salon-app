@@ -13,7 +13,7 @@ try:
         db_add_walkin, db_delete_walkin, db_save_all_inventory,
         db_add_member, db_update_member, db_add_member_history, db_delete_member,
         db_get_services, db_set_services,
-        db_set_stylists, db_add_account, db_delete_account, db_update_password,
+        db_set_stylists, db_add_account, db_update_account, db_delete_account, db_update_password,
         db_add_salon, db_delete_salon,
         db_confirm_booking, db_cancel_booking,
         db_update_salon_subscription, db_activate_trial,
@@ -4859,7 +4859,7 @@ if _can("admin") and _active == "tab_admin":
                             _ri = ROLE_ICON_MAP.get(_a["role"],"👤")
                             _rl = (ROLE_LABEL_ZH if is_zh else ROLE_LABEL_EN).get(_a["role"], _a["role"])
                             _isme = (ua == st.session_state.username)
-                            aw1, aw2, aw3 = st.columns([3, 2, 1])
+                            aw1, aw2, aw3, aw4 = st.columns([3, 1.5, 1, 0.7])
                             with aw1:
                                 st.markdown(
                                     f'<div style="padding:5px 0;font-size:0.83rem">'
@@ -4880,6 +4880,22 @@ if _can("admin") and _active == "tab_admin":
                                     else:
                                         st.error("6+")
                             with aw3:
+                                # Move account to a different branch
+                                _all_bids = list(st.session_state.branches.keys())
+                                _cur_idx  = _all_bids.index(bid) if bid in _all_bids else 0
+                                _new_bid  = st.selectbox("", _all_bids, index=_cur_idx,
+                                                          key=f"mv_{bid}_{ua}",
+                                                          label_visibility="collapsed",
+                                                          format_func=lambda b: st.session_state.branches.get(b, b))
+                                if _new_bid != bid:
+                                    if st.button("↪", key=f"mvbtn_{bid}_{ua}", help="Move to this branch"):
+                                        st.session_state.accounts[ua]["branch"] = _new_bid
+                                        if _USE_DB:
+                                            try: db_update_account(ua, {"salon_id": _new_bid})
+                                            except Exception: pass
+                                        st.success(f"✅ {ua} → {st.session_state.branches.get(_new_bid, _new_bid)}")
+                                        st.rerun()
+                            with aw4:
                                 if not _isme:
                                     if st.button("🗑", key=f"del_{bid}_{ua}", help="Delete account"):
                                         del st.session_state.accounts[ua]
@@ -4929,6 +4945,41 @@ if _can("admin") and _active == "tab_admin":
                                     st.rerun()
                     else:
                         st.warning("⚠️ " + ("订阅已到期，无法新增账号" if is_zh else "Subscription expired"))
+
+            # ── Orphaned accounts (salon_id missing / not matching any branch) ──
+            _known_bids   = set(st.session_state.branches.keys())
+            _orphan_accts = [
+                (u, a) for u, a in st.session_state.accounts.items()
+                if a.get("branch","") not in _known_bids and a.get("role") not in ("admin","super_admin")
+            ]
+            if _orphan_accts:
+                st.markdown(
+                    f'<div style="background:#1a0800;border:1px solid #e67e2255;border-radius:8px;'
+                    f'padding:10px 14px;margin-bottom:12px;">'
+                    f'<div style="color:#e67e22;font-size:0.8rem;font-weight:700;margin-bottom:6px;">'
+                    f'⚠️ {"未关联分店的账号（请分配分店）" if is_zh else "Unlinked Accounts — assign a branch"}</div>',
+                    unsafe_allow_html=True)
+                for _ou, _oa in _orphan_accts:
+                    _oc1, _oc2, _oc3 = st.columns([2, 2, 1])
+                    with _oc1:
+                        st.markdown(f"<div style='color:#e67e22;font-size:0.82rem;padding:6px 0;'>"
+                                    f"👤 <b>{_ou}</b>  <span style='color:#666'>{_oa.get('name','')}</span></div>",
+                                    unsafe_allow_html=True)
+                    with _oc2:
+                        _all_bids2 = list(st.session_state.branches.keys())
+                        _fix_bid   = st.selectbox("", _all_bids2, key=f"fix_br_{_ou}",
+                                                   label_visibility="collapsed",
+                                                   format_func=lambda b: st.session_state.branches.get(b, b))
+                    with _oc3:
+                        if st.button("✔ " + ("分配" if is_zh else "Assign"), key=f"fix_btn_{_ou}",
+                                     use_container_width=True):
+                            st.session_state.accounts[_ou]["branch"] = _fix_bid
+                            if _USE_DB:
+                                try: db_update_account(_ou, {"salon_id": _fix_bid})
+                                except Exception: pass
+                            st.success(f"✅ {_ou} → {st.session_state.branches.get(_fix_bid, _fix_bid)}")
+                            st.rerun()
+                st.markdown('</div>', unsafe_allow_html=True)
 
             # ── Add new company/salon ─────────────────────────────────────────
             st.markdown(f'<p style="color:#c9a84c;font-size:0.82rem;letter-spacing:1px;margin-top:1rem">'

@@ -89,6 +89,14 @@ def db_add_account(username, password_hash, role, salon_id, display_name):
     }).execute()
 
 
+def db_update_account(username: str, updates: dict):
+    """Update account fields (role, salon_id, display_name)."""
+    allowed = {"role", "salon_id", "display_name"}
+    payload = {k: v for k, v in updates.items() if k in allowed}
+    if payload:
+        _sb().table("accounts").update(payload).eq("username", username).execute()
+
+
 def db_delete_account(username: str):
     _sb().table("accounts").delete().eq("username", username).execute()
 
