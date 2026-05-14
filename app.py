@@ -80,8 +80,8 @@ def _can(action: str) -> bool:
 st.set_page_config(
     page_title="IQSALON",
     page_icon="✂️",
-    layout="wide",
-    initial_sidebar_state="expanded",
+    layout="centered",
+    initial_sidebar_state="collapsed",
 )
 
 # Auto-refresh every 60s to pick up new online bookings
@@ -143,46 +143,34 @@ st.markdown("""
   }
   #MainMenu, footer, header { visibility:hidden; }
 
-  /* ── Sidebar base styling ───────────────────────────────── */
-  [data-testid="stSidebar"] {
-    background:linear-gradient(180deg,#0c0c11 0%,#08080c 100%) !important;
-    border-right:1px solid rgba(201,168,76,0.15) !important;
-    min-width:175px !important;
-    max-width:200px !important;
+  /* ── Hide sidebar entirely ───────────────────────────────── */
+  [data-testid="stSidebar"] { display:none !important; }
+  button[data-testid="collapsedControl"] { display:none !important; }
+
+  /* ── Custom top nav bar ──────────────────────────────────── */
+  .iq-nav {
+    display:flex; flex-wrap:nowrap; overflow-x:auto; gap:4px;
+    background:rgba(14,13,17,0.9); border-radius:12px; padding:6px;
+    border:1px solid rgba(201,168,76,0.22);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,0.04), 0 8px 24px rgba(0,0,0,0.35);
+    margin-bottom:1.2rem; scrollbar-width:none;
   }
-  /* ── Desktop (≥768px): always show sidebar, hide collapse btn ── */
-  @media (min-width: 768px) {
-    [data-testid="stSidebar"] {
-      display:flex !important;
-      visibility:visible !important;
-      transform:none !important;
-    }
-    [data-testid="stSidebar"][aria-expanded="false"] {
-      margin-left:0 !important;
-      min-width:175px !important;
-      display:flex !important;
-    }
-    button[data-testid="collapsedControl"],
-    [data-testid="collapsedControl"] {
-      display:none !important;
-    }
+  .iq-nav::-webkit-scrollbar { display:none; }
+  .iq-nav-btn {
+    flex-shrink:0; font-family:'Raleway',sans-serif; font-weight:600;
+    letter-spacing:1.5px; font-size:0.74rem; text-transform:uppercase;
+    color:#888; background:transparent; border:none; border-radius:7px;
+    padding:9px 14px; cursor:pointer; transition:all .22s; white-space:nowrap;
   }
-  /* ── Mobile (<768px): allow sidebar to collapse ─────────── */
-  @media (max-width: 767px) {
-    [data-testid="stSidebar"] {
-      min-width:80vw !important;
-      max-width:85vw !important;
-    }
-    button[data-testid="collapsedControl"],
-    [data-testid="collapsedControl"] {
-      display:flex !important;
-      background:rgba(201,168,76,0.15) !important;
-      border:1px solid rgba(201,168,76,0.3) !important;
-      border-radius:0 8px 8px 0 !important;
-    }
-    .block-container {
-      padding:1rem !important;
-    }
+  .iq-nav-btn:hover { color:#c9a84c; background:rgba(201,168,76,0.08); }
+  .iq-nav-btn.active {
+    background:linear-gradient(135deg,#c9a84c,#a07830) !important;
+    color:#0a0a0a !important; font-weight:700;
+  }
+  @media (max-width: 640px) {
+    .iq-nav { padding:4px; gap:2px; }
+    .iq-nav-btn { padding:8px 10px; font-size:0.68rem; letter-spacing:1px; }
+    .block-container { padding:0.8rem 0.8rem 2rem !important; }
   }
   [data-testid="stSidebarContent"] { padding:0.5rem 0.6rem !important; }
   [data-testid="stSidebarContent"] button[kind="secondary"] {
@@ -1928,7 +1916,7 @@ def _render_sty_panel(df_sty):
     st.markdown('</div>', unsafe_allow_html=True)
 
 
-# ── Sidebar navigation ────────────────────────────────────────────────────
+# ── Top navigation ────────────────────────────────────────────────────────
 _NAV_ITEMS = [
     ("tab1",         "✂",  _t("预约管理","Bookings","Tempahan")),
     ("tab2",         "💇", _t("发型师","Stylists","Jurugaya")),
@@ -1948,110 +1936,65 @@ _valid_tabs = [x[0] for x in _NAV_ITEMS]
 if "active_tab" not in st.session_state or st.session_state.active_tab not in _valid_tabs:
     st.session_state.active_tab = "tab1"
 
-with st.sidebar:
-    st.markdown(
-        "<div style='padding:12px 0 18px 0;text-align:center;'>"
-        "<div style='font-size:1.4rem;font-weight:800;color:#c9a84c;letter-spacing:2px;'>✦ IQSALON</div>"
-        "<div style='font-size:0.65rem;color:#555;letter-spacing:3px;margin-top:2px;'>SMART MANAGEMENT</div>"
-        "</div>",
-        unsafe_allow_html=True,
-    )
-    st.markdown(
-        "<hr style='border:none;border-top:1px solid #1a1a1a;margin:0 0 10px 0;'>",
-        unsafe_allow_html=True,
-    )
-    # Inject one CSS rule that highlights the active button by its nth position
-    _active_idx = next((i for i, (t,_,_l) in enumerate(_NAV_ITEMS) if t == st.session_state.active_tab), 0)
-    st.markdown(
-        f"<style>[data-testid='stSidebarContent'] [data-testid='stButton']:nth-child({_active_idx + 4}) button"
-        f" {{background:rgba(201,168,76,0.15)!important;border:1px solid rgba(201,168,76,0.45)!important;"
-        f"color:#c9a84c!important;}}</style>",
-        unsafe_allow_html=True,
-    )
-    for _tid, _icon, _label in _NAV_ITEMS:
-        if st.button(
-            f"{_icon}  {_label}",
-            key=f"nav_{_tid}",
-            use_container_width=True,
-        ):
+# Render nav as Streamlit columns (works on mobile + desktop)
+_nav_cols = st.columns(len(_NAV_ITEMS))
+for _ci, (_tid, _icon, _label) in enumerate(_NAV_ITEMS):
+    with _nav_cols[_ci]:
+        if st.button(f"{_icon}\n{_label}", key=f"nav_{_tid}", use_container_width=True):
             st.session_state.active_tab = _tid
             st.rerun()
 
-    st.markdown(
-        "<hr style='border:none;border-top:1px solid #1a1a1a;margin:12px 0 8px 0;'>",
-        unsafe_allow_html=True,
-    )
+_active_idx = next((i for i,(t,_,_l) in enumerate(_NAV_ITEMS) if t==st.session_state.active_tab), 0)
+st.markdown(
+    f"<style>"
+    f"div[data-testid='stHorizontalBlock']:first-of-type{{background:rgba(14,13,17,0.9)!important;"
+    f"border-radius:12px!important;padding:5px!important;border:1px solid rgba(201,168,76,0.22)!important;"
+    f"box-shadow:inset 0 1px 0 rgba(255,255,255,0.04),0 8px 24px rgba(0,0,0,0.35)!important;"
+    f"margin-bottom:1rem!important;}}"
+    f"div[data-testid='stHorizontalBlock']:first-of-type button[kind='secondary']"
+    f"{{font-family:'Raleway',sans-serif!important;font-weight:600!important;font-size:0.7rem!important;"
+    f"letter-spacing:1px!important;text-transform:uppercase!important;color:#888!important;"
+    f"background:transparent!important;border:1px solid transparent!important;border-radius:7px!important;"
+    f"padding:7px 2px!important;transition:all .2s!important;white-space:pre-wrap!important;"
+    f"line-height:1.3!important;text-align:center!important;}}"
+    f"div[data-testid='stHorizontalBlock']:first-of-type button[kind='secondary']:hover"
+    f"{{color:#c9a84c!important;background:rgba(201,168,76,0.08)!important;}}"
+    f"div[data-testid='stHorizontalBlock']:first-of-type>div:nth-child({_active_idx+1}) button[kind='secondary']"
+    f"{{background:linear-gradient(135deg,#c9a84c,#a07830)!important;color:#0a0a0a!important;"
+    f"font-weight:700!important;border-color:transparent!important;}}"
+    f"</style>",
+    unsafe_allow_html=True,
+)
 
-    # ── Booking link ─────────────────────────────────────────────────────
+# Booking link card (replaces sidebar booking link)
+if True:  # always runs post-login
     try:
         _sb_host  = st.context.headers.get("host", "")
         _sb_proto = "https" if (_sb_host and "localhost" not in _sb_host) else "http"
         _sb_base  = f"{_sb_proto}://{_sb_host}" if _sb_host else ""
     except Exception:
         _sb_base = st.session_state.get("app_base_url_saved", "")
-
-    # Read the user's actual assigned branch from accounts dict (most reliable)
     _my_acct   = st.session_state.accounts.get(st.session_state.get("username",""), {})
     _sb_branch = _my_acct.get("branch", st.session_state.get("cur_branch",""))
-    # Don't show link for platform admin or accounts with "all" branches
     if _sb_branch == "all" or _can("super_admin"):
         _sb_branch = ""
     if _sb_base and _sb_branch:
-        _sb_link = f"{_sb_base.rstrip('/')}/booking?salon={_sb_branch}"
+        _sb_link  = f"{_sb_base.rstrip('/')}/booking?salon={_sb_branch}"
         _sb_bname = st.session_state.get("branches", {}).get(_sb_branch, _sb_branch)
+        # Subtle floating copy button top-right
         st.markdown(
-            f"<div style='font-size:0.68rem;color:#555;letter-spacing:1px;margin-bottom:4px;'>🔗 预约链接</div>"
-            f"<div style='background:#0a0a0a;border:1px solid #c9a84c33;border-radius:6px;"
-            f"padding:7px 9px;margin-bottom:6px;'>"
-            f"<div style='color:#c9a84c;font-size:0.7rem;font-weight:600;margin-bottom:3px;"
-            f"white-space:nowrap;overflow:hidden;text-overflow:ellipsis;' title='{_sb_bname}'>{_sb_bname}</div>"
-            f"<div style='color:#555;font-size:0.63rem;word-break:break-all;line-height:1.4;'>{_sb_link}</div>"
+            f"<div style='position:fixed;top:56px;right:12px;z-index:999;'>"
+            f"<button onclick=\"navigator.clipboard.writeText('{_sb_link}').then(()=>"
+            f"{{this.innerText='✅';setTimeout(()=>this.innerText='🔗',1800)}})\" "
+            f"style='background:rgba(14,13,17,0.92);color:#c9a84c;border:1px solid #c9a84c44;"
+            f"border-radius:8px;padding:6px 12px;cursor:pointer;font-size:0.75rem;font-weight:600;"
+            f"letter-spacing:1px;backdrop-filter:blur(8px);' title='{_sb_link}'>🔗 复制预约链接</button>"
             f"</div>",
             unsafe_allow_html=True,
         )
-        st.markdown(
-            f"<button onclick=\"navigator.clipboard.writeText('{_sb_link}').then(()=>{{this.innerHTML='✅ 已复制!';this.style.color='#2ecc71';setTimeout(()=>{{this.innerHTML='📋 复制预约链接';this.style.color='#c9a84c'}},2000)}})\" "
-            f"style='width:100%;background:#0d0d0d;color:#c9a84c;border:1px solid #c9a84c44;"
-            f"border-radius:6px;padding:7px 0;cursor:pointer;font-size:0.74rem;font-weight:600;"
-            f"letter-spacing:1px;transition:all .2s;margin-bottom:8px;'>📋 复制预约链接</button>",
-            unsafe_allow_html=True,
-        )
-        st.markdown(
-            "<hr style='border:none;border-top:1px solid #111;margin:4px 0 8px 0;'>",
-            unsafe_allow_html=True,
-        )
-
-    # ── User info ─────────────────────────────────────────────────────────
-    _uname = st.session_state.get("user_name") or st.session_state.get("username","")
-    _role_lbl = ROLE_LABEL_ZH.get(st.session_state.get("role",""), st.session_state.get("role",""))
-    st.markdown(
-        f"<div style='font-size:0.72rem;color:#555;padding:4px 2px;'>"
-        f"<div style='color:#777;'>👤 {_uname}</div>"
-        f"<div style='margin-top:2px;'>{ROLE_ICON_MAP.get(st.session_state.get('role',''),'')}"
-        f" {_role_lbl}</div>"
-        f"</div>",
-        unsafe_allow_html=True,
-    )
 
 _active = st.session_state.active_tab
 
-# On desktop: auto-expand sidebar if collapsed (does nothing on mobile)
-st.markdown("""
-<script>
-(function(){
-  function expandOnDesktop(){
-    if(window.innerWidth < 768) return;  // skip on mobile
-    var sb = window.parent.document.querySelector('[data-testid="stSidebar"]');
-    if(sb && sb.getAttribute('aria-expanded') === 'false'){
-      var btn = window.parent.document.querySelector('button[data-testid="collapsedControl"]');
-      if(btn) btn.click();
-    }
-  }
-  setTimeout(expandOnDesktop, 300);
-  setTimeout(expandOnDesktop, 900);
-})();
-</script>
-""", unsafe_allow_html=True)
 
 # ═════════════════════════════════════════════════════════════════════════════
 # TAB 1 — BOOKINGS  (no pricing shown)
