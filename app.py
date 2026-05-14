@@ -143,26 +143,46 @@ st.markdown("""
   }
   #MainMenu, footer, header { visibility:hidden; }
 
-  /* ── Sidebar: always visible, never collapsible ────────── */
+  /* ── Sidebar base styling ───────────────────────────────── */
   [data-testid="stSidebar"] {
     background:linear-gradient(180deg,#0c0c11 0%,#08080c 100%) !important;
     border-right:1px solid rgba(201,168,76,0.15) !important;
     min-width:175px !important;
     max-width:200px !important;
-    display:flex !important;
-    visibility:visible !important;
-    transform:none !important;
   }
-  /* Force expanded even if Streamlit wants to collapse it */
-  [data-testid="stSidebar"][aria-expanded="false"] {
-    margin-left:0 !important;
-    min-width:175px !important;
-    display:flex !important;
+  /* ── Desktop (≥768px): always show sidebar, hide collapse btn ── */
+  @media (min-width: 768px) {
+    [data-testid="stSidebar"] {
+      display:flex !important;
+      visibility:visible !important;
+      transform:none !important;
+    }
+    [data-testid="stSidebar"][aria-expanded="false"] {
+      margin-left:0 !important;
+      min-width:175px !important;
+      display:flex !important;
+    }
+    button[data-testid="collapsedControl"],
+    [data-testid="collapsedControl"] {
+      display:none !important;
+    }
   }
-  /* Hide the collapse/expand arrow button */
-  button[data-testid="collapsedControl"],
-  [data-testid="collapsedControl"] {
-    display:none !important;
+  /* ── Mobile (<768px): allow sidebar to collapse ─────────── */
+  @media (max-width: 767px) {
+    [data-testid="stSidebar"] {
+      min-width:80vw !important;
+      max-width:85vw !important;
+    }
+    button[data-testid="collapsedControl"],
+    [data-testid="collapsedControl"] {
+      display:flex !important;
+      background:rgba(201,168,76,0.15) !important;
+      border:1px solid rgba(201,168,76,0.3) !important;
+      border-radius:0 8px 8px 0 !important;
+    }
+    .block-container {
+      padding:1rem !important;
+    }
   }
   [data-testid="stSidebarContent"] { padding:0.5rem 0.6rem !important; }
   [data-testid="stSidebarContent"] button[kind="secondary"] {
@@ -2015,19 +2035,20 @@ with st.sidebar:
 
 _active = st.session_state.active_tab
 
-# Force sidebar to stay expanded via JS (in case CSS alone isn't enough)
+# On desktop: auto-expand sidebar if collapsed (does nothing on mobile)
 st.markdown("""
 <script>
 (function(){
-  function ensureSidebarOpen(){
+  function expandOnDesktop(){
+    if(window.innerWidth < 768) return;  // skip on mobile
     var sb = window.parent.document.querySelector('[data-testid="stSidebar"]');
     if(sb && sb.getAttribute('aria-expanded') === 'false'){
       var btn = window.parent.document.querySelector('button[data-testid="collapsedControl"]');
       if(btn) btn.click();
     }
   }
-  setTimeout(ensureSidebarOpen, 200);
-  setTimeout(ensureSidebarOpen, 800);
+  setTimeout(expandOnDesktop, 300);
+  setTimeout(expandOnDesktop, 900);
 })();
 </script>
 """, unsafe_allow_html=True)
