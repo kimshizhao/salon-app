@@ -1367,14 +1367,17 @@ if not st.session_state.logged_in:
                     st.error("❌ 账号或密码错误 / Wrong username or password")
 
     # ── Member self-registration hint ────────────────────────────────────────
+    # Build registration URL
     _lg_salon_param = st.query_params.get("salon", "")
-    # Build base URL from request headers
     try:
         _lg_host  = st.context.headers.get("host", "")
         _lg_proto = "https" if (_lg_host and "localhost" not in _lg_host) else "http"
         _lg_base  = f"{_lg_proto}://{_lg_host}" if _lg_host else ""
     except Exception:
         _lg_base = ""
+    _reg_url = (f"{_lg_base}/register?salon={_lg_salon_param}"
+                if (_lg_base and _lg_salon_param)
+                else (f"{_lg_base}/register" if _lg_base else None))
 
     with st.columns([1, 2, 1])[1]:
         st.markdown("""
@@ -1385,22 +1388,16 @@ if not st.session_state.logged_in:
           </div>
         </div>
         """, unsafe_allow_html=True)
-        if _lg_salon_param and _lg_base:
-            _reg_url = f"{_lg_base}/register?salon={_lg_salon_param}"
+        if _reg_url:
             st.link_button(
                 "🌟 注册成为会员 / Daftar Ahli",
                 url=_reg_url,
                 use_container_width=True,
             )
         else:
-            st.markdown("""
-            <div style="text-align:center;font-size:0.78rem;color:#4a7a5a;line-height:1.7;">
-              想成为会员？请向发廊索取专属注册链接<br>
-              <span style="font-size:0.70rem;color:#3a5a42;">
-              Ingin jadi ahli? Minta pautan pendaftaran dari salun anda
-              </span>
-            </div>
-            """, unsafe_allow_html=True)
+            # Fallback: use st.page_link for local/unknown host
+            st.page_link("pages/register.py", label="🌟 注册成为会员 / Daftar Ahli",
+                         use_container_width=True)
 
     st.stop()
 

@@ -273,6 +273,30 @@ with col_l:
         st.session_state.reg_lang = _sel
         st.rerun()
 
+# ── No salon param — let customer enter salon code manually ──────────────────
+if not salon_id:
+    st.markdown(f"""
+    <div style="text-align:center;padding:1.5rem 1rem;background:rgba(10,22,14,0.9);
+    border:1px solid rgba(212,160,48,0.25);border-radius:14px;margin-bottom:1.2rem;">
+      <div style="font-size:0.7rem;letter-spacing:3px;color:#4a7a5a;margin-bottom:10px;">
+        {'请输入发廊提供的注册码' if L=='zh' else 'Enter the salon registration code'}
+      </div>
+    </div>
+    """, unsafe_allow_html=True)
+    _manual_code = st.text_input(
+        "发廊注册码 / Salon Code" if L=="zh" else "Salon Registration Code",
+        placeholder="例如: B001 / e.g. B001",
+        key="manual_salon_code"
+    )
+    if st.button("🔍 " + ("继续 / Continue" if L=="zh" else "Continue"),
+                 key="manual_code_btn", use_container_width=True):
+        if _manual_code.strip():
+            st.query_params["salon"] = _manual_code.strip()
+            st.rerun()
+        else:
+            st.warning("请输入注册码 / Please enter the salon code")
+    st.stop()
+
 # ── Invalid salon ─────────────────────────────────────────────────────────────
 if not salon_valid:
     st.markdown(f'<div class="alert-dup"><b>{t("invalid")}</b><br>{t("invalid_msg")}</div>',
