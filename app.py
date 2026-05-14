@@ -100,307 +100,284 @@ st.markdown(
 # ── CSS ───────────────────────────────────────────────────────────────────────
 st.markdown("""
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Raleway:wght@300;400;600&display=swap');
-  /* ── Premium system shell: layered depth ───────────────────────────────── */
-  html {
-    font-family:'Raleway',sans-serif;
-    color:#f0ece0;
-    background-color:#060608 !important;
-  }
-  body { background:#060608 !important; }
-  html, body, [class*="css"] {
-    font-family:'Raleway',sans-serif;
-    color:#f0ece0;
-  }
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Raleway:wght@300;400;600;700&family=Cinzel:wght@400;600&display=swap');
+  /* ═══════════════════════════════════════════════════════════
+     NUSANTARA THEME — Malaysian Batik & Tropical Design
+     Inspired by: Batik Pelangi, Songket, Tropical Flora
+  ═══════════════════════════════════════════════════════════ */
+
+  /* ── Base & Typography ─────────────────────────────────── */
+  html { font-family:'Raleway',sans-serif; color:#f2ede3; background-color:#060e09 !important; }
+  body { background:#060e09 !important; }
+  html, body, [class*="css"] { font-family:'Raleway',sans-serif; color:#f2ede3; }
+
+  /* ── App Background: Batik diamond lattice on jungle green ── */
   .stApp {
-    background-color:#060608;
+    background-color:#060e09;
     background-image:
-      radial-gradient(ellipse 100% 80% at 50% -15%, rgba(201,168,76,0.14), transparent 55%),
-      radial-gradient(ellipse 70% 50% at 110% 5%, rgba(201,168,76,0.06), transparent 50%),
-      radial-gradient(ellipse 70% 50% at -10% 95%, rgba(245,225,154,0.05), transparent 50%),
-      linear-gradient(168deg,
-        #0c0c11 0%,
-        #08080c 38%,
-        #0a0910 72%,
-        #060607 100%);
-    background-attachment: fixed;
+      repeating-linear-gradient(45deg,
+        transparent 0px, transparent 22px,
+        rgba(212,160,48,0.045) 22px, rgba(212,160,48,0.045) 23px),
+      repeating-linear-gradient(-45deg,
+        transparent 0px, transparent 22px,
+        rgba(212,160,48,0.045) 22px, rgba(212,160,48,0.045) 23px),
+      radial-gradient(ellipse 110% 70% at 50% -10%, rgba(26,100,70,0.28), transparent 60%),
+      radial-gradient(ellipse 60% 50% at 100% 15%, rgba(212,160,48,0.10), transparent 55%),
+      radial-gradient(ellipse 50% 40% at 0% 90%, rgba(30,90,60,0.15), transparent 50%),
+      linear-gradient(170deg, #07110a 0%, #040c07 45%, #060f08 80%, #050a06 100%);
+    background-attachment:fixed;
   }
   section[data-testid="stMain"], section.main {
     background-image:
-      repeating-linear-gradient(90deg, transparent 0px, transparent 63px,
-        rgba(201,168,76,0.028) 63px, rgba(201,168,76,0.028) 64px),
-      repeating-linear-gradient(0deg, transparent 0px, transparent 63px,
-        rgba(201,168,76,0.028) 63px, rgba(201,168,76,0.028) 64px),
-      radial-gradient(ellipse 120% 100% at 50% 0%, rgba(0,0,0,0), rgba(0,0,0,0.25) 100%);
-    background-attachment: fixed;
-    position: relative;
+      radial-gradient(ellipse 130% 80% at 50% 0%, rgba(0,0,0,0), rgba(0,0,0,0.3) 100%);
+    background-attachment:fixed; position:relative;
   }
   .block-container {
-    padding:1.5rem 2rem 2rem !important;
-    max-width:1100px !important;
-    width:100% !important;
-    margin:0 auto !important;
+    padding:1.4rem 2rem 2.5rem !important;
+    max-width:980px !important; width:100% !important; margin:0 auto !important;
   }
   #MainMenu, footer, header { visibility:hidden; }
 
-  /* ── Hide sidebar entirely ───────────────────────────────── */
+  /* ── Hide sidebar ──────────────────────────────────────── */
   [data-testid="stSidebar"] { display:none !important; }
   button[data-testid="collapsedControl"] { display:none !important; }
 
-  /* ── Custom top nav bar ──────────────────────────────────── */
-  .iq-nav {
-    display:flex; flex-wrap:nowrap; overflow-x:auto; gap:4px;
-    background:rgba(14,13,17,0.9); border-radius:12px; padding:6px;
-    border:1px solid rgba(201,168,76,0.22);
-    box-shadow:inset 0 1px 0 rgba(255,255,255,0.04), 0 8px 24px rgba(0,0,0,0.35);
-    margin-bottom:1.2rem; scrollbar-width:none;
+  /* ── Hero banner: songket-inspired ─────────────────────── */
+  .hero {
+    text-align:center; padding:2.4rem 1rem 1.4rem; margin-bottom:1.6rem;
+    border-radius:16px;
+    border:1px solid rgba(212,160,48,0.25);
+    background:
+      repeating-linear-gradient(90deg, transparent 0, transparent 30px,
+        rgba(212,160,48,0.03) 30px, rgba(212,160,48,0.03) 31px),
+      linear-gradient(160deg, rgba(12,28,18,0.97) 0%, rgba(6,16,10,0.88) 100%);
+    box-shadow:
+      inset 0 1px 0 rgba(212,160,48,0.12),
+      0 6px 40px rgba(0,0,0,0.55),
+      0 0 0 1px rgba(255,255,255,0.02);
+    backdrop-filter:saturate(130%) blur(12px);
+    -webkit-backdrop-filter:saturate(130%) blur(12px);
   }
-  .iq-nav::-webkit-scrollbar { display:none; }
-  .iq-nav-btn {
-    flex-shrink:0; font-family:'Raleway',sans-serif; font-weight:600;
-    letter-spacing:1.5px; font-size:0.74rem; text-transform:uppercase;
-    color:#888; background:transparent; border:none; border-radius:7px;
-    padding:9px 14px; cursor:pointer; transition:all .22s; white-space:nowrap;
+  .hero-title {
+    font-family:'Cinzel',serif; font-size:2.5rem; font-weight:600; letter-spacing:10px;
+    background:linear-gradient(135deg, #8ecfa0 0%, #d4a030 40%, #f5d470 65%, #d4a030 85%, #6db88a 100%);
+    -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+    background-clip:text; margin:0;
+    text-shadow:none;
+    filter:drop-shadow(0 2px 8px rgba(212,160,48,0.3));
   }
-  .iq-nav-btn:hover { color:#c9a84c; background:rgba(201,168,76,0.08); }
-  .iq-nav-btn.active {
-    background:linear-gradient(135deg,#c9a84c,#a07830) !important;
-    color:#0a0a0a !important; font-weight:700;
+  .hero-sub {
+    font-size:0.72rem; letter-spacing:5px; color:#5a8a6a; margin-top:0.5rem;
+    text-transform:uppercase; font-weight:600;
   }
-  @media (max-width: 640px) {
-    .iq-nav { padding:4px; gap:2px; }
-    .iq-nav-btn { padding:8px 10px; font-size:0.68rem; letter-spacing:1px; }
-    .block-container { padding:0.8rem 0.8rem 2rem !important; }
-  }
-  [data-testid="stSidebarContent"] { padding:0.5rem 0.6rem !important; }
-  [data-testid="stSidebarContent"] button[kind="secondary"] {
-    background:transparent !important;
-    border:1px solid transparent !important;
-    border-radius:8px !important;
-    color:#888 !important;
-    font-family:'Raleway',sans-serif !important;
-    font-size:0.82rem !important;
-    font-weight:600 !important;
-    letter-spacing:1px !important;
-    padding:9px 12px !important;
-    text-align:left !important;
-    transition:all .2s !important;
-    width:100% !important;
-  }
-  [data-testid="stSidebarContent"] button[kind="secondary"]:hover {
-    background:rgba(201,168,76,0.08) !important;
-    border-color:rgba(201,168,76,0.25) !important;
-    color:#c9a84c !important;
+  .hero-branch {
+    font-size:0.82rem; letter-spacing:3px; color:#d4a030; margin-top:0.4rem;
+    font-weight:600; text-transform:uppercase;
   }
 
-  .hero {
-    text-align:center;
-    padding:2.2rem 1rem 1.2rem;
-    margin-bottom:1.6rem;
-    border-radius:14px;
-    border:1px solid rgba(201,168,76,0.18);
-    background:linear-gradient(145deg, rgba(16,14,18,0.92) 0%, rgba(8,8,12,0.55) 100%);
+  /* ── Navigation bar ─────────────────────────────────────── */
+  div[data-testid="stHorizontalBlock"]:first-of-type {
+    background:rgba(8,20,12,0.95) !important;
+    border-radius:14px !important; padding:5px !important; gap:2px !important;
+    border:1px solid rgba(212,160,48,0.28) !important;
     box-shadow:
-      inset 0 1px 0 rgba(245,225,154,0.06),
-      0 4px 32px rgba(0,0,0,0.45),
-      0 0 0 1px rgba(255,255,255,0.02);
+      inset 0 1px 0 rgba(212,160,48,0.08),
+      0 8px 28px rgba(0,0,0,0.45) !important;
+    margin-bottom:1.2rem !important;
+    backdrop-filter:blur(10px) !important;
+  }
+  div[data-testid="stHorizontalBlock"]:first-of-type button[kind="secondary"] {
+    font-family:'Raleway',sans-serif !important; font-weight:600 !important;
+    font-size:0.7rem !important; letter-spacing:1.2px !important;
+    text-transform:uppercase !important; color:#5a7a65 !important;
+    background:transparent !important; border:1px solid transparent !important;
+    border-radius:9px !important; padding:8px 4px !important;
+    transition:all .22s !important; white-space:pre-wrap !important;
+    line-height:1.3 !important; text-align:center !important;
+  }
+  div[data-testid="stHorizontalBlock"]:first-of-type button[kind="secondary"]:hover {
+    color:#d4a030 !important;
+    background:rgba(212,160,48,0.08) !important;
+    border-color:rgba(212,160,48,0.2) !important;
+  }
+
+  /* ── Cards: dark forest glass ───────────────────────────── */
+  .card {
+    background:linear-gradient(155deg, rgba(10,22,14,0.95) 0%, rgba(6,14,9,0.88) 100%);
+    border:1px solid rgba(212,160,48,0.22);
+    border-radius:14px; padding:1.5rem 1.8rem; margin-bottom:1.2rem;
+    box-shadow:
+      inset 0 1px 0 rgba(212,160,48,0.06),
+      0 4px 30px rgba(0,0,0,0.45);
     backdrop-filter:saturate(120%) blur(10px);
     -webkit-backdrop-filter:saturate(120%) blur(10px);
   }
-  .hero-title { font-family:'Playfair Display',serif; font-size:2.8rem; font-weight:700; letter-spacing:8px;
-    background:linear-gradient(135deg,#c9a84c,#f5e19a,#c9a84c);
-    -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; margin:0; }
-  .hero-sub { font-size:0.78rem; letter-spacing:4px; color:#888; margin-top:0.3rem; text-transform:uppercase; }
-
-  /* active sidebar nav item — injected per-item via session state */
-  .nav-active button { background:rgba(201,168,76,0.15) !important;
-    border:1px solid rgba(201,168,76,0.4) !important; color:#c9a84c !important; }
-
-  .card {
-    background:linear-gradient(155deg, rgba(18,16,22,0.92) 0%, rgba(10,10,14,0.78) 100%);
-    border:1px solid rgba(201,168,76,0.2);
-    border-radius:13px;
-    padding:1.5rem 1.8rem;
-    margin-bottom:1.2rem;
-    box-shadow:
-      inset 0 1px 0 rgba(245,225,154,0.05),
-      0 4px 28px rgba(0,0,0,0.42);
-    backdrop-filter:saturate(115%) blur(8px);
-    -webkit-backdrop-filter:saturate(115%) blur(8px);
+  .card-title {
+    font-family:'Cinzel',serif; font-size:1.05rem; color:#d4a030;
+    margin-bottom:0.9rem; letter-spacing:1.5px;
   }
-  .card-title { font-family:'Playfair Display',serif; font-size:1.15rem; color:#c9a84c; margin-bottom:0.8rem; letter-spacing:1px; }
 
+  /* ── Inputs ─────────────────────────────────────────────── */
   .stTextInput>div>div>input, .stTextArea>div>div>textarea, .stSelectbox>div>div,
   .stDateInput>div>div>input, .stNumberInput>div>div>input {
-    background-color:rgba(16,15,18,0.92) !important; border:1px solid rgba(201,168,76,0.35) !important;
-    border-radius:8px !important; color:#f0ece0 !important; font-family:'Raleway',sans-serif !important;
-    backdrop-filter:saturate(110%) blur(4px); -webkit-backdrop-filter:saturate(110%) blur(4px);
+    background-color:rgba(8,20,12,0.95) !important;
+    border:1px solid rgba(212,160,48,0.30) !important;
+    border-radius:9px !important; color:#f2ede3 !important;
+    font-family:'Raleway',sans-serif !important;
   }
   .stTextInput>div>div>input:focus, .stTextArea>div>div>textarea:focus {
-    border-color:#c9a84c !important; box-shadow:0 0 0 2px #c9a84c22 !important; }
-  label, .stMarkdown p { color:#ccb97a !important; font-size:0.85rem; letter-spacing:1px; }
-
-  .stButton>button { background:linear-gradient(135deg,#c9a84c,#a07830); color:#0a0a0a;
-    font-family:'Raleway',sans-serif; font-weight:700; font-size:0.82rem; letter-spacing:2px;
-    text-transform:uppercase; border:none; border-radius:8px; padding:0.65rem 2rem;
-    transition:all .25s; width:100%; white-space:nowrap; overflow:hidden;
-    text-overflow:ellipsis; }
-  .stButton>button:hover { background:linear-gradient(135deg,#f5e19a,#c9a84c); transform:translateY(-1px);
-    box-shadow:0 4px 20px #c9a84c44; }
-
-  .alert-warn { background:#2b1a0d; border-left:4px solid #e67e22; border-radius:8px;
-    padding:0.9rem 1.2rem; margin-bottom:1rem; color:#f5c88a; }
-  .alert-safe { background:#0d2b1a; border-left:4px solid #2ecc71; border-radius:8px;
-    padding:0.9rem 1.2rem; margin-bottom:1rem; color:#a8f5c8; }
-
-  /* Stat boxes */
-  .stat-box {
-    background:linear-gradient(160deg, rgba(16,14,18,0.9) 0%, rgba(8,9,12,0.75) 100%);
-    border:1px solid rgba(201,168,76,0.18);
-    border-radius:12px;
-    padding:1rem 1.2rem; text-align:center;
-    box-shadow:inset 0 1px 0 rgba(255,255,255,0.04), 0 6px 20px rgba(0,0,0,0.35);
-    backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px);
+    border-color:#d4a030 !important; box-shadow:0 0 0 2px rgba(212,160,48,0.18) !important;
   }
-  .stat-val { font-family:'Playfair Display',serif; font-size:1.6rem; color:#c9a84c; font-weight:700; }
-  .stat-lbl { font-size:0.68rem; letter-spacing:2px; color:#666; text-transform:uppercase; margin-top:2px; }
+  label, .stMarkdown p { color:#8aaa8a !important; font-size:0.85rem; letter-spacing:0.8px; }
 
-  /* Checkout */
-  .checkout-box { background:linear-gradient(145deg, rgba(26,21,14,0.95), rgba(8,10,14,0.88));
-    border:1px solid rgba(201,168,76,0.28); border-radius:14px; padding:1.4rem 1.6rem;
-    box-shadow:0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(245,225,154,0.06); }
-  .checkout-price { font-family:'Playfair Display',serif; font-size:2.8rem; color:#c9a84c;
-    font-weight:700; text-align:center; margin:0.5rem 0; }
-  .checkout-customer { font-size:1.05rem; color:#f0ece0; text-align:center; letter-spacing:2px; }
-  .checkout-svc { font-size:0.78rem; color:#888; text-align:center; margin-top:2px; letter-spacing:1px; }
+  /* ── Buttons: tropical gold ─────────────────────────────── */
+  .stButton>button {
+    background:linear-gradient(135deg, #2a7a50 0%, #1a5a3a 50%, #d4a030 100%);
+    color:#f2ede3; font-family:'Raleway',sans-serif; font-weight:700;
+    font-size:0.8rem; letter-spacing:2px; text-transform:uppercase;
+    border:none; border-radius:9px; padding:0.65rem 1.8rem;
+    transition:all .25s; width:100%; white-space:nowrap;
+    overflow:hidden; text-overflow:ellipsis;
+  }
+  .stButton>button:hover {
+    background:linear-gradient(135deg, #d4a030 0%, #2a7a50 100%);
+    transform:translateY(-1px); box-shadow:0 4px 20px rgba(212,160,48,0.35);
+  }
+  .stButton>button[kind="primary"] {
+    background:linear-gradient(135deg, #d4a030 0%, #a07020 100%);
+    color:#0a1208;
+  }
+  .stButton>button[kind="primary"]:hover {
+    background:linear-gradient(135deg, #f0c040 0%, #d4a030 100%);
+    box-shadow:0 4px 24px rgba(212,160,48,0.45);
+  }
 
-  /* Stylist schedule card */
+  /* ── Alert boxes ─────────────────────────────────────────── */
+  .alert-warn {
+    background:rgba(40,18,5,0.9); border-left:4px solid #e67e22;
+    border-radius:9px; padding:0.9rem 1.2rem; margin-bottom:1rem; color:#f5c88a;
+  }
+  .alert-safe {
+    background:rgba(5,30,15,0.9); border-left:4px solid #2ecc71;
+    border-radius:9px; padding:0.9rem 1.2rem; margin-bottom:1rem; color:#a8f5c8;
+  }
+
+  /* ── Stat boxes ──────────────────────────────────────────── */
+  .stat-box {
+    background:linear-gradient(160deg, rgba(10,22,14,0.95) 0%, rgba(6,14,9,0.85) 100%);
+    border:1px solid rgba(212,160,48,0.20); border-radius:13px;
+    padding:1rem 1.2rem; text-align:center;
+    box-shadow:inset 0 1px 0 rgba(212,160,48,0.06), 0 6px 22px rgba(0,0,0,0.4);
+  }
+  .stat-val { font-family:'Cinzel',serif; font-size:1.5rem; color:#d4a030; font-weight:600; }
+  .stat-lbl { font-size:0.66rem; letter-spacing:2px; color:#4a6a52; text-transform:uppercase; margin-top:3px; }
+
+  /* ── Checkout ─────────────────────────────────────────────── */
+  .checkout-box {
+    background:linear-gradient(150deg, rgba(12,26,16,0.97), rgba(6,14,9,0.92));
+    border:1px solid rgba(212,160,48,0.30); border-radius:16px;
+    padding:1.4rem 1.6rem;
+    box-shadow:0 8px 36px rgba(0,0,0,0.5), inset 0 1px 0 rgba(212,160,48,0.08);
+  }
+  .checkout-price { font-family:'Cinzel',serif; font-size:2.8rem; color:#d4a030;
+    font-weight:600; text-align:center; margin:0.5rem 0; }
+  .checkout-customer { font-size:1rem; color:#f2ede3; text-align:center; letter-spacing:2px; }
+  .checkout-svc { font-size:0.78rem; color:#5a8a6a; text-align:center; margin-top:3px; letter-spacing:1px; }
+
+  /* ── Stylist cards ──────────────────────────────────────── */
   .sched-card {
-    background:linear-gradient(160deg, rgba(16,14,18,0.9) 0%, rgba(8,9,13,0.82) 100%);
-    border:1px solid rgba(201,168,76,0.18); border-radius:12px;
+    background:linear-gradient(160deg, rgba(10,22,14,0.95) 0%, rgba(6,14,9,0.85) 100%);
+    border:1px solid rgba(212,160,48,0.18); border-radius:13px;
     padding:1.2rem 1.4rem; margin-bottom:0.8rem;
-    box-shadow:0 4px 20px rgba(0,0,0,0.35); }
-  .sched-avatar { width:44px; height:44px; border-radius:50%; display:flex; align-items:center;
-    justify-content:center; font-size:1.1rem; font-weight:700; flex-shrink:0; }
-  .sched-name { font-family:'Playfair Display',serif; font-size:1rem; color:#c9a84c; letter-spacing:1px; }
-  .sched-count { font-size:0.72rem; color:#888; letter-spacing:1px; }
-  .sched-slot { background:#1a1a1a; border-left:3px solid; border-radius:0 8px 8px 0;
+    box-shadow:0 4px 22px rgba(0,0,0,0.38);
+  }
+  .sched-avatar { width:44px; height:44px; border-radius:50%; display:flex;
+    align-items:center; justify-content:center; font-size:1.1rem; font-weight:700; flex-shrink:0; }
+  .sched-name { font-family:'Cinzel',serif; font-size:0.95rem; color:#d4a030; letter-spacing:1.5px; }
+  .sched-count { font-size:0.72rem; color:#4a6a52; letter-spacing:1px; }
+  .sched-slot { background:rgba(8,20,12,0.8); border-left:3px solid; border-radius:0 8px 8px 0;
     padding:7px 12px; margin-bottom:5px; }
-  .sched-slot-time { font-size:0.75rem; color:#888; letter-spacing:1px; }
-  .sched-slot-client { font-size:0.9rem; color:#f0ece0; }
-  .sched-slot-svc { font-size:0.72rem; color:#aaa; }
+  .sched-slot-time { font-size:0.74rem; color:#4a6a52; letter-spacing:1px; }
+  .sched-slot-client { font-size:0.88rem; color:#f2ede3; }
+  .sched-slot-svc { font-size:0.71rem; color:#8aaa8a; }
 
-  /* Stylist roster pill */
-  .stylist-pill { display:inline-flex; align-items:center; gap:8px; background:#1a1a1a;
-    border:1px solid #c9a84c33; border-radius:30px; padding:5px 14px 5px 8px;
-    margin:4px; font-size:0.82rem; color:#f0ece0; }
-
-  /* Inventory */
+  /* ── Inventory ──────────────────────────────────────────── */
   .inv-card {
-    background:linear-gradient(175deg, rgba(16,15,18,0.92) 0%, rgba(8,9,11,0.8) 100%);
-    border:1px solid rgba(201,168,76,0.16); border-radius:12px; padding:1.1rem;
-    text-align:center; transition:border-color .2s, transform .2s, box-shadow .2s;
-    margin-bottom:4px;
-    box-shadow:0 4px 18px rgba(0,0,0,0.32); }
-  .inv-card:hover { border-color:rgba(201,168,76,0.45); transform:translateY(-2px);
-    box-shadow:0 8px 26px rgba(0,0,0,0.45); }
-  .inv-name { font-family:'Playfair Display',serif; font-size:0.88rem; color:#c9a84c; min-height:2.2rem; }
-  .inv-qty { font-size:2rem; font-weight:700; color:#f0ece0; margin:0.2rem 0; }
-  .inv-unit { font-size:0.7rem; letter-spacing:2px; color:#666; text-transform:uppercase; }
-  .inv-bar { height:4px; border-radius:2px; margin-top:0.6rem; background:#222; overflow:hidden; }
+    background:linear-gradient(175deg, rgba(10,22,14,0.95) 0%, rgba(6,14,9,0.85) 100%);
+    border:1px solid rgba(212,160,48,0.18); border-radius:13px; padding:1.1rem;
+    text-align:center; transition:border-color .22s, transform .22s, box-shadow .22s;
+    margin-bottom:4px; box-shadow:0 4px 20px rgba(0,0,0,0.38);
+  }
+  .inv-card:hover { border-color:rgba(212,160,48,0.5); transform:translateY(-2px);
+    box-shadow:0 8px 30px rgba(0,0,0,0.5); }
+  .inv-name { font-family:'Cinzel',serif; font-size:0.85rem; color:#d4a030; min-height:2.2rem; }
+  .inv-qty { font-size:2rem; font-weight:700; color:#f2ede3; margin:0.2rem 0; }
+  .inv-unit { font-size:0.7rem; letter-spacing:2px; color:#4a6a52; text-transform:uppercase; }
+  .inv-bar { height:4px; border-radius:2px; margin-top:0.6rem; background:#0d1f11; overflow:hidden; }
   .inv-fill { height:100%; border-radius:2px; }
 
-  .stRadio>div { gap:8px !important; }
-  .stRadio label { color:#ccc !important; font-size:0.85rem !important; }
-  hr { border:none; border-top:1px solid #c9a84c22; margin:1.4rem 0; }
-  [data-testid="stDataEditor"] { border:1px solid #c9a84c33 !important; border-radius:10px !important; }
-  .stSelectbox [data-baseweb="select"]>div { background:#1a1a1a !important; border-color:#c9a84c55 !important; }
-  .stSelectbox svg { fill:#c9a84c !important; }
+  /* ── Stylist pill ───────────────────────────────────────── */
+  .stylist-pill { display:inline-flex; align-items:center; gap:8px;
+    background:rgba(10,22,14,0.8); border:1px solid rgba(212,160,48,0.28);
+    border-radius:30px; padding:5px 14px 5px 8px; margin:4px;
+    font-size:0.82rem; color:#f2ede3; }
 
-  /* ── Mobile & iPad Responsive ─────────────────────────────────────────── */
-  /* iPad (portrait & landscape) */
+  /* ── Misc ────────────────────────────────────────────────── */
+  .stRadio>div { gap:8px !important; }
+  .stRadio label { color:#8aaa8a !important; font-size:0.85rem !important; }
+  hr { border:none; border-top:1px solid rgba(212,160,48,0.15); margin:1.4rem 0; }
+  [data-testid="stDataEditor"] { border:1px solid rgba(212,160,48,0.25) !important; border-radius:10px !important; }
+  .stSelectbox [data-baseweb="select"]>div { background:rgba(8,20,12,0.95) !important; border-color:rgba(212,160,48,0.40) !important; }
+  .stSelectbox svg { fill:#d4a030 !important; }
+  [data-testid="stDecoration"] { background:linear-gradient(90deg,#2a7a50,#d4a030) !important; }
+
+  /* ── Scrollbar ───────────────────────────────────────────── */
+  ::-webkit-scrollbar { width:5px; height:5px; }
+  ::-webkit-scrollbar-track { background:#060e09; }
+  ::-webkit-scrollbar-thumb { background:#1a4a28; border-radius:4px; }
+  ::-webkit-scrollbar-thumb:hover { background:#d4a030; }
+
+  /* ── Mobile & iPad ───────────────────────────────────────── */
   @media (max-width: 1024px) {
     .block-container { padding:1rem 1.2rem 1.5rem !important; max-width:100% !important; }
-    .hero-title { font-size:2.2rem !important; letter-spacing:5px !important; }
-    .stTabs [data-baseweb="tab"] { padding:8px 14px !important; font-size:0.72rem !important; }
+    .hero-title { font-size:2rem !important; letter-spacing:6px !important; }
     .checkout-price { font-size:2.2rem !important; }
   }
-
-  /* Mobile phones */
   @media (max-width: 768px) {
-    .block-container { padding:0.6rem 0.6rem 1rem !important; }
-    .hero { padding:1.4rem 0.5rem 0.9rem !important; margin-bottom:1rem !important; }
-    .hero-title { font-size:1.7rem !important; letter-spacing:4px !important; }
-    .hero-sub { font-size:0.68rem !important; letter-spacing:2px !important; }
-
-    /* Tabs: horizontal scroll on mobile */
-    .stTabs [data-baseweb="tab-list"] {
-      overflow-x:auto !important; flex-wrap:nowrap !important;
-      -webkit-overflow-scrolling:touch !important; scrollbar-width:none !important;
-      padding:4px !important; gap:2px !important;
-    }
-    .stTabs [data-baseweb="tab-list"]::-webkit-scrollbar { display:none !important; }
-    .stTabs [data-baseweb="tab"] {
-      padding:7px 10px !important; font-size:0.65rem !important;
-      white-space:nowrap !important; letter-spacing:1px !important;
-    }
-
-    /* Cards */
+    .block-container { padding:0.6rem 0.6rem 1.2rem !important; }
+    .hero { padding:1.5rem 0.7rem 1rem !important; margin-bottom:1rem !important; }
+    .hero-title { font-size:1.55rem !important; letter-spacing:4px !important; }
+    .hero-sub { font-size:0.65rem !important; letter-spacing:3px !important; }
     .card { padding:1rem 1rem !important; }
-    .card-title { font-size:1rem !important; }
-
-    /* Larger touch targets for buttons */
-    .stButton>button { padding:0.85rem 0.5rem !important; font-size:0.75rem !important;
-      min-height:48px !important; white-space:nowrap !important;
-      letter-spacing:1px !important; overflow:hidden !important;
-      text-overflow:ellipsis !important; }
-
-    /* Stat boxes */
-    .stat-val { font-size:1.3rem !important; }
-    .stat-lbl { font-size:0.62rem !important; }
-    .stat-box { padding:0.8rem 0.6rem !important; }
-
-    /* Checkout */
-    .checkout-box { padding:1rem 1rem !important; }
+    .card-title { font-size:0.95rem !important; }
+    .stButton>button { padding:0.85rem 0.5rem !important; font-size:0.72rem !important;
+      min-height:48px !important; white-space:nowrap !important; letter-spacing:1px !important; }
+    .stat-val { font-size:1.25rem !important; }
+    .stat-lbl { font-size:0.60rem !important; }
+    .stat-box { padding:0.8rem 0.5rem !important; }
+    .checkout-box { padding:1rem !important; }
     .checkout-price { font-size:2rem !important; }
-    .checkout-customer { font-size:0.9rem !important; }
-
-    /* Inventory cards */
+    .checkout-customer { font-size:0.88rem !important; }
     .inv-qty { font-size:1.5rem !important; }
-
-    /* Stylist cards */
     .sched-card { padding:0.9rem 1rem !important; }
-
-    /* Inputs: bigger for touch */
-    .stTextInput>div>div>input,
-    .stTextArea>div>div>textarea,
-    .stSelectbox>div>div,
-    .stDateInput>div>div>input,
-    .stNumberInput>div>div>input {
-      font-size:16px !important; /* prevents iOS auto-zoom */
-      min-height:44px !important;
+    .stTextInput>div>div>input, .stTextArea>div>div>textarea,
+    .stSelectbox>div>div, .stDateInput>div>div>input, .stNumberInput>div>div>input {
+      font-size:16px !important; min-height:44px !important;
     }
-
-    /* Fix number input spinner buttons on mobile */
-    .stNumberInput [data-testid="stNumberInputContainer"] button {
-      min-width:44px !important; min-height:44px !important;
-    }
-
-    /* Radio buttons: bigger tap area */
+    .stNumberInput [data-testid="stNumberInputContainer"] button { min-width:44px !important; min-height:44px !important; }
     .stRadio>div { gap:12px !important; }
     .stRadio label { font-size:0.9rem !important; padding:6px 0 !important; }
-
-    /* Data editor: allow horizontal scroll */
     [data-testid="stDataEditor"] { overflow-x:auto !important; }
-
     hr { margin:1rem 0 !important; }
   }
 
-  /* Small phones */
+  /* Small phones (375px and below) */
   @media (max-width: 400px) {
-    .hero-title { font-size:1.35rem !important; letter-spacing:3px !important; }
-    .stTabs [data-baseweb="tab"] { padding:6px 8px !important; font-size:0.6rem !important; }
+    .hero-title { font-size:1.25rem !important; letter-spacing:2px !important; }
+    .hero-sub { font-size:0.58rem !important; letter-spacing:2px !important; }
     .checkout-price { font-size:1.7rem !important; }
+    .stat-val { font-size:1.1rem !important; }
+    .card { padding:0.8rem 0.7rem !important; }
   }
 </style>
 """, unsafe_allow_html=True)
@@ -1311,14 +1288,16 @@ HIDDEN_BK_COLS = ["price", "paid", "method", "final"]
 if not st.session_state.logged_in:
     st.markdown("<style>[data-testid='stSidebar']{display:none!important;}</style>", unsafe_allow_html=True)
     st.markdown(f"""
-    <div style="max-width:420px;margin:6vh auto;padding:2.5rem 2.8rem;
-    background:#111;border:1px solid #c9a84c44;border-radius:16px;text-align:center;">
-      <div style="font-family:'Playfair Display',serif;font-size:2rem;font-weight:700;
-      letter-spacing:6px;background:linear-gradient(135deg,#c9a84c,#f5e19a,#c9a84c);
-      -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">
-        IQ SALON</div>
-      <div style="font-size:0.7rem;letter-spacing:3px;color:#555;margin:4px 0 24px;
-      text-transform:uppercase;">Salon Management System</div>
+    <div style="max-width:420px;margin:6vh auto;padding:2.8rem 2.8rem 2rem;
+    background:linear-gradient(155deg,rgba(10,22,14,0.97),rgba(6,14,9,0.95));
+    border:1px solid rgba(212,160,48,0.30);border-radius:18px;text-align:center;
+    box-shadow:0 12px 48px rgba(0,0,0,0.6),inset 0 1px 0 rgba(212,160,48,0.10);">
+      <div style="font-family:'Cinzel',serif;font-size:1.9rem;font-weight:600;letter-spacing:8px;
+      background:linear-gradient(135deg,#8ecfa0,#d4a030,#f5d470,#d4a030,#6db88a);
+      -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+      filter:drop-shadow(0 2px 6px rgba(212,160,48,0.25));">❋ IQ SALON ❋</div>
+      <div style="font-size:0.65rem;letter-spacing:4px;color:#3a6a4a;margin:6px 0 28px;
+      text-transform:uppercase;font-weight:600;">Sistem Pengurusan Salun</div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -1508,13 +1487,16 @@ if _sub["plan"] == "trial" and _sub["days_left"] <= 7:
 elif _sub["plan"] == "trial":
     _sub_badge = f'<span style="background:#2ecc71;color:#0a0a0a;font-size:0.65rem;padding:3px 10px;border-radius:20px;letter-spacing:1px;margin-left:8px">✓ {_t("试用期","Trial","Percubaan")} {_sub["days_left"]}{_t("天","d","h")}</span>'
 elif _sub["plan"] == "active":
-    _sub_badge = f'<span style="background:#c9a84c;color:#0a0a0a;font-size:0.65rem;padding:3px 10px;border-radius:20px;letter-spacing:1px;margin-left:8px">✦ {_t("已订阅","Subscribed","Dilanggan")}</span>'
+    _sub_badge = f'<span style="background:linear-gradient(135deg,#d4a030,#a07020);color:#0a1208;font-size:0.62rem;padding:3px 10px;border-radius:20px;letter-spacing:1px;margin-left:8px;font-weight:700;">✦ {_t("已订阅","Subscribed","Dilanggan")}</span>'
 
 _salon_display = st.session_state.branches.get(st.session_state.cur_branch, "IQSALON")
 st.markdown(f"""
 <div class="hero">
-  <p class="hero-title">✦ {_salon_display.upper()} ✦</p>
-  <p class="hero-sub">{u('subtitle')} &nbsp;·&nbsp; {st.session_state.user_name} {role_icon}{_sub_badge}</p>
+  <p class="hero-title">❋ {_salon_display.upper()} ❋</p>
+  <p class="hero-sub">{u('subtitle')}</p>
+  <p style="font-size:0.72rem;color:#4a7a5a;letter-spacing:2px;margin-top:4px;">
+    {st.session_state.user_name} {role_icon}{_sub_badge}
+  </p>
 </div>
 """, unsafe_allow_html=True)
 
@@ -1652,73 +1634,78 @@ def build_receipt_html(r: dict, lang: str) -> str:
 <html><head><meta charset="utf-8">
 <title>Resit / Receipt — {salon}</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Raleway:wght@300;400;600;700&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600&family=Raleway:wght@300;400;600;700&display=swap');
   *{{ box-sizing:border-box; margin:0; padding:0; }}
-  body{{ font-family:'Raleway',sans-serif; background:#f5f5f5; color:#111;
+  body{{ font-family:'Raleway',sans-serif; background:#e8ede8; color:#111;
         display:flex; justify-content:center; padding:24px 10px; }}
-  .receipt{{ width:400px; background:#fff; box-shadow:0 2px 16px rgba(0,0,0,.12);
-             border-radius:4px; overflow:hidden; }}
-  /* Header */
-  .header{{ background:#111; color:#fff; text-align:center; padding:22px 20px 16px; }}
-  .salon-name{{ font-family:'Playfair Display',serif; font-size:1.6rem; font-weight:700;
-                letter-spacing:4px; color:#c9a84c; }}
-  .salon-sub{{ font-size:0.6rem; letter-spacing:3px; color:#aaa; margin-top:4px;
-               text-transform:uppercase; }}
-  .contact{{ font-size:0.72rem; color:#999; margin-top:6px; }}
+  .receipt{{ width:400px; background:#fff; box-shadow:0 4px 24px rgba(0,0,0,.15);
+             border-radius:6px; overflow:hidden; }}
+  /* Header — deep forest green with gold name */
+  .header{{ background:linear-gradient(160deg,#0a1e10,#071209); color:#fff;
+            text-align:center; padding:24px 20px 18px; position:relative; }}
+  .header::before{{ content:''; position:absolute; top:0; left:0; right:0; bottom:0;
+    background:repeating-linear-gradient(45deg,transparent,transparent 14px,rgba(212,160,48,0.04) 14px,rgba(212,160,48,0.04) 15px),
+    repeating-linear-gradient(-45deg,transparent,transparent 14px,rgba(212,160,48,0.04) 14px,rgba(212,160,48,0.04) 15px); }}
+  .salon-name{{ font-family:'Cinzel',serif; font-size:1.5rem; font-weight:600;
+                letter-spacing:5px; color:#d4a030; position:relative; }}
+  .salon-sub{{ font-size:0.58rem; letter-spacing:3px; color:#4a8a5a; margin-top:5px;
+               text-transform:uppercase; position:relative; }}
+  .contact{{ font-size:0.70rem; color:#6a9a7a; margin-top:6px; position:relative; }}
   /* Metadata strip */
-  .meta-strip{{ background:#1a1a1a; padding:10px 20px;
+  .meta-strip{{ background:#0d1e11; padding:10px 20px;
                 display:flex; justify-content:space-between; align-items:center; }}
-  .rcpt-no{{ color:#c9a84c; font-size:0.72rem; font-weight:700; letter-spacing:1px; }}
-  .rcpt-date{{ color:#999; font-size:0.72rem; }}
+  .rcpt-no{{ color:#d4a030; font-size:0.72rem; font-weight:700; letter-spacing:1px; }}
+  .rcpt-date{{ color:#5a8a6a; font-size:0.72rem; }}
   /* Body */
-  .body{{ padding:18px 20px; }}
+  .body{{ padding:18px 20px; background:#fff; }}
   /* Customer */
-  .customer-box{{ background:#f9f9f9; border-left:3px solid #c9a84c;
-                  padding:10px 12px; margin-bottom:14px; border-radius:0 4px 4px 0; }}
-  .customer-label{{ font-size:0.65rem; color:#888; letter-spacing:2px; text-transform:uppercase;
+  .customer-box{{ background:#f4f8f5; border-left:3px solid #d4a030;
+                  padding:10px 12px; margin-bottom:14px; border-radius:0 5px 5px 0; }}
+  .customer-label{{ font-size:0.62rem; color:#6a9a7a; letter-spacing:2px; text-transform:uppercase;
                     margin-bottom:3px; }}
   .customer-name{{ font-size:1rem; font-weight:700; color:#111; }}
-  .customer-time{{ font-size:0.72rem; color:#888; margin-top:2px; }}
+  .customer-time{{ font-size:0.70rem; color:#888; margin-top:2px; }}
   /* Items table */
   table{{ width:100%; border-collapse:collapse; margin-bottom:10px; }}
-  thead tr{{ background:#f0f0f0; }}
-  thead td{{ font-size:0.65rem; font-weight:700; letter-spacing:1px; text-transform:uppercase;
-             color:#666; padding:7px 6px; }}
-  tbody td{{ padding:8px 6px; font-size:0.82rem; border-bottom:1px solid #f0f0f0;
+  thead tr{{ background:#e8f0eb; }}
+  thead td{{ font-size:0.62rem; font-weight:700; letter-spacing:1px; text-transform:uppercase;
+             color:#4a7a5a; padding:7px 6px; }}
+  tbody td{{ padding:8px 6px; font-size:0.82rem; border-bottom:1px solid #edf3ef;
              vertical-align:top; }}
   td.desc{{ color:#111; }}
   td.qty{{ text-align:center; color:#888; width:30px; }}
   td.price{{ text-align:right; color:#888; width:80px; }}
   td.amt{{ text-align:right; font-weight:600; color:#111; width:80px; }}
-  tr.disc-row td{{ font-size:0.78rem; color:#c0392b; border-bottom:1px solid #f0f0f0; padding:6px 6px; }}
-  tr.info-row td{{ font-size:0.78rem; color:#666; border-bottom:1px dashed #f0f0f0; padding:5px 6px; }}
+  tr.disc-row td{{ font-size:0.78rem; color:#c0392b; border-bottom:1px solid #edf3ef; padding:6px 6px; }}
+  tr.info-row td{{ font-size:0.78rem; color:#666; border-bottom:1px dashed #edf3ef; padding:5px 6px; }}
   /* Totals */
-  .totals{{ background:#111; color:#fff; padding:12px 16px; border-radius:4px; margin:10px 0; }}
+  .totals{{ background:linear-gradient(135deg,#0a1e10,#071209); color:#fff;
+            padding:12px 16px; border-radius:5px; margin:10px 0; }}
   .totals-row{{ display:flex; justify-content:space-between; align-items:center; }}
-  .totals-label{{ font-size:0.72rem; letter-spacing:2px; color:#aaa; }}
-  .totals-amount{{ font-family:'Playfair Display',serif; font-size:1.5rem; font-weight:700;
-                   color:#c9a84c; }}
+  .totals-label{{ font-size:0.70rem; letter-spacing:2px; color:#5a8a6a; }}
+  .totals-amount{{ font-family:'Cinzel',serif; font-size:1.5rem; font-weight:600;
+                   color:#d4a030; }}
   /* Payment */
   .payment-row{{ display:flex; justify-content:space-between; padding:8px 0;
-                 border-bottom:1px solid #eee; font-size:0.82rem; }}
+                 border-bottom:1px solid #edf3ef; font-size:0.82rem; }}
   .payment-label{{ color:#888; }}
   .payment-val{{ font-weight:700; color:#111; }}
   /* SST */
-  .sst-note{{ font-size:0.65rem; color:#bbb; text-align:center; margin:10px 0 6px;
+  .sst-note{{ font-size:0.65rem; color:#8aaa8a; text-align:center; margin:10px 0 6px;
               line-height:1.5; }}
   /* Footer */
-  .footer{{ background:#111; text-align:center; padding:16px 20px; }}
-  .thanks-main{{ font-family:'Playfair Display',serif; font-size:1rem; color:#c9a84c;
+  .footer{{ background:linear-gradient(160deg,#0a1e10,#071209); text-align:center; padding:16px 20px; }}
+  .thanks-main{{ font-family:'Cinzel',serif; font-size:1rem; color:#d4a030;
                  letter-spacing:2px; }}
-  .thanks-sub{{ font-size:0.7rem; color:#888; margin-top:4px; }}
-  .rcpt-stamp{{ font-size:0.6rem; color:#555; margin-top:8px; letter-spacing:1px; }}
-  .footer-meta{{ font-size:0.65rem; color:#777; margin-top:6px; line-height:1.7; }}
+  .thanks-sub{{ font-size:0.68rem; color:#4a8a5a; margin-top:4px; }}
+  .rcpt-stamp{{ font-size:0.6rem; color:#2a5a38; margin-top:8px; letter-spacing:1px; }}
+  .footer-meta{{ font-size:0.65rem; color:#4a7a5a; margin-top:6px; line-height:1.7; }}
   /* Print button */
   .print-btn{{ display:block; width:calc(100% - 40px); margin:16px 20px; padding:11px;
-               background:#c9a84c; color:#fff; border:none; border-radius:4px;
-               font-size:0.82rem; font-weight:700; letter-spacing:2px; cursor:pointer;
-               font-family:'Raleway',sans-serif; text-transform:uppercase; }}
-  .print-btn:hover{{ background:#a07830; }}
+               background:linear-gradient(135deg,#d4a030,#a07020); color:#fff; border:none;
+               border-radius:5px; font-size:0.82rem; font-weight:700; letter-spacing:2px;
+               cursor:pointer; font-family:'Raleway',sans-serif; text-transform:uppercase; }}
+  .print-btn:hover{{ background:linear-gradient(135deg,#f0c040,#d4a030); }}
   @media print{{
     body{{ background:#fff; padding:0; }}
     .receipt{{ box-shadow:none; width:100%; border-radius:0; }}
@@ -1947,21 +1934,21 @@ for _ci, (_tid, _icon, _label) in enumerate(_NAV_ITEMS):
 _active_idx = next((i for i,(t,_,_l) in enumerate(_NAV_ITEMS) if t==st.session_state.active_tab), 0)
 st.markdown(
     f"<style>"
-    f"div[data-testid='stHorizontalBlock']:first-of-type{{background:rgba(14,13,17,0.9)!important;"
-    f"border-radius:12px!important;padding:5px!important;border:1px solid rgba(201,168,76,0.22)!important;"
-    f"box-shadow:inset 0 1px 0 rgba(255,255,255,0.04),0 8px 24px rgba(0,0,0,0.35)!important;"
-    f"margin-bottom:1rem!important;}}"
+    f"div[data-testid='stHorizontalBlock']:first-of-type{{background:rgba(8,20,12,0.96)!important;"
+    f"border-radius:14px!important;padding:5px!important;border:1px solid rgba(212,160,48,0.28)!important;"
+    f"box-shadow:inset 0 1px 0 rgba(212,160,48,0.08),0 8px 28px rgba(0,0,0,0.45)!important;"
+    f"margin-bottom:1rem!important;backdrop-filter:blur(10px)!important;}}"
     f"div[data-testid='stHorizontalBlock']:first-of-type button[kind='secondary']"
-    f"{{font-family:'Raleway',sans-serif!important;font-weight:600!important;font-size:0.7rem!important;"
-    f"letter-spacing:1px!important;text-transform:uppercase!important;color:#888!important;"
-    f"background:transparent!important;border:1px solid transparent!important;border-radius:7px!important;"
-    f"padding:7px 2px!important;transition:all .2s!important;white-space:pre-wrap!important;"
+    f"{{font-family:'Raleway',sans-serif!important;font-weight:600!important;font-size:0.68rem!important;"
+    f"letter-spacing:1px!important;text-transform:uppercase!important;color:#3a6a4a!important;"
+    f"background:transparent!important;border:1px solid transparent!important;border-radius:9px!important;"
+    f"padding:8px 2px!important;transition:all .22s!important;white-space:pre-wrap!important;"
     f"line-height:1.3!important;text-align:center!important;}}"
     f"div[data-testid='stHorizontalBlock']:first-of-type button[kind='secondary']:hover"
-    f"{{color:#c9a84c!important;background:rgba(201,168,76,0.08)!important;}}"
+    f"{{color:#d4a030!important;background:rgba(212,160,48,0.09)!important;border-color:rgba(212,160,48,0.22)!important;}}"
     f"div[data-testid='stHorizontalBlock']:first-of-type>div:nth-child({_active_idx+1}) button[kind='secondary']"
-    f"{{background:linear-gradient(135deg,#c9a84c,#a07830)!important;color:#0a0a0a!important;"
-    f"font-weight:700!important;border-color:transparent!important;}}"
+    f"{{background:linear-gradient(135deg,#d4a030,#9a7020)!important;color:#060e09!important;"
+    f"font-weight:700!important;border-color:transparent!important;box-shadow:0 3px 14px rgba(212,160,48,0.35)!important;}}"
     f"</style>",
     unsafe_allow_html=True,
 )
@@ -1981,14 +1968,16 @@ if True:  # always runs post-login
     if _sb_base and _sb_branch:
         _sb_link  = f"{_sb_base.rstrip('/')}/booking?salon={_sb_branch}"
         _sb_bname = st.session_state.get("branches", {}).get(_sb_branch, _sb_branch)
-        # Subtle floating copy button top-right
+        # Floating copy button – tropical gold
         st.markdown(
             f"<div style='position:fixed;top:56px;right:12px;z-index:999;'>"
             f"<button onclick=\"navigator.clipboard.writeText('{_sb_link}').then(()=>"
-            f"{{this.innerText='✅';setTimeout(()=>this.innerText='🔗',1800)}})\" "
-            f"style='background:rgba(14,13,17,0.92);color:#c9a84c;border:1px solid #c9a84c44;"
-            f"border-radius:8px;padding:6px 12px;cursor:pointer;font-size:0.75rem;font-weight:600;"
-            f"letter-spacing:1px;backdrop-filter:blur(8px);' title='{_sb_link}'>🔗 复制预约链接</button>"
+            f"{{this.innerText='✅ Disalin';setTimeout(()=>this.innerText='🔗 Tempahan',1800)}})\" "
+            f"style='background:linear-gradient(135deg,rgba(10,26,15,0.96),rgba(6,16,10,0.96));"
+            f"color:#d4a030;border:1px solid rgba(212,160,48,0.35);"
+            f"border-radius:10px;padding:7px 14px;cursor:pointer;font-size:0.72rem;font-weight:700;"
+            f"letter-spacing:1.2px;backdrop-filter:blur(10px);font-family:Raleway,sans-serif;"
+            f"box-shadow:0 4px 16px rgba(0,0,0,0.4);transition:all .2s;' title='{_sb_link}'>🔗 Tempahan</button>"
             f"</div>",
             unsafe_allow_html=True,
         )
