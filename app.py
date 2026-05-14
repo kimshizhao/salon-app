@@ -1292,7 +1292,21 @@ HIDDEN_BK_COLS = ["price", "paid", "method", "final"]
 # LOGIN PAGE
 # ══════════════════════════════════════════════════════════════════════════════
 if not st.session_state.logged_in:
-    st.markdown("<style>[data-testid='stSidebar']{display:none!important;}</style>", unsafe_allow_html=True)
+    st.markdown("""<style>
+    [data-testid='stSidebar']{display:none!important;}
+    /* Style link_button on login page to match theme */
+    a[data-testid="stLinkButton"] {
+        background:linear-gradient(135deg,#2a7a50,#1a5a3a,#d4a030) !important;
+        color:#f2ede3 !important; border:none !important; border-radius:10px !important;
+        font-family:'Cinzel',serif !important; font-weight:600 !important;
+        font-size:0.82rem !important; letter-spacing:2px !important;
+        padding:0.75rem !important; text-decoration:none !important;
+    }
+    a[data-testid="stLinkButton"]:hover {
+        background:linear-gradient(135deg,#d4a030,#2a7a50) !important;
+        box-shadow:0 4px 20px rgba(212,160,48,0.35) !important;
+    }
+    </style>""", unsafe_allow_html=True)
     st.markdown(f"""
     <div style="max-width:420px;margin:6vh auto;padding:2.8rem 2.8rem 2rem;
     background:linear-gradient(155deg,rgba(10,22,14,0.97),rgba(6,14,9,0.95));
@@ -1354,39 +1368,37 @@ if not st.session_state.logged_in:
 
     # ── Member self-registration hint ────────────────────────────────────────
     _lg_salon_param = st.query_params.get("salon", "")
+    # Build base URL from request headers
+    try:
+        _lg_host  = st.context.headers.get("host", "")
+        _lg_proto = "https" if (_lg_host and "localhost" not in _lg_host) else "http"
+        _lg_base  = f"{_lg_proto}://{_lg_host}" if _lg_host else ""
+    except Exception:
+        _lg_base = ""
+
     with st.columns([1, 2, 1])[1]:
-        if _lg_salon_param:
-            # Direct registration link for a specific salon
-            _reg_url = f"./register?salon={_lg_salon_param}"
-            st.markdown(f"""
-            <div style="text-align:center;margin-top:1.2rem;padding-top:1rem;
-            border-top:1px solid rgba(212,160,48,0.15);">
-              <div style="font-size:0.72rem;color:#3a6a4a;letter-spacing:1px;margin-bottom:10px;">
-                🌟 PELANGGAN / 客户
-              </div>
-              <a href="{_reg_url}" target="_self"
-              style="display:inline-block;background:linear-gradient(135deg,rgba(10,26,15,0.95),rgba(6,16,10,0.95));
-              color:#d4a030;border:1px solid rgba(212,160,48,0.32);border-radius:10px;
-              padding:10px 24px;font-family:'Cinzel',serif;font-size:0.78rem;font-weight:600;
-              letter-spacing:2px;text-decoration:none;text-transform:uppercase;
-              box-shadow:0 4px 16px rgba(0,0,0,0.35);">
-                🌟 注册成为会员 / Daftar Ahli
-              </a>
-            </div>
-            """, unsafe_allow_html=True)
+        st.markdown("""
+        <div style="margin-top:1.2rem;padding-top:1rem;text-align:center;
+        border-top:1px solid rgba(212,160,48,0.15);">
+          <div style="font-size:0.68rem;color:#3a6a4a;letter-spacing:2px;margin-bottom:8px;">
+            🌟 PELANGGAN / 客户
+          </div>
+        </div>
+        """, unsafe_allow_html=True)
+        if _lg_salon_param and _lg_base:
+            _reg_url = f"{_lg_base}/register?salon={_lg_salon_param}"
+            st.link_button(
+                "🌟 注册成为会员 / Daftar Ahli",
+                url=_reg_url,
+                use_container_width=True,
+            )
         else:
             st.markdown("""
-            <div style="text-align:center;margin-top:1.2rem;padding-top:1rem;
-            border-top:1px solid rgba(212,160,48,0.15);">
-              <div style="font-size:0.72rem;color:#3a6a4a;letter-spacing:1px;margin-bottom:6px;">
-                🌟 PELANGGAN / 客户
-              </div>
-              <div style="font-size:0.78rem;color:#4a7a5a;line-height:1.7;">
-                想成为会员？请向发廊索取专属注册链接<br>
-                <span style="font-size:0.70rem;color:#3a5a42;">
-                Ingin jadi ahli? Minta pautan pendaftaran dari salun anda
-                </span>
-              </div>
+            <div style="text-align:center;font-size:0.78rem;color:#4a7a5a;line-height:1.7;">
+              想成为会员？请向发廊索取专属注册链接<br>
+              <span style="font-size:0.70rem;color:#3a5a42;">
+              Ingin jadi ahli? Minta pautan pendaftaran dari salun anda
+              </span>
             </div>
             """, unsafe_allow_html=True)
 
