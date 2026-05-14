@@ -4594,6 +4594,112 @@ if _can("admin") and _active == "tab_admin":
                     f'<div class="stat-lbl">{lbl}</div></div>',
                     unsafe_allow_html=True
                 )
+        # ── Customer & Revenue Overview (platform admin) ──────────────────
+        if is_platform_admin:
+            st.markdown('<hr style="border-color:rgba(212,160,48,0.15);margin:0.8rem 0">', unsafe_allow_html=True)
+            st.markdown(f'<p class="card-title" style="color:#e74c3c;">👥 {"客户与收入总览" if is_zh else "Customer & Revenue Overview"}</p>',
+                        unsafe_allow_html=True)
+
+            # Load members + revenue from ALL branches
+            from db import db_get_members, db_get_bookings, db_get_walkins
+            _all_branches = st.session_state.branches  # {bid: name}
+            _ov_rows = []
+            _branch_rev = {}   # {branch_name: total_revenue}
+            _branch_mem = {}   # {branch_name: member_count}
+
+            with st.spinner("正在加载所有分店数据…" if is_zh else "Loading all branch data…"):
+                for _bid, _bname in _all_branches.items():
+                    # Members
+                    try:
+                        _mems = db_get_members(_bid) if _USE_DB else st.session_state.branch_data.get(_bid, {}).get("members", [])
+                    except Exception:
+                        _mems = []
+                    _branch_mem[_bname] = len(_mems)
+
+                    # Revenue from bookings + walkins
+                    try:
+                        _bks = db_get_bookings(_bid) if _USE_DB else st.session_state.branch_data.get(_bid, {}).get("bookings", [])
+                    except Exception:
+                        _bks = []
+                    try:
+                        _wks = db_get_walkins(_bid) if _USE_DB else st.session_state.branch_data.get(_bid, {}).get("walkins", [])
+                    except Exception:
+                        _wks = []
+
+                    _rev = sum(float(b.get("final", b.get("price", 0)) or 0) for b in _bks if b.get("paid"))
+                    _rev += sum(float(w.get("final", w.get("price", 0)) or 0) for w in _wks)
+                    _branch_rev[_bname] = _rev
+
+                    # Individual member rows
+                    for _m in _mems:
+                        _ov_rows.append({
+                            ("分店" if is_zh else "Branch"):       _bname,
+                            ("姓名" if is_zh else "Name"):         _m.get("name", ""),
+                            ("手机" if is_zh else "Phone"):        _m.get("phone", ""),
+                            ("积分" if is_zh else "Points"):       int(_m.get("points", 0)),
+                            ("消费总额 RM" if is_zh else "Total Spent RM"): f"RM {float(_m.get('total_spent', 0)):.2f}",
+                            ("到访次数" if is_zh else "Visits"):   int(_m.get("visit_count", 0)),
+                            ("加入日期" if is_zh else "Join Date"): _m.get("join_date", ""),
+                        })
+
+            # Branch summary stats
+            _total_mems = sum(_branch_mem.values())
+            _total_rev  = sum(_branch_rev.values())
+            _bs_cols = st.columns(len(_all_branches) + 1) if _all_branches else [st]
+            for _ci, (_bname, _brev) in enumerate(_branch_rev.items()):
+                _bs_cols[_ci].markdown(
+                    f'<div class="stat-box">'
+                    f'<div class="stat-val" style="font-size:1.1rem;">RM {_brev:,.0f}</div>'
+                    f'<div class="stat-lbl">{_bname}<br>{_branch_mem.get(_bname,0)} {"位客户" if is_zh else "members"}</div>'
+                    f'</div>', unsafe_allow_html=True)
+            if len(_all_branches) < len(_bs_cols):
+                _bs_cols[-1].markdown(
+                    f'<div class="stat-box" style="border-color:rgba(212,160,48,0.4);">'
+                    f'<div class="stat-val">RM {_total_rev:,.0f}</div>'
+                    f'<div class="stat-lbl">{"全部总收入" if is_zh else "Total Revenue"}<br>{_total_mems} {"位客户" if is_zh else "members"}</div>'
+                    f'</div>', unsafe_allow_html=True)
+
+            st.markdown("<div style='height:10px'></div>", unsafe_allow_html=True)
+
+            # Search + filter
+            _ov_search = st.text_input(
+                "🔍 " + ("搜索客户姓名/手机" if is_zh else "Search name / phone"),
+                placeholder="输入姓名或手机号 / Name or phone" if is_zh else "Name or phone",
+                key="ov_search", label_visibility="collapsed")
+            _ov_branch_opts = ["全部分店" if is_zh else "All Branches"] + list(_all_branches.values())
+            _ov_branch_filter = st.selectbox(
+                "分店筛选" if is_zh else "Filter by branch",
+                _ov_branch_opts, key="ov_branch_sel", label_visibility="collapsed")
+
+            # Filter rows
+            _disp_rows = _ov_rows
+            if _ov_search:
+                _q = _ov_search.lower()
+                _name_key = "姓名" if is_zh else "Name"
+                _phone_key = "手机" if is_zh else "Phone"
+                _disp_rows = [r for r in _disp_rows
+                              if _q in str(r.get(_name_key,"")).lower()
+                              or _q in str(r.get(_phone_key,"")).lower()]
+            _branch_key = "分店" if is_zh else "Branch"
+            if _ov_branch_filter not in ("全部分店","All Branches"):
+                _disp_rows = [r for r in _disp_rows if r.get(_branch_key) == _ov_branch_filter]
+
+            if _disp_rows:
+                import pandas as _pd_ov
+                _df_ov = _pd_ov.DataFrame(_disp_rows)
+                st.dataframe(_df_ov, use_container_width=True, height=min(400, 60 + len(_disp_rows)*35))
+                # Export button
+                _csv_ov = _df_ov.to_csv(index=False).encode("utf-8-sig")
+                st.download_button(
+                    "📥 " + ("导出 CSV" if is_zh else "Export CSV"),
+                    data=_csv_ov,
+                    file_name="customers_overview.csv",
+                    mime="text/csv",
+                    key="export_cust_csv"
+                )
+            else:
+                st.info("暂无客户数据" if is_zh else "No customer data yet")
+
         st.markdown('<hr style="border-color:rgba(212,160,48,0.15);margin:0.8rem 0">', unsafe_allow_html=True)
 
         # ── Salon Profile ──────────────────────────────────────────────────
