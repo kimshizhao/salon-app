@@ -4377,39 +4377,105 @@ if _can("analytics") and _active == "tab_analytics":
             df_rev["date"] = pd.to_datetime(df_rev["date"], errors="coerce")
             df_rev = df_rev.dropna(subset=["date"])
 
-        today    = _dtt.date.today()
-        wk_start = today - _td(days=6)
-        mo_start = today.replace(day=1)
+        today = _dtt.date.today()
 
-        def _filt(df, period):
-            if df.empty: return df
-            if period == "week":  return df[df["date"].dt.date >= wk_start]
-            if period == "month": return df[df["date"].dt.date >= mo_start]
-            return df
-
-        # ── Period selector ────────────────────────────────────────────────
-        period = st.radio(
-            "", ["week","month","all"],
-            format_func=lambda x: {"week": "本周 / This Week",
-                                   "month": "本月 / This Month",
-                                   "all": "全部 / All Time"}[x],
-            horizontal=True, key="analytics_period"
+        # ── Date Range Selector ────────────────────────────────────────────
+        _period_opts = (
+            ["单日","本周","本月","本年","自定义日期范围"] if is_zh else
+            ["Single Day","This Week","This Month","This Year","Custom Range"]
         )
-        df_p = _filt(df_rev, period)
+        st.markdown(f'<p style="font-size:0.72rem;color:#4a6a52;letter-spacing:2px;margin-bottom:4px;">📅 {"选择时段" if is_zh else "SELECT PERIOD"}</p>', unsafe_allow_html=True)
+        _pc1, _pc2 = st.columns([2, 3])
+        with _pc1:
+            _period_mode = st.selectbox(
+                "period", _period_opts, key="analytics_period_mode",
+                label_visibility="collapsed")
+
+        # Build date_from / date_to based on mode
+        if _period_mode in ("单日","Single Day"):
+            with _pc2:
+                _single_day = st.date_input(
+                    "day", value=today, key="analytics_single_day",
+                    label_visibility="collapsed")
+            date_from = date_to = _single_day
+            _period_label = str(_single_day)
+
+        elif _period_mode in ("本周","This Week"):
+            _wk_start = today - _td(days=today.weekday())   # Monday
+            date_from, date_to = _wk_start, today
+            with _pc2:
+                st.markdown(
+                    f'<div style="padding:8px 12px;font-size:0.82rem;color:#d4a030;'
+                    f'background:rgba(8,20,12,0.8);border:1px solid rgba(212,160,48,0.2);'
+                    f'border-radius:9px;">'
+                    f'{"本周" if is_zh else "This Week"} &nbsp;{_wk_start} → {today}</div>',
+                    unsafe_allow_html=True)
+            _period_label = f"{_wk_start} → {today}"
+
+        elif _period_mode in ("本月","This Month"):
+            _mo_start = today.replace(day=1)
+            date_from, date_to = _mo_start, today
+            with _pc2:
+                _mo_name = today.strftime("%B %Y")
+                st.markdown(
+                    f'<div style="padding:8px 12px;font-size:0.82rem;color:#d4a030;'
+                    f'background:rgba(8,20,12,0.8);border:1px solid rgba(212,160,48,0.2);'
+                    f'border-radius:9px;">'
+                    f'{"本月" if is_zh else "This Month"} &nbsp;{_mo_name} &nbsp;({_mo_start} → {today})</div>',
+                    unsafe_allow_html=True)
+            _period_label = _mo_name
+
+        elif _period_mode in ("本年","This Year"):
+            _yr_start = today.replace(month=1, day=1)
+            date_from, date_to = _yr_start, today
+            with _pc2:
+                st.markdown(
+                    f'<div style="padding:8px 12px;font-size:0.82rem;color:#d4a030;'
+                    f'background:rgba(8,20,12,0.8);border:1px solid rgba(212,160,48,0.2);'
+                    f'border-radius:9px;">'
+                    f'{today.year} &nbsp;({_yr_start} → {today})</div>',
+                    unsafe_allow_html=True)
+            _period_label = str(today.year)
+
+        else:  # Custom Range
+            with _pc2:
+                _cr_cols = st.columns(2)
+                with _cr_cols[0]:
+                    date_from = st.date_input(
+                        "从 / From" if is_zh else "From",
+                        value=today.replace(day=1), key="analytics_from")
+                with _cr_cols[1]:
+                    date_to   = st.date_input(
+                        "到 / To" if is_zh else "To",
+                        value=today, key="analytics_to")
+            if date_from > date_to:
+                st.warning("⚠ 开始日期不能晚于结束日期" if is_zh else "⚠ Start date must be before end date")
+                date_from = date_to
+            _period_label = f"{date_from} → {date_to}"
+
+        # Apply filter
+        def _filt_range(df):
+            if df.empty: return df
+            return df[(df["date"].dt.date >= date_from) & (df["date"].dt.date <= date_to)]
+
+        df_p = _filt_range(df_rev)
 
         # ── KPI Cards ──────────────────────────────────────────────────────
         total_rev  = df_p["amount"].sum() if not df_p.empty else 0
         total_txn  = len(df_p)
         avg_txn    = (total_rev / total_txn) if total_txn > 0 else 0
         total_bk   = len([b for b in st.session_state.bookings
-                          if b.get("date","") >= str(mo_start if period=="month"
-                          else wk_start if period=="week" else "2000-01-01")])
+                          if str(date_from) <= b.get("date","") <= str(date_to)])
+
+        st.markdown(
+            f'<div style="font-size:0.65rem;color:#4a6a52;letter-spacing:1px;margin:6px 0 8px;">'
+            f'📅 {_period_label}</div>', unsafe_allow_html=True)
 
         k1, k2, k3, k4 = st.columns(4)
         for col, val, lbl in [
-            (k1, f"RM {total_rev:,.0f}", "💰 " + ("总收入" if is_zh else "Revenue")),
+            (k1, f"RM {total_rev:,.2f}", "💰 " + ("总收入" if is_zh else "Revenue")),
             (k2, str(total_txn),          "🧾 " + ("交易次数" if is_zh else "Transactions")),
-            (k3, f"RM {avg_txn:,.0f}",    "📈 " + ("平均客单" if is_zh else "Avg Ticket")),
+            (k3, f"RM {avg_txn:,.2f}",    "📈 " + ("平均客单" if is_zh else "Avg Ticket")),
             (k4, str(total_bk),           "📅 " + ("预约数" if is_zh else "Bookings")),
         ]:
             col.markdown(
@@ -4428,16 +4494,16 @@ if _can("analytics") and _active == "tab_analytics":
                 df_daily, x="date", y="revenue",
                 title="📈 " + ("收入走势" if is_zh else "Revenue Trend"),
                 labels={"date": "", "revenue": "RM"},
-                color_discrete_sequence=["#c9a84c"],
+                color_discrete_sequence=["#d4a030"],
             )
             fig_trend.update_layout(
-                plot_bgcolor="#111", paper_bgcolor="#111",
-                font_color="#f0ece0", title_font_color="#c9a84c",
-                xaxis=dict(gridcolor="#1a1a1a", linecolor="#333"),
-                yaxis=dict(gridcolor="#1a1a1a", linecolor="#333"),
+                plot_bgcolor="#07110a", paper_bgcolor="#07110a",
+                font_color="#f2ede3", title_font_color="#d4a030",
+                xaxis=dict(gridcolor="#0d2014", linecolor="#1a3a22"),
+                yaxis=dict(gridcolor="#0d2014", linecolor="#1a3a22"),
                 margin=dict(l=10, r=10, t=50, b=10),
             )
-            fig_trend.update_traces(fillcolor="rgba(201,168,76,0.15)", line_color="#c9a84c")
+            fig_trend.update_traces(fillcolor="rgba(212,160,48,0.12)", line_color="#d4a030")
             st.plotly_chart(fig_trend, use_container_width=True)
         else:
             st.info("📊 " + ("暂无收入数据" if is_zh else "No revenue data yet"))
