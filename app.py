@@ -1980,17 +1980,22 @@ if True:  # always runs post-login
         _sb_branch = ""
     if _sb_base and _sb_branch:
         _sb_link  = f"{_sb_base.rstrip('/')}/booking?salon={_sb_branch}"
+        _sb_reg   = f"{_sb_base.rstrip('/')}/register?salon={_sb_branch}"
         _sb_bname = st.session_state.get("branches", {}).get(_sb_branch, _sb_branch)
-        # Floating copy button – tropical gold
+        # Floating quick-access buttons – top right
+        _btn_style = ("background:linear-gradient(135deg,rgba(10,26,15,0.96),rgba(6,16,10,0.96));"
+                      "color:#d4a030;border:1px solid rgba(212,160,48,0.35);"
+                      "border-radius:10px;padding:6px 12px;cursor:pointer;font-size:0.70rem;font-weight:700;"
+                      "letter-spacing:1px;backdrop-filter:blur(10px);font-family:Raleway,sans-serif;"
+                      "box-shadow:0 4px 16px rgba(0,0,0,0.4);margin-left:6px;")
         st.markdown(
-            f"<div style='position:fixed;top:56px;right:12px;z-index:999;'>"
+            f"<div style='position:fixed;top:56px;right:10px;z-index:999;display:flex;gap:0;'>"
             f"<button onclick=\"navigator.clipboard.writeText('{_sb_link}').then(()=>"
-            f"{{this.innerText='✅ Disalin';setTimeout(()=>this.innerText='🔗 Tempahan',1800)}})\" "
-            f"style='background:linear-gradient(135deg,rgba(10,26,15,0.96),rgba(6,16,10,0.96));"
-            f"color:#d4a030;border:1px solid rgba(212,160,48,0.35);"
-            f"border-radius:10px;padding:7px 14px;cursor:pointer;font-size:0.72rem;font-weight:700;"
-            f"letter-spacing:1.2px;backdrop-filter:blur(10px);font-family:Raleway,sans-serif;"
-            f"box-shadow:0 4px 16px rgba(0,0,0,0.4);transition:all .2s;' title='{_sb_link}'>🔗 Tempahan</button>"
+            f"{{this.innerText='✅';setTimeout(()=>this.innerText='📅',1800)}})\" "
+            f"style='{_btn_style}' title='{_sb_link}'>📅</button>"
+            f"<button onclick=\"navigator.clipboard.writeText('{_sb_reg}').then(()=>"
+            f"{{this.innerText='✅';setTimeout(()=>this.innerText='🌟',1800)}})\" "
+            f"style='{_btn_style}' title='{_sb_reg}'>🌟</button>"
             f"</div>",
             unsafe_allow_html=True,
         )
@@ -4998,20 +5003,30 @@ if _can("admin") and _active == "tab_admin":
             _link_branches = st.session_state.branches.items() if _can("super_admin") \
                              else [(b, n) for b, n in st.session_state.branches.items() if b == _my_br]
             for bid, bname in _link_branches:
-                link = f"{_base.rstrip('/')}/booking?salon={bid}"
+                book_link = f"{_base.rstrip('/')}/booking?salon={bid}"
+                reg_link  = f"{_base.rstrip('/')}/register?salon={bid}"
                 st.markdown(
-                    f'<div style="display:flex;align-items:center;justify-content:space-between;'
-                    f'padding:10px 12px;border-bottom:1px solid #1a1a1a;gap:12px">'
-                    f'<div style="flex:1;min-width:0">'
-                    f'<span style="color:#c9a84c;font-weight:600">{bname}</span>'
-                    f' <span style="color:#555;font-size:0.75rem">({bid})</span><br>'
-                    f'<span style="font-size:0.78rem;color:#aaa;word-break:break-all">{link}</span>'
-                    f'</div>'
-                    f'<button onclick="navigator.clipboard.writeText(\'{link}\').then(()=>{{this.innerText=\'✅\';setTimeout(()=>this.innerText=\'📋 复制\',1500)}})" '
-                    f'style="flex-shrink:0;background:#1a1a1a;color:#c9a84c;border:1px solid #c9a84c;'
-                    f'border-radius:6px;padding:5px 12px;cursor:pointer;font-size:0.78rem;white-space:nowrap">'
-                    f'📋 {"复制" if is_zh else "Copy"}</button>'
-                    f'</div>',
+                    f'<div style="padding:12px 0;border-bottom:1px solid rgba(212,160,48,0.12);">'
+                    f'<span style="color:#d4a030;font-weight:700;font-size:0.95rem;">{bname}</span>'
+                    f' <span style="color:#4a6a52;font-size:0.72rem">({bid})</span>'
+                    f'<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">'
+                    # Booking link row
+                    f'<div style="flex:1;min-width:180px;background:rgba(8,20,12,0.8);border:1px solid rgba(212,160,48,0.2);border-radius:9px;padding:8px 12px;">'
+                    f'<div style="font-size:0.65rem;color:#4a6a52;letter-spacing:1px;margin-bottom:3px;">📅 {"预约链接" if is_zh else "BOOKING LINK"}</div>'
+                    f'<div style="font-size:0.72rem;color:#8aaa8a;word-break:break-all;margin-bottom:6px;">{book_link}</div>'
+                    f'<button onclick="navigator.clipboard.writeText(\'{book_link}\').then(()=>{{this.innerText=\'✅\';setTimeout(()=>this.innerText=\'📋 {"复制" if is_zh else "Copy"}\',1500)}})" '
+                    f'style="background:linear-gradient(135deg,#1a5a3a,#0d3a22);color:#d4a030;border:1px solid rgba(212,160,48,0.3);'
+                    f'border-radius:6px;padding:4px 14px;cursor:pointer;font-size:0.72rem;font-weight:600;white-space:nowrap;font-family:Raleway,sans-serif;">'
+                    f'📋 {"复制" if is_zh else "Copy"}</button></div>'
+                    # Register link row
+                    f'<div style="flex:1;min-width:180px;background:rgba(8,20,12,0.8);border:1px solid rgba(212,160,48,0.2);border-radius:9px;padding:8px 12px;">'
+                    f'<div style="font-size:0.65rem;color:#4a6a52;letter-spacing:1px;margin-bottom:3px;">🌟 {"会员注册链接" if is_zh else "MEMBER REG LINK"}</div>'
+                    f'<div style="font-size:0.72rem;color:#8aaa8a;word-break:break-all;margin-bottom:6px;">{reg_link}</div>'
+                    f'<button onclick="navigator.clipboard.writeText(\'{reg_link}\').then(()=>{{this.innerText=\'✅\';setTimeout(()=>this.innerText=\'📋 {"复制" if is_zh else "Copy"}\',1500)}})" '
+                    f'style="background:linear-gradient(135deg,#1a5a3a,#0d3a22);color:#d4a030;border:1px solid rgba(212,160,48,0.3);'
+                    f'border-radius:6px;padding:4px 14px;cursor:pointer;font-size:0.72rem;font-weight:600;white-space:nowrap;font-family:Raleway,sans-serif;">'
+                    f'📋 {"复制" if is_zh else "Copy"}</button></div>'
+                    f'</div></div>',
                     unsafe_allow_html=True
                 )
         else:
