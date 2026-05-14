@@ -228,7 +228,13 @@ st.markdown("""
   .stTextInput>div>div>input:focus, .stTextArea>div>div>textarea:focus {
     border-color:#d4a030 !important; box-shadow:0 0 0 2px rgba(212,160,48,0.18) !important;
   }
-  label, .stMarkdown p { color:#8aaa8a !important; font-size:0.85rem; letter-spacing:0.8px; }
+  /* Placeholder text — visible on dark bg */
+  .stTextInput>div>div>input::placeholder,
+  .stTextArea>div>div>textarea::placeholder,
+  .stNumberInput>div>div>input::placeholder { color:#4a6a52 !important; opacity:1 !important; }
+  /* Labels — brighter so they're readable */
+  label { color:#a0c8a0 !important; font-size:0.85rem !important; letter-spacing:0.8px; }
+  .stMarkdown p { color:#a0c8a0 !important; font-size:0.85rem; letter-spacing:0.8px; }
 
   /* ── Buttons: tropical gold ─────────────────────────────── */
   .stButton>button {
@@ -4148,8 +4154,7 @@ if _can("admin") and _active == "tab_svc":
         _cur_svcs = list(st.session_state.get("services", []))
 
         # ── Add new service ─────────────────────────────────────────────────
-        st.markdown('<div class="card" style="margin-bottom:1rem;">', unsafe_allow_html=True)
-        st.markdown(f'<p class="card-title" style="font-size:0.9rem;">➕ {"新增服务项目" if _is_zh else "Add New Service"}</p>',
+        st.markdown(f'<p class="card-title" style="font-size:0.9rem;margin-top:0.5rem;">➕ {"新增服务项目" if _is_zh else "Add New Service"}</p>',
                     unsafe_allow_html=True)
         ns_c1, ns_c2, ns_c3 = st.columns([3, 1.5, 1.2])
         with ns_c1:
@@ -4177,10 +4182,8 @@ if _can("admin") and _active == "tab_svc":
                         except Exception: pass
                     st.success(f"✅ {'已添加：' if _is_zh else 'Added: '}{_nm}")
                     st.rerun()
-        st.markdown('</div>', unsafe_allow_html=True)
-
+        st.markdown('<hr style="border-color:rgba(212,160,48,0.15);margin:0.8rem 0">', unsafe_allow_html=True)
         # ── Existing services list ───────────────────────────────────────────
-        st.markdown('<div class="card">', unsafe_allow_html=True)
         if _cur_svcs:
             st.markdown(
                 f'<p class="card-title" style="font-size:0.9rem;">📋 {"服务列表" if _is_zh else "Service List"}'
@@ -4269,7 +4272,6 @@ if _can("admin") and _active == "tab_svc":
                     try: db_set_services(st.session_state.cur_branch, _loaded)
                     except Exception: pass
                 st.rerun()
-        st.markdown('</div>', unsafe_allow_html=True)
 
 # ═════════════════════════════════════════════════════════════════════════════
 # ANALYTICS TAB — Owner + Manager
@@ -4512,8 +4514,7 @@ if _can("admin") and _active == "tab_admin":
 
         # ── Platform Overview (admin only) ────────────────────────────────
         if is_platform_admin:
-            st.markdown('<div class="card" style="margin-bottom:1rem;border-color:#e74c3c44">', unsafe_allow_html=True)
-            st.markdown(f'<p class="card-title" style="color:#e74c3c">🔴 {"平台总览" if is_zh else "Platform Overview"}</p>',
+            st.markdown(f'<p class="card-title" style="color:#e74c3c;margin-top:0.2rem;">🔴 {"平台总览" if is_zh else "Platform Overview"}</p>',
                         unsafe_allow_html=True)
             total_salons  = len(st.session_state.branches)
             total_accts   = len(st.session_state.accounts)
@@ -4533,14 +4534,13 @@ if _can("admin") and _active == "tab_admin":
                     f'<div class="stat-lbl">{lbl}</div></div>',
                     unsafe_allow_html=True
                 )
-            st.markdown('</div>', unsafe_allow_html=True)
+        st.markdown('<hr style="border-color:rgba(212,160,48,0.15);margin:0.8rem 0">', unsafe_allow_html=True)
 
         # ── Salon Profile ──────────────────────────────────────────────────
         if True:  # admin + owner
             # Show profile editor for the current owner's own salon
             cur_bid  = st.session_state.cur_branch
             cur_info = st.session_state.get("salon_info", {}).get(cur_bid, {})
-            st.markdown('<div class="card" style="margin-bottom:1rem;border-color:#c9a84c55">', unsafe_allow_html=True)
             st.markdown(f'<p class="card-title">🏪 {"发廊基本资料" if is_zh else "Salon Profile"}</p>',
                         unsafe_allow_html=True)
             st.markdown(f'<p style="color:#888;font-size:0.8rem;margin-bottom:1rem;">'
@@ -4675,11 +4675,10 @@ if _can("admin") and _active == "tab_admin":
                     + "<br>".join(preview_parts)
                     + "</div>", unsafe_allow_html=True)
 
-            st.markdown('</div>', unsafe_allow_html=True)
+        st.markdown('<hr style="border-color:rgba(212,160,48,0.15);margin:0.8rem 0">', unsafe_allow_html=True)
 
         if is_platform_admin:
             # ── Subscription Management ────────────────────────────────────────
-            st.markdown('<div class="card" style="margin-bottom:1rem">', unsafe_allow_html=True)
             st.markdown(f'<p class="card-title">💳 {"订阅管理" if is_zh else "Subscription Management"}</p>',
                         unsafe_allow_html=True)
 
@@ -4962,7 +4961,7 @@ if _can("admin") and _active == "tab_admin":
 
 
         # ── Online Booking Links ───────────────────────────────────────────
-        st.markdown('<div class="card" style="margin-bottom:1rem">', unsafe_allow_html=True)
+        st.markdown('<hr style="border-color:rgba(212,160,48,0.15);margin:0.8rem 0">', unsafe_allow_html=True)
         st.markdown(f'<p class="card-title">🔗 {"客户预约链接" if is_zh else "Customer Booking Links"}</p>',
                     unsafe_allow_html=True)
 
@@ -5010,10 +5009,9 @@ if _can("admin") and _active == "tab_admin":
                 )
         else:
             st.info("正在检测 App URL… 如未自动填入，请手动输入 / Detecting URL… enter manually if not auto-filled")
-        st.markdown('</div>', unsafe_allow_html=True)
 
+        st.markdown('<hr style="border-color:rgba(212,160,48,0.15);margin:0.8rem 0">', unsafe_allow_html=True)
         # ── Change own password ────────────────────────────────────────────
-        st.markdown('<div class="card" style="margin-bottom:1rem">', unsafe_allow_html=True)
         with st.expander("🔑 " + ("修改自己的密码" if is_zh else "Change My Password")):
             cp_old  = st.text_input("旧密码 / Old Password", type="password", key="cp_old")
             cp_new  = st.text_input("新密码 / New Password", type="password", key="cp_new")
@@ -5032,4 +5030,3 @@ if _can("admin") and _active == "tab_admin":
                         try: db_update_password(st.session_state.username, _hash(cp_new))
                         except Exception: pass
                     st.success("✦ " + ("密码已更新" if is_zh else "Password updated"))
-        st.markdown('</div>', unsafe_allow_html=True)

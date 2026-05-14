@@ -125,7 +125,10 @@ st.markdown("""
   .stTextInput>div>div>input, .stSelectbox>div>div {
     background:rgba(8,20,12,0.95) !important; border:1px solid rgba(212,160,48,0.30) !important;
     border-radius:9px !important; color:#f2ede3 !important; font-size:16px !important; min-height:44px !important; }
-  label, .stMarkdown p { color:#6a9a7a !important; font-size:0.85rem; letter-spacing:0.8px; }
+  .stTextInput>div>div>input::placeholder,
+  .stTextArea>div>div>textarea::placeholder { color:#3a5a42 !important; opacity:1 !important; }
+  label { color:#90c090 !important; font-size:0.85rem !important; letter-spacing:0.8px; }
+  .stMarkdown p { color:#90c090 !important; font-size:0.85rem; letter-spacing:0.8px; }
   .stButton>button {
     background:linear-gradient(135deg,#2a7a50,#1a5a3a,#d4a030); color:#f2ede3;
     font-family:'Raleway',sans-serif; font-weight:700; font-size:0.85rem; letter-spacing:2px;
