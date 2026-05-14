@@ -1351,6 +1351,45 @@ if not st.session_state.logged_in:
                     st.rerun()
                 else:
                     st.error("❌ 账号或密码错误 / Wrong username or password")
+
+    # ── Member self-registration hint ────────────────────────────────────────
+    _lg_salon_param = st.query_params.get("salon", "")
+    with st.columns([1, 2, 1])[1]:
+        if _lg_salon_param:
+            # Direct registration link for a specific salon
+            _reg_url = f"./register?salon={_lg_salon_param}"
+            st.markdown(f"""
+            <div style="text-align:center;margin-top:1.2rem;padding-top:1rem;
+            border-top:1px solid rgba(212,160,48,0.15);">
+              <div style="font-size:0.72rem;color:#3a6a4a;letter-spacing:1px;margin-bottom:10px;">
+                🌟 PELANGGAN / 客户
+              </div>
+              <a href="{_reg_url}" target="_self"
+              style="display:inline-block;background:linear-gradient(135deg,rgba(10,26,15,0.95),rgba(6,16,10,0.95));
+              color:#d4a030;border:1px solid rgba(212,160,48,0.32);border-radius:10px;
+              padding:10px 24px;font-family:'Cinzel',serif;font-size:0.78rem;font-weight:600;
+              letter-spacing:2px;text-decoration:none;text-transform:uppercase;
+              box-shadow:0 4px 16px rgba(0,0,0,0.35);">
+                🌟 注册成为会员 / Daftar Ahli
+              </a>
+            </div>
+            """, unsafe_allow_html=True)
+        else:
+            st.markdown("""
+            <div style="text-align:center;margin-top:1.2rem;padding-top:1rem;
+            border-top:1px solid rgba(212,160,48,0.15);">
+              <div style="font-size:0.72rem;color:#3a6a4a;letter-spacing:1px;margin-bottom:6px;">
+                🌟 PELANGGAN / 客户
+              </div>
+              <div style="font-size:0.78rem;color:#4a7a5a;line-height:1.7;">
+                想成为会员？请向发廊索取专属注册链接<br>
+                <span style="font-size:0.70rem;color:#3a5a42;">
+                Ingin jadi ahli? Minta pautan pendaftaran dari salun anda
+                </span>
+              </div>
+            </div>
+            """, unsafe_allow_html=True)
+
     st.stop()
 
 # ── Logged in — sync data aliases ────────────────────────────────────────────
