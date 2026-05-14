@@ -305,9 +305,17 @@ with col_h:
     </div>
     """, unsafe_allow_html=True)
 with col_lang:
-    st.markdown("<div style='height:1.6rem'></div>", unsafe_allow_html=True)
-    if st.button(t("lang_toggle"), key="lang_btn"):
-        st.session_state.bk_lang = "en" if L == "zh" else "zh"
+    st.markdown("<div style='height:1rem'></div>", unsafe_allow_html=True)
+    _bk_lang_opts = ["zh", "en"]
+    _bk_lang_disp = {"zh": "🇨🇳 简体", "en": "🇬🇧 EN"}
+    _bk_sel = st.selectbox(
+        "lang", options=_bk_lang_opts,
+        index=_bk_lang_opts.index(st.session_state.bk_lang),
+        format_func=lambda x: _bk_lang_disp[x],
+        key="lang_sel_bk", label_visibility="collapsed",
+    )
+    if _bk_sel != st.session_state.bk_lang:
+        st.session_state.bk_lang = _bk_sel
         st.rerun()
 
 # ── Success screen ────────────────────────────────────────────────────────────

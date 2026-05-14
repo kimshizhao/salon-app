@@ -1470,14 +1470,21 @@ with hdr_r:
         padding:0.55rem 0.6rem !important; text-transform:none !important;
     }
     </style>""", unsafe_allow_html=True)
-    _lang_cycle  = {"zh": "en", "en": "ms", "ms": "zh"}
-    _lang_labels = {"zh": "🌐 EN", "en": "🌐 BM", "ms": "🌐 简体"}
-    _lang_label  = _lang_labels[st.session_state.lang]
     _logout_label = f"{role_icon} " + _t("退出登录", "Logout", "Log Keluar")
+    _lang_options = ["zh", "en", "ms"]
+    _lang_display = {"zh": "🇨🇳 简体", "en": "🇬🇧 EN", "ms": "🇲🇾 BM"}
     rc1, rc2 = st.columns(2)
     with rc1:
-        if st.button(_lang_label, key="lang_toggle"):
-            st.session_state.lang = _lang_cycle[st.session_state.lang]
+        _sel_lang = st.selectbox(
+            "🌐",
+            options=_lang_options,
+            index=_lang_options.index(st.session_state.lang),
+            format_func=lambda x: _lang_display[x],
+            key="lang_select",
+            label_visibility="collapsed",
+        )
+        if _sel_lang != st.session_state.lang:
+            st.session_state.lang = _sel_lang
             st.rerun()
     with rc2:
         if st.button(_logout_label, key="logout_btn"):
