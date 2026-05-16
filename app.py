@@ -2860,6 +2860,7 @@ if _active == "tab3":
                 key="wi_stylist",
             )
             wi_stylist_val = "" if wi_stylist.startswith("—") else wi_stylist
+            svc_list = list(svc_map().keys())
             wi_svc  = st.selectbox(u("service"), svc_list, key="wi_svc")
             wi_amt  = st.number_input(u("wi_amt_label"), 0.0, 99999.0, 50.0, 10.0, key="wi_amt")
 
