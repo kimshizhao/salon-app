@@ -1587,8 +1587,15 @@ def build_receipt_html(r: dict, lang: str) -> str:
     except Exception:
         date_my = date_iso
 
-    # Receipt number: RCP-YYYYMMDD-XXXX
-    receipt_no = f"RCP-{date_iso.replace('-','')}-{abs(hash(name + time_str)) % 10000:04d}"
+    # Invoice number: INV-YYYYMMDD-HHMMSS (deterministic from date+time+name, readable, sortable)
+    # If a pre-saved invoice_no exists in the record, use it directly for consistency
+    if r.get("invoice_no"):
+        receipt_no = r["invoice_no"]
+    else:
+        # Build a stable, human-readable number: INV-YYYYMMDD-HHMMSS
+        _time_part = time_str.replace(":", "") if time_str else f"{abs(hash(name)) % 999999:06d}"
+        _time_part = (_time_part + "000000")[:6]   # pad / truncate to 6 chars
+        receipt_no = f"INV-{date_iso.replace('-','')}-{_time_part}"
 
     # Salon info from session state (if available)
     salon_info = {}
@@ -2803,20 +2810,23 @@ if _active == "tab3":
                             break
                     _bd()["bookings"] = st.session_state.bookings
                     # Pre-load receipt data
+                    import datetime as _inv_dt
+                    _inv_ts = _inv_dt.datetime.now().strftime("%Y%m%d-%H%M%S")
                     st.session_state.sel_receipt = {
-                        "name":     sel_bk["name"],
-                        "service":  sel_bk["service"],
-                        "stylist":  pay_stylist_val or sel_bk.get("stylist",""),
-                        "time":     sel_bk["time"],
-                        "date":     today_str,
-                        "subtotal": orig,
-                        "disc_pct": disc_pct,
-                        "extra":    extra,
-                        "final":    final,
-                        "method":   chosen_key,
-                        "member":   pay_mem["name"] if pay_mem else "",
-                        "pts":      pts_earn if pay_mem else 0,
-                        "note":     pay_note.strip(),
+                        "name":       sel_bk["name"],
+                        "service":    sel_bk["service"],
+                        "stylist":    pay_stylist_val or sel_bk.get("stylist",""),
+                        "time":       sel_bk["time"],
+                        "date":       today_str,
+                        "subtotal":   orig,
+                        "disc_pct":   disc_pct,
+                        "extra":      extra,
+                        "final":      final,
+                        "method":     chosen_key,
+                        "member":     pay_mem["name"] if pay_mem else "",
+                        "pts":        pts_earn if pay_mem else 0,
+                        "note":       pay_note.strip(),
+                        "invoice_no": f"INV-{_inv_ts}",
                     }
                     # Add points + history to member
                     if pay_mem:
@@ -2935,20 +2945,23 @@ if _active == "tab3":
                             "phone": wi_phone.strip(),
                             "svc":   wi_svc or "—",
                         }
+                    import datetime as _inv_dt
+                    _inv_ts = _inv_dt.datetime.now().strftime("%Y%m%d-%H%M%S")
                     st.session_state.sel_receipt = {
-                        "name":     wi_name.strip(),
-                        "service":  wi_svc or "—",
-                        "stylist":  wi_stylist_val,
-                        "time":     "",
-                        "date":     today_str,
-                        "subtotal": wi_amt,
-                        "disc_pct": 0,
-                        "extra":    0,
-                        "final":    wi_amt,
-                        "method":   wi_key,
-                        "member":   wi_pay_mem["name"] if wi_pay_mem else "",
-                        "pts":      wi_pts_earn if wi_pay_mem else 0,
-                        "note":     wi_note.strip(),
+                        "name":       wi_name.strip(),
+                        "service":    wi_svc or "—",
+                        "stylist":    wi_stylist_val,
+                        "time":       "",
+                        "date":       today_str,
+                        "subtotal":   wi_amt,
+                        "disc_pct":   0,
+                        "extra":      0,
+                        "final":      wi_amt,
+                        "method":     wi_key,
+                        "member":     wi_pay_mem["name"] if wi_pay_mem else "",
+                        "pts":        wi_pts_earn if wi_pay_mem else 0,
+                        "note":       wi_note.strip(),
+                        "invoice_no": f"INV-{_inv_ts}",
                     }
                     if wi_pay_mem:
                         for m in st.session_state.members:
@@ -3060,19 +3073,24 @@ if _active == "tab3":
                     )
                 with cols[1]:
                     if st.button(u("rcpt_btn"), key=f"rcpt_{idx}"):
+                        # Rebuild invoice_no from transaction date+time for history reprints
+                        _h_date = h.get("date", today_str).replace("-","")
+                        _h_time = h.get("time","").replace(":","")
+                        _h_inv  = h.get("invoice_no") or f"INV-{_h_date}-{(_h_time+'000000')[:6]}"
                         st.session_state.sel_receipt = {
-                            "name":     h["name"],
-                            "service":  h["svc"],
-                            "stylist":  h["stylist"],
-                            "time":     h["time"],
-                            "date":     today_str,
-                            "subtotal": h["final"],
-                            "disc_pct": 0,
-                            "extra":    0,
-                            "final":    h["final"],
-                            "method":   h["method"],
-                            "member":   "",
-                            "pts":      0,
+                            "name":       h["name"],
+                            "service":    h["svc"],
+                            "stylist":    h["stylist"],
+                            "time":       h["time"],
+                            "date":       today_str,
+                            "subtotal":   h["final"],
+                            "disc_pct":   0,
+                            "extra":      0,
+                            "final":      h["final"],
+                            "method":     h["method"],
+                            "member":     "",
+                            "pts":        0,
+                            "invoice_no": _h_inv,
                         }
                         st.rerun()
                 if _can_void:
@@ -3144,7 +3162,7 @@ if _active == "tab3":
                 st.download_button(
                     label=u("rcpt_print"),
                     data=rcpt_bytes,
-                    file_name=f"receipt_{rcpt['name'].replace(' ','_')}_{rcpt['date']}.html",
+                    file_name=f"{rcpt.get('invoice_no','receipt')}_{rcpt['name'].replace(' ','_')}.html",
                     mime="text/html",
                     key="dl_receipt",
                 )
