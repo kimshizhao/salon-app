@@ -1917,8 +1917,26 @@ def build_receipt_html(r: dict, lang: str) -> str:
   .valid-stamp{{ font-size:0.58rem; color:#2a5a38; margin-top:8px; letter-spacing:0.8px; }}
   .footer-meta{{ font-size:0.63rem; color:#4a7a5a; margin-top:7px; line-height:1.8; }}
 
+  /* ── Signature / stamp area ── */
+  .sig-area{{ padding:16px 20px 10px; background:#fff; position:relative; z-index:2; }}
+  .sig-grid{{ display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:4px; }}
+  .sig-box{{ border:1px dashed #c8ddd0; border-radius:6px; padding:8px 12px 6px;
+             text-align:center; min-height:64px; position:relative; }}
+  .sig-label{{ font-size:0.58rem; color:#8aaa8a; letter-spacing:2px; text-transform:uppercase;
+               margin-bottom:4px; }}
+  .sig-line{{ border-bottom:1px solid #d0e0d4; margin:18px 10px 4px; }}
+  .sig-name{{ font-size:0.62rem; color:#aaa; }}
+  .stamp-circle{{
+    width:72px; height:72px; border-radius:50%;
+    border:2px dashed #d4a030; margin:0 auto 6px;
+    display:flex; align-items:center; justify-content:center;
+    font-size:0.55rem; color:#d4a030; letter-spacing:1.5px;
+    text-align:center; line-height:1.4; padding:6px;
+    font-family:'Cinzel',serif;
+  }}
+
   /* ── Action buttons ── */
-  .btn-row{{ display:flex; gap:10px; padding:14px 20px 18px; background:#fff; }}
+  .btn-row{{ display:flex; gap:10px; padding:12px 20px 18px; background:#fff; }}
   .btn{{ flex:1; padding:11px 8px; border:none; border-radius:6px;
          font-size:0.78rem; font-weight:700; letter-spacing:1.5px; cursor:pointer;
          font-family:'Raleway',sans-serif; text-transform:uppercase;
@@ -1934,6 +1952,8 @@ def build_receipt_html(r: dict, lang: str) -> str:
     .btn-row{{ display:none; }}
     .tear-line{{ border-top-color:#ccc; }}
     .tear-line::before, .tear-line::after{{ background:#fff; border:1px solid #ccc; }}
+    .sig-box{{ border-color:#bbb; }}
+    .stamp-circle{{ border-color:#bbb; color:#bbb; }}
   }}
 </style>
 </head><body>
@@ -2013,6 +2033,22 @@ def build_receipt_html(r: dict, lang: str) -> str:
     <!-- TEAR LINE -->
     <hr class="tear-line">
 
+  </div>
+
+  <!-- SIGNATURE / STAMP -->
+  <div class="sig-area">
+    <div class="sig-grid">
+      <div class="sig-box">
+        <div class="sig-label">{'Pengesahan Salun / 发廊确认' if not is_zh else '发廊确认'}</div>
+        <div class="sig-line"></div>
+        <div class="sig-name">{'Tandatangan / 签名' if not is_zh else '签名'}</div>
+      </div>
+      <div class="sig-box" style="display:flex;flex-direction:column;align-items:center;justify-content:center;">
+        <div class="stamp-circle">
+          {salon.upper()}<br>✦<br>{'DISAHKAN' if not is_zh else '已确认'}
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- FOOTER -->
@@ -2822,18 +2858,45 @@ if _active == "tab3":
         if not unpaid_bk:
             st.markdown(f'<div class="alert-safe">{u("no_pending")}</div>', unsafe_allow_html=True)
         else:
+            import urllib.parse as _up_bk
+            _is_zh_bk = (st.session_state.lang == "zh")
+            _salon_name_bk = st.session_state.branches.get(st.session_state.cur_branch, "salon")
             for bk in unpaid_bk:
-                st.markdown(
-                    f"<div style='background:#1a1a1a;border:1px solid #c9a84c33;border-radius:10px;"
-                    f"padding:10px 14px;margin-bottom:8px;display:flex;"
-                    f"justify-content:space-between;align-items:center;'>"
-                    f"<div><div style='color:#f0ece0;font-size:0.92rem;'>{bk['name']}</div>"
-                    f"<div style='color:#888;font-size:0.73rem;letter-spacing:1px;'>"
-                    f"{bk.get('stylist','') or u('any_stylist')} · {bk['service']} · {bk['time']}</div></div>"
-                    f"<div style='color:#c9a84c;font-weight:700;'>RM {bk.get('price',0):.2f}</div>"
-                    f"</div>",
-                    unsafe_allow_html=True,
+                _bk_phone = re.sub(r"\D","", bk.get("phone",""))
+                _bk_sty   = bk.get("stylist","") or u("any_stylist")
+                # WhatsApp reminder message
+                _wa_remind = (
+                    f"您好 {bk['name']}，\n"
+                    f"提醒您今天 {bk['time']} 在 {_salon_name_bk} 有预约 ({bk['service']})。\n"
+                    f"期待您的光临！🙏"
+                    if _is_zh_bk else
+                    f"Hi {bk['name']},\n"
+                    f"Reminder: your appointment today at {bk['time']} at {_salon_name_bk} ({bk['service']}).\n"
+                    f"We look forward to seeing you! 🙏"
                 )
+                _wa_url = (f"https://wa.me/6{_bk_phone}?text={_up_bk.quote(_wa_remind)}"
+                           if _bk_phone else
+                           f"https://wa.me/?text={_up_bk.quote(_wa_remind)}")
+                _bk_col1, _bk_col2 = st.columns([5, 1])
+                with _bk_col1:
+                    st.markdown(
+                        f"<div style='background:#1a1a1a;border:1px solid #c9a84c33;border-radius:10px;"
+                        f"padding:10px 14px;display:flex;"
+                        f"justify-content:space-between;align-items:center;'>"
+                        f"<div><div style='color:#f0ece0;font-size:0.92rem;'>{bk['name']}</div>"
+                        f"<div style='color:#888;font-size:0.73rem;letter-spacing:1px;'>"
+                        f"{_bk_sty} · {bk['service']} · {bk['time']}</div></div>"
+                        f"<div style='color:#c9a84c;font-weight:700;'>RM {bk.get('price',0):.2f}</div>"
+                        f"</div>",
+                        unsafe_allow_html=True,
+                    )
+                with _bk_col2:
+                    st.link_button(
+                        "📱",
+                        url=_wa_url,
+                        use_container_width=True,
+                        help=("WhatsApp 提醒客户" if _is_zh_bk else "Send WhatsApp reminder"),
+                    )
         st.markdown('</div>', unsafe_allow_html=True)
 
         all_paid_items = [
@@ -3224,17 +3287,29 @@ if _active == "tab3":
                     st.markdown('</div>', unsafe_allow_html=True)
 
         # ── History ───────────────────────────────────────────────────────
+        def _mk_inv_no(rec, date_fallback):
+            """Reconstruct a display-safe invoice number from a history record."""
+            if rec.get("invoice_no"):
+                return rec["invoice_no"]
+            _d = (rec.get("date") or date_fallback).replace("-","")
+            _t = (rec.get("time") or "").replace(":","")
+            return f"INV-{_d}-{(_t+'000000')[:6]}"
+
         history = [
             {"tag":"📅","type":"booking","ref":b,
              "name":b["name"],"svc":b.get("service",""),
              "time":b.get("time",""),"stylist":b.get("stylist",""),
-             "final":b.get("final",b.get("price",0)),"method":b.get("method","Cash")}
+             "final":b.get("final",b.get("price",0)),"method":b.get("method","Cash"),
+             "date":b.get("date", today_str),
+             "invoice_no": _mk_inv_no(b, today_str)}
             for b in paid_bk
         ] + [
             {"tag":"🚶","type":"walkin","ref":w,
              "name":w["name"],"svc":w.get("service",""),
              "time":"","stylist":w.get("stylist",""),
-             "final":w.get("final",0),"method":w.get("method","Cash")}
+             "final":w.get("final",0),"method":w.get("method","Cash"),
+             "date":w.get("date", today_str),
+             "invoice_no": _mk_inv_no(w, today_str)}
             for w in walkins_today
         ]
         _can_void = _can("settlement")
@@ -3251,11 +3326,16 @@ if _active == "tab3":
                 n_cols = [4, 1, 1] if _can_void else [4, 1]
                 cols = st.columns(n_cols)
                 with cols[0]:
+                    _inv_disp = h.get("invoice_no","")
                     st.markdown(
                         f"<div style='display:flex;justify-content:space-between;padding:8px 0;"
                         f"border-bottom:1px solid #1a1a1a;'>"
-                        f"<div><span style='color:#f0ece0;font-size:0.88rem;'>{h['tag']} {h['name']}</span>"
-                        f"<span style='color:#555;font-size:0.74rem;margin-left:8px;'>{sub}</span></div>"
+                        f"<div>"
+                        f"<span style='color:#f0ece0;font-size:0.88rem;'>{h['tag']} {h['name']}</span>"
+                        f"<span style='color:#555;font-size:0.74rem;margin-left:8px;'>{sub}</span>"
+                        + (f"<div style='color:#3a6a4a;font-size:0.62rem;margin-top:2px;"
+                           f"letter-spacing:0.5px;'>{_inv_disp}</div>" if _inv_disp else "")
+                        + f"</div>"
                         f"<div style='text-align:right;'>"
                         f"<span style='color:#c9a84c;font-weight:700;'>RM {h['final']:.2f}</span>"
                         f"<span style='display:block;color:{cl};font-size:0.7rem;'>{ic} {m}</span>"
@@ -3264,16 +3344,12 @@ if _active == "tab3":
                     )
                 with cols[1]:
                     if st.button(u("rcpt_btn"), key=f"rcpt_{idx}"):
-                        # Rebuild invoice_no from transaction date+time for history reprints
-                        _h_date = h.get("date", today_str).replace("-","")
-                        _h_time = h.get("time","").replace(":","")
-                        _h_inv  = h.get("invoice_no") or f"INV-{_h_date}-{(_h_time+'000000')[:6]}"
                         st.session_state.sel_receipt = {
                             "name":       h["name"],
                             "service":    h["svc"],
                             "stylist":    h["stylist"],
                             "time":       h["time"],
-                            "date":       today_str,
+                            "date":       h.get("date", today_str),
                             "subtotal":   h["final"],
                             "disc_pct":   0,
                             "extra":      0,
@@ -3281,7 +3357,8 @@ if _active == "tab3":
                             "method":     h["method"],
                             "member":     "",
                             "pts":        0,
-                            "invoice_no": _h_inv,
+                            "invoice_no": h["invoice_no"],
+                            "type":       h["type"],
                         }
                         st.rerun()
                 if _can_void:
@@ -3340,57 +3417,87 @@ if _active == "tab3":
         rcpt = st.session_state.sel_receipt
         if rcpt:
             st.markdown("<hr>", unsafe_allow_html=True)
-            st.markdown(f'<p class="card-title">🧾 {u("rcpt_title")}</p>', unsafe_allow_html=True)
+            _inv_no_disp = rcpt.get("invoice_no", "")
+            st.markdown(
+                f'<p class="card-title">🧾 {u("rcpt_title")}'
+                + (f' <span style="font-size:0.7rem;color:#4a7a5a;font-weight:400;'
+                   f'letter-spacing:1px;margin-left:8px;">{_inv_no_disp}</span>' if _inv_no_disp else "")
+                + '</p>',
+                unsafe_allow_html=True,
+            )
 
-            # Build HTML and offer as download (opens in browser → Ctrl+P / Print button)
+            # Build HTML
             if "salon" not in rcpt:
                 rcpt["salon"] = st.session_state.branches.get(st.session_state.cur_branch, "IQSALON")
             rcpt_html  = build_receipt_html(rcpt, st.session_state.lang)
             rcpt_bytes = rcpt_html.encode("utf-8")
+            is_zh_rcpt = (st.session_state.lang == "zh")
 
-            rc1, rc2, rc3 = st.columns([1, 1, 1])
-            with rc1:
+            # ── Action row 1: Download · WhatsApp · Close ──────────────────
+            import urllib.parse as _up
+            _wa_rcpt_txt = (
+                f"{'收据' if is_zh_rcpt else 'Receipt'} {rcpt.get('invoice_no','')} ✅\n"
+                f"{'客户' if is_zh_rcpt else 'Client'}: {rcpt['name']}\n"
+                f"{'日期' if is_zh_rcpt else 'Date'}: {rcpt['date']}"
+                + (f" {rcpt['time']}" if rcpt.get('time') else "") + "\n"
+                f"{'服务' if is_zh_rcpt else 'Service'}: {rcpt['service']}\n"
+                + (f"{'发型师' if is_zh_rcpt else 'Stylist'}: {rcpt['stylist']}\n" if rcpt.get('stylist') else "")
+                + (f"{'折扣' if is_zh_rcpt else 'Discount'}: {rcpt.get('disc_pct',0):.0f}%\n" if rcpt.get('disc_pct') else "")
+                + f"{'总计' if is_zh_rcpt else 'Total'}: RM {rcpt['final']:.2f}\n"
+                f"{'付款方式' if is_zh_rcpt else 'Payment'}: {rcpt['method']}\n"
+                + (f"{'积分' if is_zh_rcpt else 'Points earned'}: +{rcpt['pts']} pts\n" if rcpt.get('pts') else "")
+                + f"\n{'感谢光临 🙏' if is_zh_rcpt else 'Thank you for visiting! 🙏'}"
+            )
+            _wa_rcpt_url = f"https://wa.me/?text={_up.quote(_wa_rcpt_txt)}"
+
+            ra1, ra2, ra3 = st.columns([2, 2, 1])
+            with ra1:
                 st.download_button(
-                    label=u("rcpt_print"),
+                    label=("⬇️ " + ("下载收据 HTML" if is_zh_rcpt else "Download Receipt HTML")),
                     data=rcpt_bytes,
                     file_name=f"{rcpt.get('invoice_no','receipt')}_{rcpt['name'].replace(' ','_')}.html",
                     mime="text/html",
                     key="dl_receipt",
+                    use_container_width=True,
                 )
-            with rc2:
-                # Email via mailto: link
-                email_body = (
-                    f"Signature Kim Receipt\n"
-                    f"{'=' * 30}\n"
-                    f"{'客户' if st.session_state.lang=='zh' else 'Client'}: {rcpt['name']}\n"
-                    f"{'日期' if st.session_state.lang=='zh' else 'Date'}: {rcpt['date']} {rcpt['time']}\n"
-                    f"{'服务' if st.session_state.lang=='zh' else 'Service'}: {rcpt['service']}\n"
-                    + (f"{'发型师' if st.session_state.lang=='zh' else 'Stylist'}: {rcpt['stylist']}\n" if rcpt.get('stylist') else "")
-                    + (f"{'折扣' if st.session_state.lang=='zh' else 'Discount'}: {rcpt['disc_pct']}%\n" if rcpt.get('disc_pct') else "")
-                    + f"{'总计' if st.session_state.lang=='zh' else 'Total'}: RM {rcpt['final']:.2f}\n"
-                    f"{'付款方式' if st.session_state.lang=='zh' else 'Payment'}: {rcpt['method']}\n"
-                    + (f"{'积分' if st.session_state.lang=='zh' else 'Points'}: +{rcpt['pts']} pts\n" if rcpt.get('pts') else "")
-                    + f"\n{'感谢您的光临！' if st.session_state.lang=='zh' else 'Thank you for visiting Signature Kim!'}"
+            with ra2:
+                st.link_button(
+                    "📱 " + ("WhatsApp 分享" if is_zh_rcpt else "Share via WhatsApp"),
+                    url=_wa_rcpt_url,
+                    use_container_width=True,
                 )
-                email_to = st.text_input(u("rcpt_email_to"), placeholder=u("rcpt_email_ph"), key="rcpt_email_addr", label_visibility="collapsed")
-                import urllib.parse as _up
-                subject = _up.quote(f"Signature Kim Receipt — {rcpt['name']} {rcpt['date']}")
-                body    = _up.quote(email_body)
-                mailto  = f"mailto:{email_to}?subject={subject}&body={body}"
-                st.markdown(
-                    f'<a href="{mailto}" target="_blank" style="display:block;background:linear-gradient(135deg,#3498db,#1a6fa8);'
-                    f'color:#fff;text-align:center;padding:10px 16px;border-radius:8px;font-size:0.82rem;'
-                    f'font-weight:700;letter-spacing:2px;text-decoration:none;margin-top:2px;">'
-                    f'{u("rcpt_email")}</a>',
-                    unsafe_allow_html=True)
-            with rc3:
-                if st.button(u("rcpt_close"), key="close_receipt"):
+            with ra3:
+                if st.button("✕ " + ("关闭" if is_zh_rcpt else "Close"),
+                             key="close_receipt", use_container_width=True):
                     st.session_state.sel_receipt = None
                     st.rerun()
 
-            # Preview
+            # ── Action row 2: Email ────────────────────────────────────────
+            with st.expander("✉️ " + ("发送 Email 收据" if is_zh_rcpt else "Send Receipt by Email")):
+                email_body = (
+                    f"{'收据' if is_zh_rcpt else 'Receipt'}\n{'=' * 30}\n"
+                    + _wa_rcpt_txt
+                )
+                email_to = st.text_input(
+                    u("rcpt_email_to"), placeholder=u("rcpt_email_ph"),
+                    key="rcpt_email_addr", label_visibility="collapsed",
+                )
+                subject = _up.quote(f"{rcpt.get('invoice_no','')} — {rcpt['name']} {rcpt['date']}")
+                body    = _up.quote(email_body)
+                mailto  = f"mailto:{email_to}?subject={subject}&body={body}"
+                st.markdown(
+                    f'<a href="{mailto}" target="_blank" style="display:block;'
+                    f'background:linear-gradient(135deg,#3498db,#1a6fa8);'
+                    f'color:#fff;text-align:center;padding:10px 16px;border-radius:8px;'
+                    f'font-size:0.82rem;font-weight:700;letter-spacing:2px;'
+                    f'text-decoration:none;margin-top:4px;">'
+                    f'{u("rcpt_email")}</a>',
+                    unsafe_allow_html=True,
+                )
+
+            # ── Preview (inline, taller) ───────────────────────────────────
             import streamlit.components.v1 as _components
-            _components.html(rcpt_html, height=520, scrolling=True)
+            _components.html(rcpt_html, height=780, scrolling=True)
 
 # ═════════════════════════════════════════════════════════════════════════════
 # TAB 4 — INVENTORY
