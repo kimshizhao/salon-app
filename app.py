@@ -1677,12 +1677,32 @@ def build_receipt_html(r: dict, lang: str) -> str:
         <td colspan="2" style="text-align:right;font-style:italic;color:#555;">{note_val}</td>
       </tr>"""
 
+    # ── Extra computed values ─────────────────────────────────────────────────
+    disc_amt   = round(subtotal * disc / 100, 2) if disc else 0
+    rcpt_type  = r.get("type", "booking")   # "booking" or "walkin"
+    mem_tier   = r.get("mem_tier", "")
+    mem_pts_total = r.get("mem_pts_total", 0)   # running total after this visit
+
+    # Day-of-week in both languages
+    try:
+        _dow_en = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"]
+        _dow_zh = ["星期一","星期二","星期三","星期四","星期五","星期六","星期日"]
+        _wd = _dt.date.fromisoformat(date_iso).weekday()
+        dow_str = f"{_dow_zh[_wd]} / {_dow_en[_wd]}" if not is_zh else _dow_zh[_wd]
+    except Exception:
+        dow_str = ""
+
     pay_lbl   = "Kaedah Pembayaran" if not is_zh else "付款方式"
     total_lbl = "JUMLAH / TOTAL" if not is_zh else "总计"
-    sst_note  = "Harga adalah termasuk SST / Harga tidak termasuk SST (Dikecualikan)" \
-                if not is_zh else "价格已含/免收 SST（服务税）"
+    sst_note  = ("Harga tidak termasuk SST (Perkhidmatan Salun — Dikecualikan)"
+                 if not is_zh else "理发服务免征服务税（SST Exempt）")
     thanks_my = "Terima Kasih Kerana Sudi Hadir" if not is_zh else "感谢您的光临"
     thanks_en = "We look forward to serving you again!" if not is_zh else "期待再次为您服务！"
+    rcpt_type_badge = (
+        ("🗓 Temujanji / 预约" if not is_zh else "🗓 预约客")
+        if rcpt_type != "walkin"
+        else ("🚶 Pelanggan Terus / 现场客" if not is_zh else "🚶 现场客")
+    )
 
     contact_parts = []
     if salon_address: contact_parts.append(f"📍 {salon_address}")
@@ -1698,86 +1718,222 @@ def build_receipt_html(r: dict, lang: str) -> str:
     footer_meta = ("<div class='footer-meta'>" + " &nbsp;·&nbsp; ".join(footer_meta_parts) + "</div>"
                    if footer_meta_parts else "")
 
+    # WhatsApp share message
+    wa_text = (f"收据 {receipt_no} — {salon} — {name} — RM {final:.2f} — {date_my}"
+               if is_zh
+               else f"Receipt {receipt_no} — {salon} — {name} — RM {final:.2f} — {date_my}")
+    import urllib.parse as _up
+    wa_link = f"https://wa.me/?text={_up.quote(wa_text)}"
+
+    # ── Itemised breakdown rows ───────────────────────────────────────────────
+    item_rows_html = f"""
+      <tr>
+        <td class="desc">{service}{'<div class="sty-tag">✂ ' + stylist + '</div>' if stylist else ''}</td>
+        <td class="qty">1</td>
+        <td class="price">RM {subtotal:.2f}</td>
+        <td class="amt">RM {subtotal:.2f}</td>
+      </tr>"""
+    if extra:
+        extra_lbl = "Caj Tambahan / 加收费用" if not is_zh else "加收费用"
+        item_rows_html += f"""
+      <tr>
+        <td class="desc">{extra_lbl}</td>
+        <td class="qty">1</td>
+        <td class="price">RM {extra:.2f}</td>
+        <td class="amt" style="color:#e67e22;">+ RM {extra:.2f}</td>
+      </tr>"""
+
+    # Summary breakdown (subtotal / discount / total)
+    summary_html = ""
+    if disc or extra:
+        summary_html += f"""
+      <tr class="sum-row">
+        <td colspan="3">{'Subtotal / 小计' if not is_zh else '小计'}</td>
+        <td class="amt">RM {subtotal + extra:.2f}</td>
+      </tr>"""
+    if disc:
+        disc_lbl = f"Diskaun {disc:.0f}% / 折扣" if not is_zh else f"折扣 {disc:.0f}%"
+        summary_html += f"""
+      <tr class="disc-row">
+        <td colspan="3">{disc_lbl}</td>
+        <td class="amt" style="color:#c0392b;">− RM {disc_amt:.2f}</td>
+      </tr>"""
+
+    # Member + points rows
+    member_rows = ""
+    if member:
+        tier_badge = f" <span class='tier-tag'>{mem_tier}</span>" if mem_tier else ""
+        pts_lbl = "Mata Ganjaran / 积分获得" if not is_zh else "本次积分"
+        member_rows = f"""
+      <tr class="info-row">
+        <td colspan="2">{'Ahli / 会员' if not is_zh else '会员'}{tier_badge}</td>
+        <td colspan="2" style="text-align:right;font-weight:600;">{member}</td>
+      </tr>"""
+        if pts:
+            member_rows += f"""
+      <tr class="info-row pts-row">
+        <td colspan="2">{pts_lbl}</td>
+        <td colspan="2" style="text-align:right;color:#2e7d32;font-weight:700;">+{pts} pts</td>
+      </tr>"""
+        if mem_pts_total:
+            bal_lbl = "Baki Mata / 积分余额" if not is_zh else "积分余额"
+            member_rows += f"""
+      <tr class="info-row">
+        <td colspan="2" style="color:#aaa;">{bal_lbl}</td>
+        <td colspan="2" style="text-align:right;color:#aaa;">{mem_pts_total} pts</td>
+      </tr>"""
+
+    note_val = r.get("note", "")
+    note_row = ""
+    if note_val:
+        note_lbl = "Catatan / 备注" if not is_zh else "备注"
+        note_row = f"""
+      <tr class="info-row">
+        <td colspan="2">{note_lbl}</td>
+        <td colspan="2" style="text-align:right;font-style:italic;color:#777;">{note_val}</td>
+      </tr>"""
+
     return f"""<!DOCTYPE html>
 <html><head><meta charset="utf-8">
-<title>Resit / Receipt — {salon}</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{receipt_no} — {salon}</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600&family=Raleway:wght@300;400;600;700&display=swap');
   *{{ box-sizing:border-box; margin:0; padding:0; }}
-  body{{ font-family:'Raleway',sans-serif; background:#e8ede8; color:#111;
-        display:flex; justify-content:center; padding:24px 10px; }}
-  .receipt{{ width:400px; background:#fff; box-shadow:0 4px 24px rgba(0,0,0,.15);
-             border-radius:6px; overflow:hidden; }}
-  /* Header — deep forest green with gold name */
-  .header{{ background:linear-gradient(160deg,#0a1e10,#071209); color:#fff;
-            text-align:center; padding:24px 20px 18px; position:relative; }}
-  .header::before{{ content:''; position:absolute; top:0; left:0; right:0; bottom:0;
-    background:repeating-linear-gradient(45deg,transparent,transparent 14px,rgba(212,160,48,0.04) 14px,rgba(212,160,48,0.04) 15px),
-    repeating-linear-gradient(-45deg,transparent,transparent 14px,rgba(212,160,48,0.04) 14px,rgba(212,160,48,0.04) 15px); }}
-  .salon-name{{ font-family:'Cinzel',serif; font-size:1.5rem; font-weight:600;
+  body{{ font-family:'Raleway',sans-serif; background:#dde8dd; color:#111;
+        display:flex; justify-content:center; align-items:flex-start;
+        padding:28px 10px 48px; min-height:100vh; }}
+  .receipt{{ width:420px; max-width:100%; background:#fff;
+             box-shadow:0 8px 40px rgba(0,0,0,.18); border-radius:8px;
+             overflow:hidden; position:relative; }}
+
+  /* ── PAID watermark ── */
+  .receipt::after{{
+    content:'PAID'; position:absolute; top:42%; left:50%;
+    transform:translate(-50%,-50%) rotate(-28deg);
+    font-family:'Cinzel',serif; font-size:4.5rem; font-weight:700;
+    color:rgba(46,125,50,0.07); letter-spacing:10px; pointer-events:none;
+    white-space:nowrap; user-select:none; z-index:1;
+  }}
+
+  /* ── Header ── */
+  .header{{ background:linear-gradient(160deg,#0b2112,#071209); color:#fff;
+            text-align:center; padding:26px 20px 20px; position:relative; overflow:hidden; }}
+  .header::before{{
+    content:''; position:absolute; inset:0;
+    background:repeating-linear-gradient(45deg,transparent,transparent 13px,rgba(212,160,48,0.05) 13px,rgba(212,160,48,0.05) 14px),
+    repeating-linear-gradient(-45deg,transparent,transparent 13px,rgba(212,160,48,0.05) 13px,rgba(212,160,48,0.05) 14px);
+  }}
+  .salon-logo{{ font-size:1.6rem; margin-bottom:4px; position:relative; }}
+  .salon-name{{ font-family:'Cinzel',serif; font-size:1.45rem; font-weight:600;
                 letter-spacing:5px; color:#d4a030; position:relative; }}
-  .salon-sub{{ font-size:0.58rem; letter-spacing:3px; color:#4a8a5a; margin-top:5px;
+  .salon-sub{{ font-size:0.57rem; letter-spacing:3px; color:#4a8a5a; margin-top:5px;
                text-transform:uppercase; position:relative; }}
-  .contact{{ font-size:0.70rem; color:#6a9a7a; margin-top:6px; position:relative; }}
-  /* Metadata strip */
-  .meta-strip{{ background:#0d1e11; padding:10px 20px;
-                display:flex; justify-content:space-between; align-items:center; }}
-  .rcpt-no{{ color:#d4a030; font-size:0.72rem; font-weight:700; letter-spacing:1px; }}
-  .rcpt-date{{ color:#5a8a6a; font-size:0.72rem; }}
-  /* Body */
-  .body{{ padding:18px 20px; background:#fff; }}
-  /* Customer */
-  .customer-box{{ background:#f4f8f5; border-left:3px solid #d4a030;
-                  padding:10px 12px; margin-bottom:14px; border-radius:0 5px 5px 0; }}
-  .customer-label{{ font-size:0.62rem; color:#6a9a7a; letter-spacing:2px; text-transform:uppercase;
-                    margin-bottom:3px; }}
-  .customer-name{{ font-size:1rem; font-weight:700; color:#111; }}
-  .customer-time{{ font-size:0.70rem; color:#888; margin-top:2px; }}
-  /* Items table */
-  table{{ width:100%; border-collapse:collapse; margin-bottom:10px; }}
-  thead tr{{ background:#e8f0eb; }}
-  thead td{{ font-size:0.62rem; font-weight:700; letter-spacing:1px; text-transform:uppercase;
-             color:#4a7a5a; padding:7px 6px; }}
-  tbody td{{ padding:8px 6px; font-size:0.82rem; border-bottom:1px solid #edf3ef;
+  .contact{{ font-size:0.68rem; color:#6a9a7a; margin-top:5px; position:relative; line-height:1.6; }}
+
+  /* ── Meta strip ── */
+  .meta-strip{{ background:#0d2213; padding:0; }}
+  .meta-top{{ display:flex; justify-content:space-between; align-items:center;
+              padding:9px 18px; border-bottom:1px solid rgba(212,160,48,0.12); }}
+  .rcpt-no{{ color:#d4a030; font-size:0.73rem; font-weight:700; letter-spacing:1px; }}
+  .rcpt-type{{ font-size:0.60rem; color:#4a7a5a; letter-spacing:1px; }}
+  .meta-bot{{ display:flex; justify-content:space-between; align-items:center;
+              padding:7px 18px 9px; }}
+  .rcpt-date{{ color:#5a8a6a; font-size:0.70rem; }}
+  .rcpt-dow{{ color:#3a6a4a; font-size:0.65rem; }}
+
+  /* ── Body ── */
+  .body{{ padding:18px 20px 14px; background:#fff; position:relative; z-index:2; }}
+
+  /* ── Customer box ── */
+  .customer-box{{ background:#f3f8f4; border-left:4px solid #d4a030;
+                  padding:10px 14px; margin-bottom:16px; border-radius:0 6px 6px 0;
+                  display:flex; justify-content:space-between; align-items:flex-start; }}
+  .customer-left .customer-label{{ font-size:0.60rem; color:#6a9a7a; letter-spacing:2px;
+                                    text-transform:uppercase; margin-bottom:3px; }}
+  .customer-left .customer-name{{ font-size:1.05rem; font-weight:700; color:#111; }}
+  .customer-left .customer-appt{{ font-size:0.68rem; color:#888; margin-top:3px; }}
+  .type-badge{{ font-size:0.60rem; color:#4a7a5a; background:#e8f0eb;
+                border:1px solid #c8ddd0; border-radius:20px; padding:3px 9px;
+                white-space:nowrap; align-self:center; }}
+
+  /* ── Items table ── */
+  table{{ width:100%; border-collapse:collapse; margin-bottom:4px; }}
+  thead tr{{ background:#eaf2ec; }}
+  thead td{{ font-size:0.60rem; font-weight:700; letter-spacing:1.2px; text-transform:uppercase;
+             color:#4a7a5a; padding:7px 8px; }}
+  tbody td{{ padding:9px 8px; font-size:0.82rem; border-bottom:1px solid #eef4ef;
              vertical-align:top; }}
   td.desc{{ color:#111; }}
-  td.qty{{ text-align:center; color:#888; width:30px; }}
-  td.price{{ text-align:right; color:#888; width:80px; }}
-  td.amt{{ text-align:right; font-weight:600; color:#111; width:80px; }}
-  tr.disc-row td{{ font-size:0.78rem; color:#c0392b; border-bottom:1px solid #edf3ef; padding:6px 6px; }}
-  tr.info-row td{{ font-size:0.78rem; color:#666; border-bottom:1px dashed #edf3ef; padding:5px 6px; }}
-  /* Totals */
-  .totals{{ background:linear-gradient(135deg,#0a1e10,#071209); color:#fff;
-            padding:12px 16px; border-radius:5px; margin:10px 0; }}
-  .totals-row{{ display:flex; justify-content:space-between; align-items:center; }}
-  .totals-label{{ font-size:0.70rem; letter-spacing:2px; color:#5a8a6a; }}
-  .totals-amount{{ font-family:'Cinzel',serif; font-size:1.5rem; font-weight:600;
-                   color:#d4a030; }}
-  /* Payment */
-  .payment-row{{ display:flex; justify-content:space-between; padding:8px 0;
-                 border-bottom:1px solid #edf3ef; font-size:0.82rem; }}
-  .payment-label{{ color:#888; }}
-  .payment-val{{ font-weight:700; color:#111; }}
-  /* SST */
-  .sst-note{{ font-size:0.65rem; color:#8aaa8a; text-align:center; margin:10px 0 6px;
-              line-height:1.5; }}
-  /* Footer */
-  .footer{{ background:linear-gradient(160deg,#0a1e10,#071209); text-align:center; padding:16px 20px; }}
-  .thanks-main{{ font-family:'Cinzel',serif; font-size:1rem; color:#d4a030;
-                 letter-spacing:2px; }}
-  .thanks-sub{{ font-size:0.68rem; color:#4a8a5a; margin-top:4px; }}
-  .rcpt-stamp{{ font-size:0.6rem; color:#2a5a38; margin-top:8px; letter-spacing:1px; }}
-  .footer-meta{{ font-size:0.65rem; color:#4a7a5a; margin-top:6px; line-height:1.7; }}
-  /* Print button */
-  .print-btn{{ display:block; width:calc(100% - 40px); margin:16px 20px; padding:11px;
-               background:linear-gradient(135deg,#d4a030,#a07020); color:#fff; border:none;
-               border-radius:5px; font-size:0.82rem; font-weight:700; letter-spacing:2px;
-               cursor:pointer; font-family:'Raleway',sans-serif; text-transform:uppercase; }}
-  .print-btn:hover{{ background:linear-gradient(135deg,#f0c040,#d4a030); }}
+  td.qty{{ text-align:center; color:#888; width:28px; }}
+  td.price{{ text-align:right; color:#888; width:76px; }}
+  td.amt{{ text-align:right; font-weight:700; color:#111; width:82px; }}
+  .sty-tag{{ font-size:0.62rem; color:#6a9a7a; margin-top:3px; }}
+  tr.disc-row td{{ font-size:0.78rem; color:#c0392b; border-bottom:1px solid #eef4ef; padding:6px 8px; }}
+  tr.sum-row td{{ font-size:0.78rem; color:#666; border-bottom:1px solid #eef4ef;
+                  padding:5px 8px; background:#f8fbf8; }}
+  tr.info-row td{{ font-size:0.78rem; color:#666; border-bottom:1px dashed #eef4ef; padding:5px 8px; }}
+  tr.pts-row td{{ background:#f0faf2; }}
+  .tier-tag{{ font-size:0.55rem; background:#d4a030; color:#fff; border-radius:10px;
+              padding:1px 7px; margin-left:5px; vertical-align:middle; }}
+
+  /* ── Totals box ── */
+  .totals{{ background:linear-gradient(135deg,#0b2112,#071209); color:#fff;
+            padding:13px 18px; border-radius:6px; margin:12px 0 10px;
+            display:flex; justify-content:space-between; align-items:center; }}
+  .totals-label{{ font-size:0.68rem; letter-spacing:2.5px; color:#5a8a6a; }}
+  .totals-amount{{ font-family:'Cinzel',serif; font-size:1.6rem; font-weight:600; color:#d4a030; }}
+
+  /* ── Payment row ── */
+  .pay-section{{ border:1px solid #eef4ef; border-radius:6px; overflow:hidden; margin-bottom:12px; }}
+  .pay-row{{ display:flex; justify-content:space-between; align-items:center;
+             padding:8px 14px; font-size:0.82rem; }}
+  .pay-row + .pay-row{{ border-top:1px solid #eef4ef; }}
+  .pay-label{{ color:#888; }}
+  .pay-val{{ font-weight:700; color:#111; }}
+  .pay-val.paid-badge{{ background:#e8f5e9; color:#2e7d32; border-radius:20px;
+                         padding:2px 12px; font-size:0.72rem; letter-spacing:1px; }}
+
+  /* ── SST note ── */
+  .sst-note{{ font-size:0.62rem; color:#9ab09a; text-align:center; margin:4px 0 6px;
+              line-height:1.6; }}
+
+  /* ── Tear line ── */
+  .tear-line{{ margin:0 -20px; border:none;
+               border-top: 2px dashed #dde8dd; position:relative; }}
+  .tear-line::before, .tear-line::after{{
+    content:''; position:absolute; top:-8px;
+    width:14px; height:14px; background:#dde8dd;
+    border-radius:50%;
+  }}
+  .tear-line::before{{ left:-7px; }}
+  .tear-line::after{{ right:-7px; }}
+
+  /* ── Footer ── */
+  .footer{{ background:linear-gradient(160deg,#0b2112,#071209);
+            text-align:center; padding:18px 20px 14px; position:relative; z-index:2; }}
+  .thanks-main{{ font-family:'Cinzel',serif; font-size:1rem; color:#d4a030; letter-spacing:2px; }}
+  .thanks-sub{{ font-size:0.67rem; color:#4a8a5a; margin-top:5px; }}
+  .valid-stamp{{ font-size:0.58rem; color:#2a5a38; margin-top:8px; letter-spacing:0.8px; }}
+  .footer-meta{{ font-size:0.63rem; color:#4a7a5a; margin-top:7px; line-height:1.8; }}
+
+  /* ── Action buttons ── */
+  .btn-row{{ display:flex; gap:10px; padding:14px 20px 18px; background:#fff; }}
+  .btn{{ flex:1; padding:11px 8px; border:none; border-radius:6px;
+         font-size:0.78rem; font-weight:700; letter-spacing:1.5px; cursor:pointer;
+         font-family:'Raleway',sans-serif; text-transform:uppercase;
+         text-decoration:none; display:flex; align-items:center; justify-content:center; gap:6px; }}
+  .btn-print{{ background:linear-gradient(135deg,#d4a030,#a07020); color:#fff; }}
+  .btn-print:hover{{ background:linear-gradient(135deg,#f0c040,#d4a030); }}
+  .btn-wa{{ background:#25D366; color:#fff; }}
+  .btn-wa:hover{{ background:#1ebe5c; }}
+
   @media print{{
     body{{ background:#fff; padding:0; }}
     .receipt{{ box-shadow:none; width:100%; border-radius:0; }}
-    .print-btn{{ display:none; }}
+    .btn-row{{ display:none; }}
+    .tear-line{{ border-top-color:#ccc; }}
+    .tear-line::before, .tear-line::after{{ background:#fff; border:1px solid #ccc; }}
   }}
 </style>
 </head><body>
@@ -1785,24 +1941,34 @@ def build_receipt_html(r: dict, lang: str) -> str:
 
   <!-- HEADER -->
   <div class="header">
+    <div class="salon-logo">✦</div>
     <div class="salon-name">{salon.upper()}</div>
-    <div class="salon-sub">Professional Hair Salon · Malaysia</div>
+    <div class="salon-sub">Professional Hair Salon &nbsp;·&nbsp; Malaysia</div>
     {contact_line}
   </div>
 
   <!-- META STRIP -->
   <div class="meta-strip">
-    <div class="rcpt-no">No. {receipt_no}</div>
-    <div class="rcpt-date">{date_my} {time_str}</div>
+    <div class="meta-top">
+      <div class="rcpt-no">No. {receipt_no}</div>
+      <div class="rcpt-type">{rcpt_type_badge}</div>
+    </div>
+    <div class="meta-bot">
+      <div class="rcpt-date">📅 {date_my}{(' · ' + time_str) if time_str else ''}</div>
+      <div class="rcpt-dow">{dow_str}</div>
+    </div>
   </div>
 
   <div class="body">
 
     <!-- CUSTOMER -->
     <div class="customer-box">
-      <div class="customer-label">{'Pelanggan / 客户' if not is_zh else '客户'}</div>
-      <div class="customer-name">{name}</div>
-      {'<div class="customer-time">' + ('Temujanji / 预约时间: ' if not is_zh else '预约时间: ') + time_str + '</div>' if time_str else ''}
+      <div class="customer-left">
+        <div class="customer-label">{'Pelanggan / 客户' if not is_zh else '客户'}</div>
+        <div class="customer-name">{name}</div>
+        {'<div class="customer-appt">⏰ ' + ('Temujanji: ' if not is_zh else '预约时间: ') + time_str + '</div>' if time_str else ''}
+      </div>
+      <div class="type-badge">{rcpt_type_badge}</div>
     </div>
 
     <!-- ITEMS TABLE -->
@@ -1816,9 +1982,8 @@ def build_receipt_html(r: dict, lang: str) -> str:
         </tr>
       </thead>
       <tbody>
-        {rows_html}
-        {disc_row_html}
-        {stylist_row}
+        {item_rows_html}
+        {summary_html}
         {member_rows}
         {note_row}
       </tbody>
@@ -1826,20 +1991,27 @@ def build_receipt_html(r: dict, lang: str) -> str:
 
     <!-- TOTAL BOX -->
     <div class="totals">
-      <div class="totals-row">
-        <div class="totals-label">{total_lbl}</div>
-        <div class="totals-amount">RM {final:.2f}</div>
+      <div class="totals-label">{total_lbl}</div>
+      <div class="totals-amount">RM {final:.2f}</div>
+    </div>
+
+    <!-- PAYMENT DETAILS -->
+    <div class="pay-section">
+      <div class="pay-row">
+        <span class="pay-label">{pay_lbl}</span>
+        <span class="pay-val">{method}</span>
+      </div>
+      <div class="pay-row">
+        <span class="pay-label">{'Status / 状态' if not is_zh else '状态'}</span>
+        <span class="pay-val paid-badge">✓ {'SELESAI / 已付款' if not is_zh else '已付款'}</span>
       </div>
     </div>
 
-    <!-- PAYMENT METHOD -->
-    <div class="payment-row">
-      <span class="payment-label">{pay_lbl}</span>
-      <span class="payment-val">{method}</span>
-    </div>
-
     <!-- SST NOTE -->
-    <div class="sst-note">* SST Exempted · Perkhidmatan Salun Rambut<br>{sst_note}</div>
+    <div class="sst-note">* {sst_note}</div>
+
+    <!-- TEAR LINE -->
+    <hr class="tear-line">
 
   </div>
 
@@ -1847,13 +2019,22 @@ def build_receipt_html(r: dict, lang: str) -> str:
   <div class="footer">
     <div class="thanks-main">{thanks_my}</div>
     <div class="thanks-sub">{thanks_en}</div>
-    <div class="rcpt-stamp">Resit ini adalah sah tanpa tandatangan · This receipt is valid without signature</div>
+    <div class="valid-stamp">
+      {'Resit ini sah tanpa tandatangan · This receipt is valid without signature'
+       if not is_zh else '本收据无需签名，同样具有效力'}
+    </div>
     {footer_meta}
   </div>
 
-  <button class="print-btn" onclick="window.print()">
-    {'🖨️  Cetak Resit / 打印收据' if not is_zh else '🖨️  打印收据'}
-  </button>
+  <!-- ACTION BUTTONS -->
+  <div class="btn-row">
+    <button class="btn btn-print" onclick="window.print()">
+      🖨️ {'Cetak / 打印' if not is_zh else '打印'}
+    </button>
+    <a class="btn btn-wa" href="{wa_link}" target="_blank">
+      📱 WhatsApp
+    </a>
+  </div>
 
 </div>
 </body></html>"""
@@ -2812,21 +2993,26 @@ if _active == "tab3":
                     # Pre-load receipt data
                     import datetime as _inv_dt
                     _inv_ts = _inv_dt.datetime.now().strftime("%Y%m%d-%H%M%S")
+                    _mem_tier_rcpt = pay_mem.get("tier","") if pay_mem else ""
+                    _mem_pts_after = (pay_mem.get("points",0) + pts_earn) if pay_mem else 0
                     st.session_state.sel_receipt = {
-                        "name":       sel_bk["name"],
-                        "service":    sel_bk["service"],
-                        "stylist":    pay_stylist_val or sel_bk.get("stylist",""),
-                        "time":       sel_bk["time"],
-                        "date":       today_str,
-                        "subtotal":   orig,
-                        "disc_pct":   disc_pct,
-                        "extra":      extra,
-                        "final":      final,
-                        "method":     chosen_key,
-                        "member":     pay_mem["name"] if pay_mem else "",
-                        "pts":        pts_earn if pay_mem else 0,
-                        "note":       pay_note.strip(),
-                        "invoice_no": f"INV-{_inv_ts}",
+                        "name":          sel_bk["name"],
+                        "service":       sel_bk["service"],
+                        "stylist":       pay_stylist_val or sel_bk.get("stylist",""),
+                        "time":          sel_bk["time"],
+                        "date":          today_str,
+                        "subtotal":      orig,
+                        "disc_pct":      disc_pct,
+                        "extra":         extra,
+                        "final":         final,
+                        "method":        chosen_key,
+                        "member":        pay_mem["name"] if pay_mem else "",
+                        "pts":           pts_earn if pay_mem else 0,
+                        "note":          pay_note.strip(),
+                        "invoice_no":    f"INV-{_inv_ts}",
+                        "type":          "booking",
+                        "mem_tier":      _mem_tier_rcpt,
+                        "mem_pts_total": _mem_pts_after,
                     }
                     # Add points + history to member
                     if pay_mem:
@@ -2947,21 +3133,26 @@ if _active == "tab3":
                         }
                     import datetime as _inv_dt
                     _inv_ts = _inv_dt.datetime.now().strftime("%Y%m%d-%H%M%S")
+                    _wi_tier_rcpt = wi_pay_mem.get("tier","") if wi_pay_mem else ""
+                    _wi_pts_after = (wi_pay_mem.get("points",0) + wi_pts_earn) if wi_pay_mem else 0
                     st.session_state.sel_receipt = {
-                        "name":       wi_name.strip(),
-                        "service":    wi_svc or "—",
-                        "stylist":    wi_stylist_val,
-                        "time":       "",
-                        "date":       today_str,
-                        "subtotal":   wi_amt,
-                        "disc_pct":   0,
-                        "extra":      0,
-                        "final":      wi_amt,
-                        "method":     wi_key,
-                        "member":     wi_pay_mem["name"] if wi_pay_mem else "",
-                        "pts":        wi_pts_earn if wi_pay_mem else 0,
-                        "note":       wi_note.strip(),
-                        "invoice_no": f"INV-{_inv_ts}",
+                        "name":          wi_name.strip(),
+                        "service":       wi_svc or "—",
+                        "stylist":       wi_stylist_val,
+                        "time":          "",
+                        "date":          today_str,
+                        "subtotal":      wi_amt,
+                        "disc_pct":      0,
+                        "extra":         0,
+                        "final":         wi_amt,
+                        "method":        wi_key,
+                        "member":        wi_pay_mem["name"] if wi_pay_mem else "",
+                        "pts":           wi_pts_earn if wi_pay_mem else 0,
+                        "note":          wi_note.strip(),
+                        "invoice_no":    f"INV-{_inv_ts}",
+                        "type":          "walkin",
+                        "mem_tier":      _wi_tier_rcpt,
+                        "mem_pts_total": _wi_pts_after,
                     }
                     if wi_pay_mem:
                         for m in st.session_state.members:
