@@ -162,11 +162,7 @@ SERVICES_ZH = {
     "剪发": 50, "染发": 180, "头皮护理": 120,
     "烫发": 250, "角蛋白护理": 350, "头皮SPA": 100,
 }
-TIME_SLOTS = [
-    "10:00", "10:30", "11:00", "11:30", "12:00", "12:30",
-    "13:00", "13:30", "14:00", "14:30", "15:00", "15:30",
-    "16:00", "16:30", "17:00", "17:30", "18:00", "18:30",
-]
+TIME_SLOTS = [f"{h:02d}:{m:02d}" for h in range(9, 20) for m in (0, 30)]
 
 # ── Read salon ID from URL params ─────────────────────────────────────────────
 params     = st.query_params
@@ -282,6 +278,14 @@ if _USE_DB:
         sty_res = sb.table("stylists").select("name").eq("salon_id", salon_id).execute()
         if sty_res.data:
             stylists = [r["name"] for r in sty_res.data]
+        # Load services from DB (overrides hardcoded defaults)
+        svc_res = sb.table("services").select("name,price").eq("salon_id", salon_id)\
+                     .order("sort_order").execute()
+        if svc_res.data:
+            _db_svcs = {r["name"]: float(r.get("price") or 0) for r in svc_res.data}
+            # Override both language dicts so get_price() still works
+            SERVICES_ZH.clear(); SERVICES_ZH.update(_db_svcs)
+            SERVICES_EN.clear(); SERVICES_EN.update(_db_svcs)
     except Exception:
         pass
 
@@ -386,7 +390,8 @@ if _USE_DB:
         sb = _sb()
         q = sb.table("bookings").select("time")\
                .eq("salon_id", salon_id)\
-               .eq("date", str(chosen_date))
+               .eq("date", str(chosen_date))\
+               .neq("status", "cancelled")  # cancelled slots are free again
         if st.session_state.bk_stylist:
             q = q.eq("stylist", st.session_state.bk_stylist)
         taken_res = q.execute()

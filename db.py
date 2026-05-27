@@ -292,13 +292,19 @@ def db_get_pending_count(salon_id: str) -> int:
 
 
 def db_save_all_bookings(salon_id: str, bookings: list):
-    """Overwrite all bookings for salon (used after data_editor save)."""
-    _sb().table("bookings").delete().eq("salon_id", salon_id).execute()
-    if bookings:
-        for bk in bookings:
-            payload = {k: v for k, v in bk.items() if k != "id"}
-            payload["salon_id"] = salon_id
-            _sb().table("bookings").insert(payload).execute()
+    """Upsert bookings per-row to preserve UUIDs and avoid race conditions.
+    Rows with an existing 'id' are updated; rows without 'id' are inserted."""
+    for bk in bookings:
+        try:
+            if bk.get("id"):
+                payload = {k: v for k, v in bk.items() if k not in ("id", "salon_id")}
+                _sb().table("bookings").update(payload).eq("id", bk["id"]).execute()
+            else:
+                payload = {k: v for k, v in bk.items() if k != "id"}
+                payload["salon_id"] = salon_id
+                _sb().table("bookings").insert(payload).execute()
+        except Exception:
+            pass
 
 
 # ═════════════════════════════════════════════════════════════════════════════

@@ -5,6 +5,12 @@ import calendar as _cal
 import hashlib
 from datetime import date as dt_date
 
+try:
+    import bcrypt as _bcrypt
+    _BCRYPT_OK = True
+except ImportError:
+    _BCRYPT_OK = False
+
 # Try to import DB layer (only available when Supabase secrets are configured)
 try:
     from db import (
@@ -37,7 +43,33 @@ except Exception:
 
 # ── Auth helpers ──────────────────────────────────────────────────────────────
 def _hash(pw: str) -> str:
+    """SHA-256 — kept only for backward-compat comparison during migration."""
     return hashlib.sha256(pw.encode()).hexdigest()
+
+def _hash_pw(pw: str) -> str:
+    """Return a bcrypt hash (preferred) or SHA-256 fallback."""
+    if _BCRYPT_OK:
+        return _bcrypt.hashpw(pw.encode(), _bcrypt.gensalt(rounds=12)).decode()
+    return _hash(pw)
+
+def _check_pw(pw: str, stored: str) -> bool:
+    """Verify password against bcrypt or legacy SHA-256 hash."""
+    if stored.startswith("$2b$") or stored.startswith("$2a$"):
+        if _BCRYPT_OK:
+            try:
+                return _bcrypt.checkpw(pw.encode(), stored.encode())
+            except Exception:
+                return False
+        return False
+    # Legacy SHA-256 comparison
+    return _hash(pw) == stored
+
+def _compute_tier(points: int) -> str:
+    """Return the membership tier label based on accumulated points."""
+    if points >= 3000: return "VIP"
+    if points >= 1500: return "金卡"
+    if points >= 500:  return "银卡"
+    return "普通"
 
 # Default accounts — owner should change passwords after first login
 # Structure: { username: {hash, role, branch, display_name} }
@@ -93,7 +125,7 @@ except Exception:
 
 # Inject viewport meta for proper mobile scaling
 st.markdown(
-    '<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">',
+    '<meta name="viewport" content="width=device-width, initial-scale=1.0">',
     unsafe_allow_html=True,
 )
 
@@ -1274,11 +1306,19 @@ if not st.session_state.logged_in:
             if branch == "all":
                 branch = next(iter(st.session_state.branches), "B001")
             st.session_state.cur_branch = branch
+            # Store token in session_state so URL can be cleared without losing it
+            st.session_state["_session_token"] = st.query_params.get("t", "")
             _init_branch(branch)
             if _USE_DB:
                 try:
                     data = db_load_salon(branch)
                     st.session_state.branch_data[branch] = data
+                except Exception:
+                    pass
+            # Remove token from URL — keeps it out of browser history/referrer logs
+            if "t" in st.query_params:
+                try:
+                    del st.query_params["t"]
                 except Exception:
                     pass
 
@@ -1328,7 +1368,6 @@ if not st.session_state.logged_in:
             lg_pass = st.text_input("🔑 Password / 密码",   key="lg_pass", placeholder="password", type="password")
             if st.button("Login / 登录", key="login_btn", use_container_width=True):
                 uname = lg_user.strip()
-                ph    = _hash(lg_pass)
                 acct  = None
 
                 if _USE_DB:
@@ -1340,7 +1379,17 @@ if not st.session_state.logged_in:
                         st.stop()
 
                 acct = st.session_state.accounts.get(uname)
-                if acct and acct["hash"] == ph:
+                _pw_ok = acct and _check_pw(lg_pass, acct["hash"])
+                # Migrate legacy SHA-256 hash to bcrypt on first successful login
+                if _pw_ok and _BCRYPT_OK and not acct["hash"].startswith("$2"):
+                    _new_hash = _hash_pw(lg_pass)
+                    if _USE_DB:
+                        try:
+                            db_update_password(uname, _new_hash)
+                        except Exception:
+                            pass
+                    acct["hash"] = _new_hash
+                if _pw_ok:
                     st.session_state.logged_in  = True
                     st.session_state.username   = uname
                     st.session_state.role       = acct["role"]
@@ -1492,8 +1541,14 @@ if _USE_DB and _auto_refresh_count > 0:
 hdr_l, hdr_m, hdr_r = st.columns([2, 3, 2])
 with hdr_l:
     st.markdown("<div style='height:10px'></div>", unsafe_allow_html=True)
-    # Branch selector — only platform admin can switch between salons
-    if _can("super_admin") and len(st.session_state.branches) > 1:
+    # Branch selector — platform admin AND owners with multi-branch access can switch
+    _user_acct_branch = st.session_state.accounts.get(
+        st.session_state.get("username",""), {}).get("branch", "")
+    _can_switch_branch = (
+        (_can("super_admin") or _user_acct_branch == "all")
+        and len(st.session_state.branches) > 1
+    )
+    if _can_switch_branch:
         branch_opts  = list(st.session_state.branches.keys())
         branch_names = [st.session_state.branches[b] for b in branch_opts]
         cur_idx      = branch_opts.index(st.session_state.cur_branch) if st.session_state.cur_branch in branch_opts else 0
@@ -2207,6 +2262,32 @@ if _can("admin"):
 _valid_tabs = [x[0] for x in _NAV_ITEMS]
 if "active_tab" not in st.session_state or st.session_state.active_tab not in _valid_tabs:
     st.session_state.active_tab = "tab1"
+
+# Mobile nav: allow horizontal scroll so buttons don't squish below 600px
+st.markdown("""
+<style>
+@media (max-width:640px) {
+  div[data-testid='stHorizontalBlock']:first-of-type {
+    overflow-x:auto !important;
+    flex-wrap:nowrap !important;
+    -webkit-overflow-scrolling:touch;
+    padding-bottom:4px !important;
+  }
+  div[data-testid='stHorizontalBlock']:first-of-type > div {
+    min-width:64px !important;
+    flex-shrink:0 !important;
+  }
+  /* Stack two-column layouts on mobile */
+  div[data-testid='stHorizontalBlock']:not(:first-of-type) {
+    flex-wrap:wrap !important;
+  }
+  div[data-testid='stHorizontalBlock']:not(:first-of-type) > div[data-testid='stColumn'] {
+    min-width:100% !important;
+    flex:1 1 100% !important;
+  }
+}
+</style>
+""", unsafe_allow_html=True)
 
 # Render nav as Streamlit columns (works on mobile + desktop)
 _nav_cols = st.columns(len(_NAV_ITEMS))
@@ -3087,9 +3168,15 @@ if _active == "tab3":
                                 m["visit_count"] = m.get("visit_count", 0) + 1
                                 hist_entry = {"date": today_str, "service": sel_bk["service"], "amt": final, "pts": pts_earn}
                                 m.setdefault("history", []).append(hist_entry)
+                                m["tier"] = _compute_tier(m["points"])
                                 if _USE_DB:
                                     try:
-                                        db_update_member(m["id"], {"points": m["points"], "total_spent": m["total_spent"], "visit_count": m["visit_count"]})
+                                        db_update_member(m["id"], {
+                                            "points":      m["points"],
+                                            "total_spent": m["total_spent"],
+                                            "visit_count": m["visit_count"],
+                                            "tier":        m["tier"],
+                                        })
                                         db_add_member_history(m["id"], hist_entry)
                                     except Exception: pass
                                 new_tier = tier_for_points(m["points"])
@@ -3224,12 +3311,24 @@ if _active == "tab3":
                                 m["points"]      = old_pts + wi_pts_earn
                                 m["total_spent"] = round(m.get("total_spent", 0) + wi_amt, 2)
                                 m["visit_count"] = m.get("visit_count", 0) + 1
-                                m.setdefault("history", []).append({
+                                m["tier"]        = _compute_tier(m["points"])
+                                _wi_hist = {
                                     "date":    today_str,
                                     "service": wi_svc or "—",
                                     "amt":     wi_amt,
                                     "pts":     wi_pts_earn,
-                                })
+                                }
+                                m.setdefault("history", []).append(_wi_hist)
+                                if _USE_DB:
+                                    try:
+                                        db_update_member(m["id"], {
+                                            "points":      m["points"],
+                                            "total_spent": m["total_spent"],
+                                            "visit_count": m["visit_count"],
+                                            "tier":        m["tier"],
+                                        })
+                                        db_add_member_history(m["id"], _wi_hist)
+                                    except Exception: pass
                                 new_tier = tier_for_points(m["points"])
                                 old_tier = tier_for_points(old_pts)
                                 if new_tier["key"] != old_tier["key"]:
@@ -3379,6 +3478,30 @@ if _active == "tab3":
                             if st.button("✅ " + ("确认取消" if is_zh_pay else "Confirm Void"),
                                          key=f"void_yes_{idx}", type="primary"):
                                 ref = h["ref"]
+                                _void_final = h.get("final", ref.get("final", 0))
+                                _void_name  = h.get("name", "")
+
+                                # ── Reverse member points if applicable ────────
+                                for m in st.session_state.members:
+                                    if (m.get("name","").strip().lower() == _void_name.strip().lower()
+                                            or (ref.get("phone") and
+                                                m.get("phone","").strip() == ref.get("phone","").strip())):
+                                        _pts_to_reverse = int(_void_final)  # 1 RM = 1 pt
+                                        m["points"]      = max(0, m.get("points",0) - _pts_to_reverse)
+                                        m["total_spent"] = max(0, round(m.get("total_spent",0) - _void_final, 2))
+                                        m["visit_count"] = max(0, m.get("visit_count",0) - 1)
+                                        m["tier"]        = _compute_tier(m["points"])
+                                        if _USE_DB:
+                                            try:
+                                                db_update_member(m["id"], {
+                                                    "points":      m["points"],
+                                                    "total_spent": m["total_spent"],
+                                                    "visit_count": m["visit_count"],
+                                                    "tier":        m["tier"],
+                                                })
+                                            except Exception: pass
+                                        break
+
                                 if h["type"] == "booking":
                                     for b in st.session_state.bookings:
                                         if (b.get("name") == ref.get("name") and
@@ -3404,7 +3527,8 @@ if _active == "tab3":
                                         try: db_delete_walkin(ref["id"])
                                         except Exception: pass
                                 st.session_state.pop(f"confirm_void_{idx}", None)
-                                st.success("✅ " + ("已取消收费" if is_zh_pay else "Payment voided"))
+                                st.success("✅ " + ("已取消收费（积分已还原）" if is_zh_pay
+                                                    else "Payment voided (points reversed)"))
                                 st.rerun()
                         with cv2:
                             if st.button("↩ " + ("返回" if is_zh_pay else "Cancel"),
@@ -4850,8 +4974,8 @@ if _can("analytics") and _active == "tab_analytics":
 
         with ch2:
             bk_stylists = [b.get("stylist","—") for b in st.session_state.bookings
-                           if b.get("stylist") and b.get("date","") >= str(
-                               mo_start if period=="month" else wk_start if period=="week" else "2000-01-01")]
+                           if b.get("stylist")
+                           and str(date_from) <= b.get("date","") <= str(date_to)]
             if bk_stylists:
                 df_sty = pd.Series(bk_stylists).value_counts().reset_index()
                 df_sty.columns = ["stylist", "bookings"]
@@ -5460,9 +5584,10 @@ if _can("admin") and _active == "tab_admin":
                                                         key=f"pw_{bid}_{ua}", label_visibility="collapsed")
                                 if st.button("🔑", key=f"rpw_{bid}_{ua}", help="Reset password"):
                                     if len(_pw_in) >= 6:
-                                        st.session_state.accounts[ua]["hash"] = _hash(_pw_in)
+                                        _new_h = _hash_pw(_pw_in)
+                                        st.session_state.accounts[ua]["hash"] = _new_h
                                         if _USE_DB:
-                                            try: db_update_password(ua, _hash(_pw_in))
+                                            try: db_update_password(ua, _new_h)
                                             except Exception: pass
                                         st.success("✅")
                                     else:
@@ -5664,15 +5789,16 @@ if _can("admin") and _active == "tab_admin":
             cp_new2 = st.text_input("确认 / Confirm",        type="password", key="cp_new2")
             if st.button("Update / 更新", key="cp_btn"):
                 me = st.session_state.accounts.get(st.session_state.username)
-                if not me or me["hash"] != _hash(cp_old):
+                if not me or not _check_pw(cp_old, me["hash"]):
                     st.error("❌ " + ("旧密码不正确" if is_zh else "Old password incorrect"))
                 elif cp_new != cp_new2:
                     st.error("❌ " + ("新密码不一致" if is_zh else "Passwords don't match"))
                 elif len(cp_new) < 6:
                     st.warning("⚠ " + ("密码至少6位" if is_zh else "Password must be 6+ chars"))
                 else:
-                    st.session_state.accounts[st.session_state.username]["hash"] = _hash(cp_new)
+                    _cp_new_h = _hash_pw(cp_new)
+                    st.session_state.accounts[st.session_state.username]["hash"] = _cp_new_h
                     if _USE_DB:
-                        try: db_update_password(st.session_state.username, _hash(cp_new))
+                        try: db_update_password(st.session_state.username, _cp_new_h)
                         except Exception: pass
                     st.success("✦ " + ("密码已更新" if is_zh else "Password updated"))
